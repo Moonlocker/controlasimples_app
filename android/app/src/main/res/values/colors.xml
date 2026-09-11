@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Identidade Controla Simples -->
+    <color name="brand_primary">#FF7000</color>
+    <color name="brand_landing">#2A2422</color>
+	<color name="ic_launcher_background">#FF7000</color>
+</resources>

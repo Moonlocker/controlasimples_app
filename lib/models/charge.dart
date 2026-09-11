@@ -1,0 +1,93 @@
+import '../core/constants/enums.dart';
+import '../core/utils/dates.dart';
+
+class Charge {
+  const Charge({
+    required this.id,
+    required this.userId,
+    required this.clientId,
+    this.serviceId,
+    this.recurringId,
+    required this.description,
+    this.amount = 0,
+    required this.dueDate,
+    this.status = ChargeStatus.pendente,
+    this.asaasPaymentId,
+    this.asaasInvoiceUrl,
+    this.asaasBankSlipUrl,
+    this.asaasPixPayload,
+    this.asaasPixQrCode,
+    this.asaasStatus,
+    this.asaasBillingType,
+    this.paidDate,
+    required this.createdAt,
+  });
+
+  static const String table = 'charges';
+
+  final String id;
+  final String userId;
+  final String clientId;
+  final String? serviceId;
+  final String? recurringId;
+  final String description;
+  final double amount;
+  final DateTime dueDate;
+  final ChargeStatus status;
+  final String? asaasPaymentId;
+  final String? asaasInvoiceUrl;
+  final String? asaasBankSlipUrl;
+  final String? asaasPixPayload;
+  final String? asaasPixQrCode;
+  final String? asaasStatus;
+  final String? asaasBillingType;
+  final DateTime? paidDate;
+  final DateTime createdAt;
+
+  factory Charge.fromMap(Map<String, dynamic> map) {
+    return Charge(
+      id: map['id'] as String,
+      userId: map['user_id'] as String,
+      clientId: map['client_id'] as String,
+      serviceId: map['project_id'] as String?,
+      recurringId: map['recurring_id'] as String?,
+      description: (map['description'] as String?) ?? '',
+      amount: (map['amount'] as num?)?.toDouble() ?? 0,
+      dueDate: parseDate(map['due_date']),
+      status: ChargeStatus.fromWire(map['status'] as String?),
+      asaasPaymentId: map['asaas_payment_id'] as String?,
+      asaasInvoiceUrl: map['asaas_invoice_url'] as String?,
+      asaasBankSlipUrl: map['asaas_bank_slip_url'] as String?,
+      asaasPixPayload: map['asaas_pix_payload'] as String?,
+      asaasPixQrCode: map['asaas_pix_qr_code'] as String?,
+      asaasStatus: map['asaas_status'] as String?,
+      asaasBillingType: map['asaas_billing_type'] as String?,
+      paidDate: tryParseDate(map['paid_date']),
+      createdAt: parseDate(map['created_at']),
+    );
+  }
+
+  Map<String, dynamic> toInsertMap(String userId) {
+    return {
+      'user_id': userId,
+      'client_id': clientId,
+      'project_id': serviceId,
+      'recurring_id': recurringId,
+      'description': description,
+      'amount': amount,
+      'due_date': isoDate(dueDate),
+      'status': status.wire,
+    };
+  }
+
+  Map<String, dynamic> toUpdateMap() {
+    return {
+      'client_id': clientId,
+      'project_id': serviceId,
+      'description': description,
+      'amount': amount,
+      'due_date': isoDate(dueDate),
+      'status': status.wire,
+    };
+  }
+}
