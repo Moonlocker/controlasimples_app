@@ -1,4 +1,4 @@
-package com.example.flutter_controlasimples
+package br.com.controlasimples
 
 import io.flutter.embedding.android.FlutterActivity
 
