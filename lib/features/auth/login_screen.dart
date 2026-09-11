@@ -63,9 +63,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         );
       }
     } on AuthException catch (error) {
-      setState(() => _error = error.message);
+      setState(() => _error = _friendlyAuthMessage(error.message));
     } catch (_) {
-      setState(() => _error = 'Não foi possível continuar. Tente novamente.');
+      setState(() => _error = 'Não foi possível continuar. Verifique sua conexão e tente novamente.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -79,7 +79,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       await ref.read(authRepositoryProvider).signInWithGoogle();
     } on AuthException catch (error) {
-      setState(() => _error = error.message);
+      setState(() => _error = _friendlyAuthMessage(error.message));
     } catch (_) {
       setState(() => _error = 'Não foi possível entrar com o Google.');
     } finally {
@@ -318,4 +318,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ),
     );
   }
+}
+
+String _friendlyAuthMessage(String message) {
+  final lower = message.toLowerCase();
+  if (lower.contains('invalid login credentials')) {
+    return 'E-mail ou senha inválidos.';
+  }
+  if (lower.contains('email not confirmed')) {
+    return 'Confirme seu e-mail antes de entrar.';
+  }
+  if (lower.contains('user already registered')) {
+    return 'Este e-mail já está cadastrado. Faça login.';
+  }
+  if (lower.contains('password should be at least')) {
+    return 'A senha é muito curta.';
+  }
+  if (lower.contains('rate limit') || lower.contains('too many')) {
+    return 'Muitas tentativas. Aguarde um instante e tente de novo.';
+  }
+  if (lower.contains('failed host lookup') ||
+      lower.contains('socket') ||
+      lower.contains('network') ||
+      lower.contains('connection')) {
+    return 'Sem conexão. Verifique sua internet e tente novamente.';
+  }
+  return message;
 }

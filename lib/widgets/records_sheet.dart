@@ -160,9 +160,19 @@ class _SectionHeader extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              section.title,
-              style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  section.title,
+                  style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                if (section.hint != null)
+                  Text(
+                    section.hint!,
+                    style: textTheme.bodySmall?.copyWith(color: AppColors.mutedForeground),
+                  ),
+              ],
             ),
           ),
           Text(

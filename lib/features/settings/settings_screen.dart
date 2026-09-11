@@ -68,7 +68,7 @@ class SettingsScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               const _WhatsappSection(),
               const SizedBox(height: 16),
-              _BusinessSection(),
+              const _BusinessSection(),
               const SizedBox(height: 16),
               const _DataSection(),
               const SizedBox(height: 24),
@@ -96,6 +96,8 @@ class SettingsScreen extends ConsumerWidget {
 }
 
 class _BusinessSection extends ConsumerWidget {
+  const _BusinessSection();
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final business = ref.watch(businessProvider).value;
@@ -126,19 +128,21 @@ class _DataSectionState extends ConsumerState<_DataSection> {
   bool _busy = false;
 
   Future<void> _export() async {
+    final userId = ref.read(currentUserIdProvider);
+    if (userId == null) return;
     setState(() => _busy = true);
     try {
       final client = ref.read(supabaseProvider);
       final results = await Future.wait<List<dynamic>>([
-        client.from('clients').select(),
-        client.from('projects').select(),
-        client.from('charges').select(),
-        client.from('recurring_charges').select(),
-        client.from('payments').select(),
-        client.from('quotes').select(),
-        client.from('user_business').select(),
-        client.from('profiles').select(),
-        client.from('subscriptions').select(),
+        client.from('clients').select().eq('user_id', userId),
+        client.from('projects').select().eq('user_id', userId),
+        client.from('charges').select().eq('user_id', userId),
+        client.from('recurring_charges').select().eq('user_id', userId),
+        client.from('payments').select().eq('user_id', userId),
+        client.from('quotes').select().eq('user_id', userId),
+        client.from('user_business').select().eq('user_id', userId),
+        client.from('profiles').select().eq('id', userId),
+        client.from('subscriptions').select().eq('user_id', userId),
       ]);
       final backup = <String, dynamic>{
         'exportedAt': DateTime.now().toIso8601String(),
@@ -1103,6 +1107,11 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
     } on AuthException catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível alterar a senha. Tente novamente.')),
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }

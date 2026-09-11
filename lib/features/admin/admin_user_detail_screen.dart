@@ -145,6 +145,7 @@ class _UserDetailState extends ConsumerState<_UserDetail> {
           child: Column(
             children: [
               DropdownButtonFormField<String?>(
+                key: ValueKey('plan-${user.planId}'),
                 initialValue: user.planId,
                 decoration: const InputDecoration(labelText: 'Plano'),
                 items: [
@@ -162,6 +163,7 @@ class _UserDetailState extends ConsumerState<_UserDetail> {
               ),
               const SizedBox(height: 14),
               DropdownButtonFormField<SubscriptionStatus>(
+                key: ValueKey('status-${user.subscriptionStatus}'),
                 initialValue: user.subscriptionStatus ?? SubscriptionStatus.trial,
                 decoration: const InputDecoration(labelText: 'Situação'),
                 items: [

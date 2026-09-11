@@ -50,10 +50,10 @@ class _QuoteEditorScreenState extends ConsumerState<QuoteEditorScreen> {
     super.dispose();
   }
 
-  void _initNew(int count) {
+  void _initNew(List<Quote> existing) {
     final source = widget.duplicateFrom;
     _title.text = source?.title ?? 'Orçamento';
-    _number.text = 'ORÇ-${(count + 1).toString().padLeft(4, '0')}';
+    _number.text = 'ORÇ-${_nextNumber(existing).toString().padLeft(4, '0')}';
     if (source != null) {
       _note.text = source.note ?? '';
       _discount.text = CurrencyInputFormatter.fromDouble(source.discount);
@@ -67,6 +67,16 @@ class _QuoteEditorScreenState extends ConsumerState<QuoteEditorScreen> {
     }
     if (_items.isEmpty) _items.add(_ItemDraft());
     _initialized = true;
+  }
+
+  int _nextNumber(List<Quote> existing) {
+    var highest = 0;
+    for (final quote in existing) {
+      final digits = quote.number.replaceAll(RegExp(r'[^0-9]'), '');
+      final value = int.tryParse(digits);
+      if (value != null && value > highest) highest = value;
+    }
+    return highest + 1;
   }
 
   void _load(Quote quote) {
@@ -165,7 +175,7 @@ class _QuoteEditorScreenState extends ConsumerState<QuoteEditorScreen> {
     final quotesAsync = ref.watch(quotesProvider);
 
     if (widget.quoteId == null) {
-      if (!_initialized) _initNew(quotesAsync.value?.length ?? 0);
+      if (!_initialized) _initNew(quotesAsync.value ?? const []);
       return _form(context);
     }
 
@@ -365,12 +375,15 @@ class _QuoteEditorScreenState extends ConsumerState<QuoteEditorScreen> {
           fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
           color: bold ? AppColors.foreground : AppColors.mutedForeground,
         );
+    final display = value == 0
+        ? 'R\$ 0,00'
+        : '${value < 0 ? '- ' : ''}${CurrencyInputFormatter.formatCents((value.abs() * 100).round())}';
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         children: [
           Expanded(child: Text(label, style: style)),
-          Text(value == 0 ? 'R\$ 0,00' : CurrencyInputFormatter.fromDouble(value), style: style),
+          Text(display, style: style),
         ],
       ),
     );
