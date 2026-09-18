@@ -855,21 +855,32 @@ class _TemplatesTab extends ConsumerWidget {
       data: (templates) => ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
-          Align(
-            alignment: Alignment.centerRight,
-            child: FilledButton.icon(
-              onPressed: () =>
-                  showAppFormSheet(context, const _TemplateFormSheet()),
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Novo template'),
-            ),
+          const _MetaTemplatesSection(),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Templates vinculados',
+                  style: Theme.of(context).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+              FilledButton.icon(
+                onPressed: () =>
+                    showAppFormSheet(context, const _TemplateFormSheet()),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Novo'),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           if (templates.isEmpty)
             const EmptyState(
               icon: Icons.message_outlined,
               title: 'Nenhum template',
-              description: 'Cadastre o template aprovado na Meta para começar.',
+              description:
+                  'Vincule um modelo da Meta acima ou cadastre manualmente.',
             )
           else
             for (final template in templates) ...[
@@ -1556,6 +1567,268 @@ class _WhatsappConfigFormSheetState
               ),
             ),
           ],
+        ),
+      ],
+    );
+  }
+}
+
+const List<({String value, String label})> _metaOccasions = [
+  (value: 'cobranca', label: 'Aviso de cobrança (no vencimento)'),
+  (value: 'cobranca_vencendo', label: 'Cobrança a vencer'),
+  (value: 'cobranca_atraso', label: 'Cobrança em atraso'),
+  (value: 'confirmacao_pagamento', label: 'Confirmação de pagamento'),
+  (value: 'boas_vindas', label: 'Boas-vindas ao cliente'),
+  (value: 'manual', label: 'Uso manual pelo superadmin'),
+];
+
+/// Modelos cadastrados/aprovados na conta da Meta, com vínculo por ocasião.
+class _MetaTemplatesSection extends ConsumerWidget {
+  const _MetaTemplatesSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(adminMetaTemplatesProvider);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Modelos da Meta',
+                style: Theme.of(context).textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Atualizar',
+              onPressed: () => ref.invalidate(adminMetaTemplatesProvider),
+              icon: const Icon(Icons.refresh),
+            ),
+          ],
+        ),
+        Text(
+          'Consulte os modelos aprovados na conta do WhatsApp e vincule cada '
+          'um a uma ocasião do sistema.',
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: AppColors.mutedForeground),
+        ),
+        const SizedBox(height: 10),
+        async.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (error, _) => AsyncErrorView(
+            error: error,
+            onRetry: () => ref.invalidate(adminMetaTemplatesProvider),
+          ),
+          data: (templates) => templates.isEmpty
+              ? const EmptyState(
+                  icon: Icons.cloud_off_outlined,
+                  title: 'Nenhum modelo na Meta',
+                  description: 'Cadastre modelos no WhatsApp Manager ou confira o token e o WABA ID.',
+                )
+              : Column(
+                  children: [
+                    for (final template in templates)
+                      _MetaTemplateCard(template: template),
+                  ],
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MetaTemplateCard extends ConsumerWidget {
+  const _MetaTemplateCard({required this.template});
+
+  final MetaWhatsappTemplate template;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final textTheme = Theme.of(context).textTheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  template.name,
+                  style: textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              _MetaStatusPill(status: template.status),
+            ],
+          ),
+          Text(
+            '${template.language} · ${template.category}',
+            style: textTheme.labelSmall?.copyWith(
+              color: AppColors.mutedForeground,
+            ),
+          ),
+          if (template.body.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              template.body,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: textTheme.bodySmall,
+            ),
+          ],
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: OutlinedButton.icon(
+              onPressed: () =>
+                  showAppFormSheet(context, _MetaLinkSheet(template: template)),
+              icon: const Icon(Icons.link, size: 18),
+              label: const Text('Vincular'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetaStatusPill extends StatelessWidget {
+  const _MetaStatusPill({required this.status});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = status.toUpperCase();
+    final color = value == 'APPROVED'
+        ? AppColors.success
+        : (value == 'PENDING' ||
+              value == 'IN_APPEAL' ||
+              value == 'PAUSED' ||
+              value == 'PENDING_DELETION')
+        ? AppColors.warning
+        : AppColors.danger;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        status.isEmpty ? '—' : status,
+        style: Theme.of(context).textTheme.labelSmall
+            ?.copyWith(color: color, fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+}
+
+class _MetaLinkSheet extends ConsumerStatefulWidget {
+  const _MetaLinkSheet({required this.template});
+
+  final MetaWhatsappTemplate template;
+
+  @override
+  ConsumerState<_MetaLinkSheet> createState() => _MetaLinkSheetState();
+}
+
+class _MetaLinkSheetState extends ConsumerState<_MetaLinkSheet> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _label;
+  String _occasion = 'cobranca';
+  bool _active = true;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _label = TextEditingController(text: widget.template.name);
+  }
+
+  @override
+  void dispose() {
+    _label.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    setState(() => _busy = true);
+    try {
+      await ref
+          .read(adminRepositoryProvider)
+          .linkMetaWhatsappTemplate(
+            name: widget.template.name,
+            language: widget.template.language,
+            occasion: _occasion,
+            label: _label.text.trim(),
+            active: _active,
+          );
+      ref.invalidate(adminWhatsappTemplatesProvider);
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Modelo vinculado à ocasião.')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$error')));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppFormSheet(
+      title: 'Vincular modelo à ocasião',
+      subtitle:
+          '${widget.template.name} (${widget.template.language}) será usado nos '
+          'disparos da ocasião escolhida. Os demais modelos dessa ocasião são desativados.',
+      formKey: _formKey,
+      busy: _busy,
+      onSave: _save,
+      children: [
+        DropdownButtonFormField<String>(
+          initialValue: _occasion,
+          decoration: const InputDecoration(labelText: 'Ocasião'),
+          items: [
+            for (final occasion in _metaOccasions)
+              DropdownMenuItem(
+                value: occasion.value,
+                child: Text(occasion.label),
+              ),
+          ],
+          onChanged: (value) => setState(() => _occasion = value ?? _occasion),
+        ),
+        const SizedBox(height: 14),
+        TextFormField(
+          controller: _label,
+          decoration: const InputDecoration(labelText: 'Rótulo interno'),
+        ),
+        const SizedBox(height: 8),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          value: _active,
+          onChanged: (value) => setState(() => _active = value),
+          title: const Text('Ativar ao vincular'),
         ),
       ],
     );

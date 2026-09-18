@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/formatters.dart';
+import '../../core/utils/mask_formatter.dart';
 import '../../models/plan.dart';
 import '../../models/user_business.dart';
 import '../../repositories/auth_repository.dart';
@@ -56,6 +57,7 @@ class _OnboardingWizardScreenState
   bool _busy = false;
   bool _planChosen = false;
   bool _brandHasData = false;
+  bool _mirrorAccount = true;
 
   @override
   void initState() {
@@ -68,12 +70,21 @@ class _OnboardingWizardScreenState
     _phone.text = profile?.phone ?? '';
     _planChosen = workspace?.onboardingCompleted ?? false;
 
+    // A marca começa espelhando os dados da conta.
+    _brandCompany.text = _company.text;
+    _brandDocument.text = _document.text;
+    _brandPhone.text = _phone.text;
+    _brandEmail.text = profile?.email ?? '';
+    _company.addListener(_syncBrandFromAccount);
+    _document.addListener(_syncBrandFromAccount);
+    _phone.addListener(_syncBrandFromAccount);
+
     ref.read(businessProvider.future).then((business) {
       if (!mounted || business == null) return;
       setState(() {
         _brandCompany.text = business.company ?? _company.text;
         _brandDocument.text = business.document ?? _document.text;
-        _brandEmail.text = business.email ?? '';
+        _brandEmail.text = business.email ?? _brandEmail.text;
         _brandPhone.text = business.phone ?? _phone.text;
         _brandAddress.text = business.address ?? '';
         _brandPayment.text = business.paymentInfo ?? '';
@@ -82,6 +93,18 @@ class _OnboardingWizardScreenState
         _brandHasData = _hasBrandContent(business);
       });
     });
+  }
+
+  void _syncBrandFromAccount() {
+    if (!_mirrorAccount) return;
+    _brandCompany.text = _company.text;
+    _brandDocument.text = _document.text;
+    _brandPhone.text = _phone.text;
+  }
+
+  void _setMirror(bool value) {
+    setState(() => _mirrorAccount = value);
+    if (value) _syncBrandFromAccount();
   }
 
   bool _hasBrandContent(UserBusiness business) =>
@@ -135,7 +158,7 @@ class _OnboardingWizardScreenState
           name: _name.text.trim(),
           company: _company.text.trim(),
           phone: _phone.text.trim(),
-          document: _document.text.trim(),
+          document: onlyDigits(_document.text),
         );
     ref.invalidate(workspaceProvider);
   }
@@ -148,10 +171,10 @@ class _OnboardingWizardScreenState
         .saveBusiness(
           userId: userId,
           logo: _logo,
-          company: _brandCompany.text.trim(),
-          document: _brandDocument.text.trim(),
+          company: (_mirrorAccount ? _company : _brandCompany).text.trim(),
+          document: (_mirrorAccount ? _document : _brandDocument).text.trim(),
           email: _brandEmail.text.trim(),
-          phone: _brandPhone.text.trim(),
+          phone: (_mirrorAccount ? _phone : _brandPhone).text.trim(),
           address: _brandAddress.text.trim(),
           paymentInfo: _brandPayment.text.trim(),
           extraNote: _brandNote.text.trim(),
@@ -187,7 +210,10 @@ class _OnboardingWizardScreenState
   Future<void> _choosePlan(Plan plan) async {
     final ok = await subscribeToPlanFlow(context, ref, plan);
     if (!mounted) return;
-    if (ok) setState(() => _planChosen = true);
+    if (!ok) return;
+    setState(() => _planChosen = true);
+    // Plano gratuito não gera cobrança: segue direto para a conclusão.
+    if (plan.price <= 0) _goTo(_step + 1);
   }
 
   Future<void> _pickLogo() async {
@@ -259,6 +285,8 @@ class _OnboardingWizardScreenState
                     address: _brandAddress,
                     paymentInfo: _brandPayment,
                     extraNote: _brandNote,
+                    mirrorAccount: _mirrorAccount,
+                    onToggleMirror: _setMirror,
                     onPickLogo: _pickLogo,
                     onRemoveLogo: () => setState(() => _logo = null),
                   ),
@@ -606,6 +634,7 @@ class _AccountStep extends StatelessWidget {
             TextFormField(
               controller: document,
               keyboardType: TextInputType.number,
+              inputFormatters: [MaskTextInputFormatter(cpfCnpjMask)],
               decoration: const InputDecoration(
                 labelText: 'CPF ou CNPJ *',
                 prefixIcon: Icon(Icons.badge_outlined),
@@ -631,6 +660,7 @@ class _AccountStep extends StatelessWidget {
             TextFormField(
               controller: phone,
               keyboardType: TextInputType.phone,
+              inputFormatters: [MaskTextInputFormatter(phoneMask)],
               decoration: const InputDecoration(
                 labelText: 'Telefone (opcional)',
                 prefixIcon: Icon(Icons.phone_outlined),
@@ -653,6 +683,8 @@ class _BrandStep extends StatelessWidget {
     required this.address,
     required this.paymentInfo,
     required this.extraNote,
+    required this.mirrorAccount,
+    required this.onToggleMirror,
     required this.onPickLogo,
     required this.onRemoveLogo,
   });
@@ -665,6 +697,8 @@ class _BrandStep extends StatelessWidget {
   final TextEditingController address;
   final TextEditingController paymentInfo;
   final TextEditingController extraNote;
+  final bool mirrorAccount;
+  final ValueChanged<bool> onToggleMirror;
   final Future<void> Function() onPickLogo;
   final VoidCallback onRemoveLogo;
 
@@ -680,6 +714,25 @@ class _BrandStep extends StatelessWidget {
             subtitle:
                 'Personalize o PDF enviado aos clientes. Tudo opcional — '
                 'você pode preencher depois.',
+          ),
+          Container(
+            margin: const EdgeInsets.only(bottom: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.muted,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: mirrorAccount,
+              onChanged: onToggleMirror,
+              title: const Text('Usar os dados da conta'),
+              subtitle: const Text(
+                'Empresa, CPF/CNPJ e telefone iguais aos do passo anterior. '
+                'Desligue para usar dados diferentes nos orçamentos.',
+              ),
+            ),
           ),
           Center(
             child: Column(
@@ -731,12 +784,15 @@ class _BrandStep extends StatelessWidget {
           TextFormField(
             controller: company,
             textCapitalization: TextCapitalization.words,
+            enabled: !mirrorAccount,
             decoration: const InputDecoration(labelText: 'Empresa'),
           ),
           const SizedBox(height: 14),
           TextFormField(
             controller: document,
             keyboardType: TextInputType.number,
+            enabled: !mirrorAccount,
+            inputFormatters: [MaskTextInputFormatter(cpfCnpjMask)],
             decoration: const InputDecoration(labelText: 'CPF/CNPJ'),
           ),
           const SizedBox(height: 14),
@@ -749,6 +805,8 @@ class _BrandStep extends StatelessWidget {
           TextFormField(
             controller: phone,
             keyboardType: TextInputType.phone,
+            enabled: !mirrorAccount,
+            inputFormatters: [MaskTextInputFormatter(phoneMask)],
             decoration: const InputDecoration(labelText: 'Telefone'),
           ),
           const SizedBox(height: 14),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/utils/formatters.dart';
+import '../../core/utils/mask_formatter.dart';
 import '../../models/client.dart';
 import '../../repositories/clients_repository.dart';
 import '../../repositories/workspace_providers.dart';
@@ -105,6 +107,7 @@ class _ClientFormSheetState extends ConsumerState<ClientFormSheet> {
           controller: _document,
           keyboardType: TextInputType.number,
           textInputAction: TextInputAction.next,
+          inputFormatters: [MaskTextInputFormatter(cpfCnpjMask)],
           decoration: const InputDecoration(labelText: 'CPF/CNPJ'),
         ),
         const SizedBox(height: 14),
@@ -112,6 +115,7 @@ class _ClientFormSheetState extends ConsumerState<ClientFormSheet> {
           controller: _phone,
           keyboardType: TextInputType.phone,
           textInputAction: TextInputAction.next,
+          inputFormatters: [MaskTextInputFormatter(phoneMask)],
           decoration: const InputDecoration(labelText: 'Telefone/WhatsApp'),
         ),
         const SizedBox(height: 14),

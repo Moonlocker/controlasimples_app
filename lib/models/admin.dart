@@ -213,6 +213,44 @@ class WhatsappOverview {
   }
 }
 
+class MetaWhatsappTemplate {
+  const MetaWhatsappTemplate({
+    required this.name,
+    this.id = '',
+    this.status = '',
+    this.category = '',
+    this.language = 'pt_BR',
+    this.body = '',
+    this.variables = const [],
+    this.buttonUrlEnabled = false,
+  });
+
+  final String id;
+  final String name;
+  final String status;
+  final String category;
+  final String language;
+  final String body;
+  final List<String> variables;
+  final bool buttonUrlEnabled;
+
+  factory MetaWhatsappTemplate.fromMap(Map<String, dynamic> map) {
+    final rawVariables = map['variables'];
+    return MetaWhatsappTemplate(
+      id: (map['id'] ?? '') as String,
+      name: (map['name'] as String?) ?? '',
+      status: (map['status'] as String?) ?? '',
+      category: (map['category'] as String?) ?? '',
+      language: (map['language'] as String?) ?? 'pt_BR',
+      body: (map['body'] as String?) ?? '',
+      variables: rawVariables is List
+          ? rawVariables.map((e) => e.toString()).toList()
+          : const [],
+      buttonUrlEnabled: map['buttonUrlEnabled'] == true,
+    );
+  }
+}
+
 class WhatsappMessage {
   const WhatsappMessage({
     required this.id,

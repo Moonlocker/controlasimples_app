@@ -450,6 +450,36 @@ class AdminRepository {
       'id': id,
     });
   }
+
+  /// Modelos cadastrados/aprovados na conta da Meta (WABA).
+  Future<List<MetaWhatsappTemplate>> fetchMetaWhatsappTemplates() async {
+    final result = await _api.get('/api/mobile/admin/whatsapp/meta-templates');
+    final raw = result['templates'];
+    if (raw is! List) return const [];
+    return raw
+        .whereType<Map>()
+        .map(
+          (row) => MetaWhatsappTemplate.fromMap(Map<String, dynamic>.from(row)),
+        )
+        .toList();
+  }
+
+  /// Vincula um modelo da Meta a uma ocasião do sistema.
+  Future<void> linkMetaWhatsappTemplate({
+    required String name,
+    required String language,
+    required String occasion,
+    String? label,
+    bool active = true,
+  }) async {
+    await _api.post('/api/mobile/admin/whatsapp/meta-templates', {
+      'name': name,
+      'language': language,
+      'occasion': occasion,
+      'label': ?label,
+      'active': active,
+    });
+  }
 }
 
 const Object _unset = Object();

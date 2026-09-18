@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/enums.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/formatters.dart';
+import '../../core/utils/mask_formatter.dart';
 import '../../models/asaas.dart';
 import '../../models/notification_preferences.dart';
 import '../../models/plan.dart';
@@ -372,12 +373,14 @@ class _ProfileFormSheetState extends ConsumerState<_ProfileFormSheet> {
         TextFormField(
           controller: _phone,
           keyboardType: TextInputType.phone,
+          inputFormatters: [MaskTextInputFormatter(phoneMask)],
           decoration: const InputDecoration(labelText: 'Telefone'),
         ),
         const SizedBox(height: 14),
         TextFormField(
           controller: _document,
           keyboardType: TextInputType.number,
+          inputFormatters: [MaskTextInputFormatter(cpfCnpjMask)],
           decoration: const InputDecoration(labelText: 'CPF/CNPJ'),
         ),
       ],
@@ -547,6 +550,7 @@ class _BusinessFormSheetState extends ConsumerState<_BusinessFormSheet> {
         TextFormField(
           controller: _document,
           keyboardType: TextInputType.number,
+          inputFormatters: [MaskTextInputFormatter(cpfCnpjMask)],
           decoration: const InputDecoration(labelText: 'CPF/CNPJ'),
         ),
         const SizedBox(height: 14),
@@ -559,6 +563,7 @@ class _BusinessFormSheetState extends ConsumerState<_BusinessFormSheet> {
         TextFormField(
           controller: _phone,
           keyboardType: TextInputType.phone,
+          inputFormatters: [MaskTextInputFormatter(phoneMask)],
           decoration: const InputDecoration(labelText: 'Telefone'),
         ),
         const SizedBox(height: 14),

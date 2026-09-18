@@ -31,3 +31,9 @@ final adminWhatsappTemplatesProvider = FutureProvider<List<WhatsappTemplate>>((
 ) {
   return ref.watch(adminRepositoryProvider).fetchWhatsappTemplates();
 });
+
+final adminMetaTemplatesProvider = FutureProvider<List<MetaWhatsappTemplate>>((
+  ref,
+) {
+  return ref.watch(adminRepositoryProvider).fetchMetaWhatsappTemplates();
+});
