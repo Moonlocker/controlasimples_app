@@ -102,6 +102,9 @@ class WhatsappAdminConfig {
     this.templateLanguage = 'pt_BR',
     this.defaultMonthlyQuota = 0,
     this.costPerMessageCents = 0,
+    this.autoNotificationsEnabled = true,
+    this.maxReminderDaysBefore = 7,
+    this.maxOverdueDays = 15,
   });
 
   final bool enabled;
@@ -116,6 +119,9 @@ class WhatsappAdminConfig {
   final String templateLanguage;
   final int defaultMonthlyQuota;
   final int costPerMessageCents;
+  final bool autoNotificationsEnabled;
+  final int maxReminderDaysBefore;
+  final int maxOverdueDays;
 
   factory WhatsappAdminConfig.fromMap(Map<String, dynamic> map) {
     return WhatsappAdminConfig(
@@ -131,6 +137,10 @@ class WhatsappAdminConfig {
       templateLanguage: (map['templateLanguage'] as String?) ?? 'pt_BR',
       defaultMonthlyQuota: (map['defaultMonthlyQuota'] as num?)?.toInt() ?? 0,
       costPerMessageCents: (map['costPerMessageCents'] as num?)?.toInt() ?? 0,
+      autoNotificationsEnabled: map['autoNotificationsEnabled'] != false,
+      maxReminderDaysBefore:
+          (map['maxReminderDaysBefore'] as num?)?.toInt() ?? 7,
+      maxOverdueDays: (map['maxOverdueDays'] as num?)?.toInt() ?? 15,
     );
   }
 }

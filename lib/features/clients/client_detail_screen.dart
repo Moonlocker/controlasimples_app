@@ -10,10 +10,12 @@ import '../../core/utils/dates.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/period.dart';
 import '../../models/client.dart';
+import '../../models/client_notification.dart';
 import '../../models/recurring_charge.dart';
 import '../../models/service.dart';
 import '../../models/workspace.dart';
 import '../../repositories/clients_repository.dart';
+import '../../repositories/notifications_repository.dart';
 import '../../repositories/whatsapp_repository.dart';
 import '../../repositories/workspace_providers.dart';
 import '../../widgets/async_error_view.dart';
@@ -73,7 +75,7 @@ class ClientDetailScreen extends ConsumerWidget {
             .toList();
 
         return DefaultTabController(
-          length: 3,
+          length: 4,
           child: Scaffold(
             appBar: AppBar(
               title: Text(client.name, overflow: TextOverflow.ellipsis),
@@ -95,9 +97,12 @@ class ClientDetailScreen extends ConsumerWidget {
               children: [
                 _ClientHeader(client: client),
                 const TabBar(
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
                   tabs: [
                     Tab(text: 'Cobranças'),
                     Tab(text: 'Serviços'),
+                    Tab(text: 'Notificações'),
                     Tab(text: 'Relatório'),
                   ],
                 ),
@@ -110,6 +115,7 @@ class ClientDetailScreen extends ConsumerWidget {
                         recurring: recurring,
                         clientId: client.id,
                       ),
+                      _NotificationsTab(clientId: client.id),
                       _ReportTab(client: client, workspace: workspace),
                     ],
                   ),
@@ -695,6 +701,188 @@ class _InfoHint extends StatelessWidget {
         message,
         style: Theme.of(context).textTheme.bodySmall
             ?.copyWith(color: AppColors.mutedForeground),
+      ),
+    );
+  }
+}
+
+const Map<String, String> _notificationKindLabels = {
+  'cobranca': 'Aviso de cobrança',
+  'cobranca_vencendo': 'Cobrança a vencer',
+  'cobranca_atraso': 'Cobrança em atraso',
+  'confirmacao_pagamento': 'Confirmação de pagamento',
+  'boas_vindas': 'Boas-vindas',
+  'resposta': 'Resposta',
+  'modelo': 'Modelo',
+};
+
+class _NotificationsTab extends ConsumerWidget {
+  const _NotificationsTab({required this.clientId});
+
+  final String clientId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(clientNotificationsProvider(clientId));
+    return async.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => AsyncErrorView(
+        error: error,
+        onRetry: () => ref.invalidate(clientNotificationsProvider(clientId)),
+      ),
+      data: (notifications) {
+        if (notifications.isEmpty) {
+          return const EmptyState(
+            icon: Icons.notifications_none_outlined,
+            title: 'Nenhuma notificação ainda',
+            description:
+                'Ative as notificações automáticas em Configurações ou avise '
+                'uma cobrança pela aba Cobranças.',
+          );
+        }
+        final sent = notifications.where((n) => !n.inbound).length;
+        final delivered = notifications
+            .where((n) => n.deliveredAt != null)
+            .length;
+        final read = notifications.where((n) => n.readAt != null).length;
+        final failed = notifications
+            .where((n) => !n.inbound && n.status != 'enviado')
+            .length;
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          children: [
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 1.6,
+              children: [
+                StatCard(label: 'Enviadas', value: '$sent'),
+                StatCard(
+                  label: 'Entregues',
+                  value: '$delivered',
+                  tone: AppColors.success,
+                ),
+                StatCard(
+                  label: 'Lidas',
+                  value: '$read',
+                  tone: AppColors.success,
+                ),
+                StatCard(
+                  label: 'Falhas',
+                  value: '$failed',
+                  tone: AppColors.danger,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            for (final notification in notifications)
+              _NotificationTile(notification: notification),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _NotificationTile extends StatelessWidget {
+  const _NotificationTile({required this.notification});
+
+  final ClientNotification notification;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final inbound = notification.inbound;
+    final failed = !inbound && notification.status != 'enviado';
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                inbound ? Icons.call_received : Icons.call_made,
+                size: 15,
+                color: inbound ? AppColors.info : AppColors.mutedForeground,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  _notificationKindLabels[notification.kind] ??
+                      notification.kind,
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              _Pill(
+                label: notification.deliveryLabel,
+                tone: failed
+                    ? AppColors.danger
+                    : notification.deliveredAt != null ||
+                          notification.readAt != null
+                    ? AppColors.success
+                    : AppColors.warning,
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(notification.body.isEmpty ? '—' : notification.body),
+          const SizedBox(height: 6),
+          Text(
+            '${formatDateTime(notification.createdAt)} · '
+            '${notification.source == 'auto' ? 'automática' : 'manual'}',
+            style: textTheme.labelSmall?.copyWith(
+              color: AppColors.mutedForeground,
+            ),
+          ),
+          if (notification.chargeDescription.isNotEmpty)
+            Text(
+              'Cobrança: ${notification.chargeDescription} · '
+              '${brl(notification.chargeAmount)}',
+              style: textTheme.labelSmall?.copyWith(
+                color: AppColors.mutedForeground,
+              ),
+            ),
+          if (notification.error != null && notification.error!.isNotEmpty)
+            Text(
+              notification.error!,
+              style: textTheme.labelSmall?.copyWith(color: AppColors.danger),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Pill extends StatelessWidget {
+  const _Pill({required this.label, required this.tone});
+
+  final String label;
+  final Color tone;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: tone.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall
+            ?.copyWith(color: tone, fontWeight: FontWeight.w700),
       ),
     );
   }

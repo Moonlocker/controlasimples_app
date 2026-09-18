@@ -11,10 +11,12 @@ import '../../core/constants/enums.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../../models/asaas.dart';
+import '../../models/notification_preferences.dart';
 import '../../models/plan.dart';
 import '../../models/user_business.dart';
 import '../../repositories/asaas_repository.dart';
 import '../../repositories/auth_repository.dart';
+import '../../repositories/notifications_repository.dart';
 import '../../repositories/profile_repository.dart';
 import '../../repositories/quotes_repository.dart';
 import '../../repositories/subscription_repository.dart';
@@ -69,6 +71,8 @@ class SettingsScreen extends ConsumerWidget {
               const _AsaasSection(),
               const SizedBox(height: 16),
               const _WhatsappSection(),
+              const SizedBox(height: 16),
+              const _NotificationsSection(),
               const SizedBox(height: 16),
               const _BusinessSection(),
               const SizedBox(height: 16),
@@ -1149,6 +1153,222 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
               : const Text('Salvar'),
         ),
       ],
+    );
+  }
+}
+
+/// Notificações automáticas pelo WhatsApp oficial da plataforma.
+class _NotificationsSection extends ConsumerStatefulWidget {
+  const _NotificationsSection();
+
+  @override
+  ConsumerState<_NotificationsSection> createState() =>
+      _NotificationsSectionState();
+}
+
+class _NotificationsSectionState extends ConsumerState<_NotificationsSection> {
+  NotificationPreferences? _form;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    ref.read(notificationSettingsProvider.future).then((settings) {
+      if (mounted) setState(() => _form = settings.preferences);
+    });
+  }
+
+  void _update(NotificationPreferences value) {
+    setState(() => _form = value);
+  }
+
+  Future<void> _save() async {
+    final form = _form;
+    if (form == null) return;
+    setState(() => _busy = true);
+    try {
+      await ref.read(notificationsRepositoryProvider).savePreferences(form);
+      ref.invalidate(notificationSettingsProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Preferências de notificação salvas.')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$error')));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final async = ref.watch(notificationSettingsProvider);
+    return async.when(
+      loading: () => const _Section(
+        title: 'Notificações automáticas',
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        ],
+      ),
+      error: (error, _) => _Section(
+        title: 'Notificações automáticas',
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Text(
+              'Não foi possível carregar: $error',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+        ],
+      ),
+      data: (settings) {
+        final form = _form ?? settings.preferences;
+        final limits = settings.limits;
+        final enabled = form.whatsappEnabled;
+        return _Section(
+          title: 'Notificações automáticas',
+          children: [
+            Text(
+              'Avisos enviados pelo número oficial da Controla Simples. Para '
+              'evitar spam e controlar o custo, o superadmin define os prazos '
+              'máximos e você escolhe as ocasiões.',
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(color: AppColors.mutedForeground),
+            ),
+            const SizedBox(height: 8),
+            if (!limits.integrationEnabled)
+              Text(
+                'O envio pelo WhatsApp oficial está temporariamente indisponível.',
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: AppColors.warning),
+              ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: enabled,
+              onChanged: (value) =>
+                  _update(form.copyWith(whatsappEnabled: value)),
+              title: const Text('Ativar notificações automáticas'),
+              subtitle: const Text('Usa a cota mensal da sua conta.'),
+            ),
+            Opacity(
+              opacity: enabled ? 1 : 0.5,
+              child: IgnorePointer(
+                ignoring: !enabled,
+                child: Column(
+                  children: [
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: form.reminderBeforeEnabled,
+                      onChanged: (value) =>
+                          _update(form.copyWith(reminderBeforeEnabled: value)),
+                      title: const Text('Antes do vencimento'),
+                    ),
+                    _CounterRow(
+                      label:
+                          'Dias antes (máx. ${limits.maxReminderDaysBefore})',
+                      value: form.reminderBeforeDays.clamp(
+                        1,
+                        limits.maxReminderDaysBefore,
+                      ),
+                      min: 1,
+                      max: limits.maxReminderDaysBefore,
+                      onChanged: (value) =>
+                          _update(form.copyWith(reminderBeforeDays: value)),
+                    ),
+                    const Divider(height: 8),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: form.onDueEnabled,
+                      onChanged: (value) =>
+                          _update(form.copyWith(onDueEnabled: value)),
+                      title: const Text('No dia do vencimento'),
+                    ),
+                    const Divider(height: 8),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: form.overdueEnabled,
+                      onChanged: (value) =>
+                          _update(form.copyWith(overdueEnabled: value)),
+                      title: const Text('Após o vencimento'),
+                    ),
+                    _CounterRow(
+                      label: 'Dias após (máx. ${limits.maxOverdueDays})',
+                      value: form.overdueDays.clamp(1, limits.maxOverdueDays),
+                      min: 1,
+                      max: limits.maxOverdueDays,
+                      onChanged: (value) =>
+                          _update(form.copyWith(overdueDays: value)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: _busy ? null : _save,
+                child: _busy
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Salvar preferências'),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _CounterRow extends StatelessWidget {
+  const _CounterRow({
+    required this.label,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.onChanged,
+  });
+
+  final String label;
+  final int value;
+  final int min;
+  final int max;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
+          ),
+          IconButton(
+            onPressed: value > min ? () => onChanged(value - 1) : null,
+            icon: const Icon(Icons.remove_circle_outline),
+            tooltip: 'Diminuir',
+          ),
+          Text('$value', style: const TextStyle(fontWeight: FontWeight.w700)),
+          IconButton(
+            onPressed: value < max ? () => onChanged(value + 1) : null,
+            icon: const Icon(Icons.add_circle_outline),
+            tooltip: 'Aumentar',
+          ),
+        ],
+      ),
     );
   }
 }

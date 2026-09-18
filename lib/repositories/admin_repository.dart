@@ -336,6 +336,9 @@ class AdminRepository {
     String? templateLanguage,
     int? defaultMonthlyQuota,
     int? costPerMessageCents,
+    bool? autoNotificationsEnabled,
+    int? maxReminderDaysBefore,
+    int? maxOverdueDays,
   }) async {
     await _api.post('/api/mobile/admin/whatsapp/config', {
       'enabled': ?enabled,
@@ -349,7 +352,15 @@ class AdminRepository {
       'templateLanguage': ?templateLanguage,
       'defaultMonthlyQuota': ?defaultMonthlyQuota,
       'costPerMessageCents': ?costPerMessageCents,
+      'autoNotificationsEnabled': ?autoNotificationsEnabled,
+      'maxReminderDaysBefore': ?maxReminderDaysBefore,
+      'maxOverdueDays': ?maxOverdueDays,
     });
+  }
+
+  /// Exclui definitivamente um usuário e todos os registros dele (superadmin).
+  Future<void> deleteUser(String userId) async {
+    await _api.post('/api/mobile/admin/users/delete', {'userId': userId});
   }
 
   Future<({bool ok, String message})> testWhatsappAdmin() async {

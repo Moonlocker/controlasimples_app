@@ -1357,7 +1357,10 @@ class _WhatsappConfigFormSheetState
   final _templateLanguage = TextEditingController();
   final _defaultQuota = TextEditingController();
   final _costPerMessage = TextEditingController();
+  final _maxReminderDays = TextEditingController();
+  final _maxOverdueDays = TextEditingController();
   late bool _enabled;
+  late bool _autoNotifications;
   bool _busy = false;
 
   @override
@@ -1365,6 +1368,7 @@ class _WhatsappConfigFormSheetState
     super.initState();
     final config = widget.config;
     _enabled = config.enabled;
+    _autoNotifications = config.autoNotificationsEnabled;
     _phoneNumberId.text = config.phoneNumberId ?? '';
     _businessAccountId.text = config.businessAccountId ?? '';
     _apiVersion.text = config.apiVersion;
@@ -1372,6 +1376,8 @@ class _WhatsappConfigFormSheetState
     _templateLanguage.text = config.templateLanguage;
     _defaultQuota.text = config.defaultMonthlyQuota.toString();
     _costPerMessage.text = config.costPerMessageCents.toString();
+    _maxReminderDays.text = config.maxReminderDaysBefore.toString();
+    _maxOverdueDays.text = config.maxOverdueDays.toString();
   }
 
   @override
@@ -1386,6 +1392,8 @@ class _WhatsappConfigFormSheetState
     _templateLanguage.dispose();
     _defaultQuota.dispose();
     _costPerMessage.dispose();
+    _maxReminderDays.dispose();
+    _maxOverdueDays.dispose();
     super.dispose();
   }
 
@@ -1412,6 +1420,10 @@ class _WhatsappConfigFormSheetState
             templateLanguage: _templateLanguage.text.trim(),
             defaultMonthlyQuota: int.tryParse(_defaultQuota.text.trim()) ?? 0,
             costPerMessageCents: int.tryParse(_costPerMessage.text.trim()) ?? 0,
+            autoNotificationsEnabled: _autoNotifications,
+            maxReminderDaysBefore:
+                int.tryParse(_maxReminderDays.text.trim()) ?? 7,
+            maxOverdueDays: int.tryParse(_maxOverdueDays.text.trim()) ?? 15,
           );
       ref.invalidate(adminWhatsappConfigProvider);
       if (mounted) Navigator.of(context).pop();
@@ -1510,6 +1522,37 @@ class _WhatsappConfigFormSheetState
                 decoration: const InputDecoration(
                   labelText: 'Custo (centavos)',
                 ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        const Divider(),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          value: _autoNotifications,
+          onChanged: (value) => setState(() => _autoNotifications = value),
+          title: const Text('Notificações automáticas'),
+          subtitle: const Text(
+            'Envios pelo número oficial: antes do vencimento, no vencimento e após o atraso.',
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: TextFormField(
+                controller: _maxReminderDays,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Máx. dias antes'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: TextFormField(
+                controller: _maxOverdueDays,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Máx. dias após'),
               ),
             ),
           ],

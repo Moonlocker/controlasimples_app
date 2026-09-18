@@ -49,7 +49,9 @@ não fazem chamadas HTTP/Supabase diretas (exceto backup em Configurações).
   arquivos/sync/auto) e WhatsApp (uso/enviar/validar). Sempre com
   `Authorization: Bearer <access_token>`.
 - **Admin `/api/mobile/admin/*`**: restrito a superadmin (Asaas/WhatsApp da
-  plataforma, cotas e templates).
+  plataforma, cotas, templates e exclusão de usuários).
+- **Notificações `/api/mobile/notifications/*`**: preferências automáticas de
+  WhatsApp (com os limites do superadmin) e histórico por cliente.
 
 Observações importantes:
 - A tabela `projects` é exibida como "Serviços" na UI; no banco continua

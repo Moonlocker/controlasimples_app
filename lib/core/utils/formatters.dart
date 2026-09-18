@@ -9,6 +9,7 @@ final NumberFormat _currency = NumberFormat.currency(
 );
 
 final DateFormat _shortDate = DateFormat('dd/MM/yyyy', 'pt_BR');
+final DateFormat _shortDateTime = DateFormat('dd/MM/yyyy HH:mm', 'pt_BR');
 final DateFormat _monthShort = DateFormat('MMM', 'pt_BR');
 final DateFormat _monthLong = DateFormat('MMMM yyyy', 'pt_BR');
 
@@ -25,6 +26,8 @@ String brlCompact(num value) {
 }
 
 String formatDate(DateTime value) => _shortDate.format(value);
+
+String formatDateTime(DateTime value) => _shortDateTime.format(value);
 
 String monthLabel(String key) {
   final parts = key.split('-');

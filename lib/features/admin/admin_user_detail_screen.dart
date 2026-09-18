@@ -7,6 +7,7 @@ import '../../core/utils/formatters.dart';
 import '../../models/admin.dart';
 import '../../repositories/admin_repository.dart';
 import '../../widgets/async_error_view.dart';
+import '../../widgets/confirm_dialog.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/section_card.dart';
 import '../../widgets/stat_card.dart';
@@ -111,6 +112,38 @@ class _UserDetailState extends ConsumerState<_UserDetail> {
     }
   }
 
+  Future<void> _delete() async {
+    final user = widget.user;
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Excluir ${user.name.isEmpty ? user.email : user.name}?',
+      message:
+          'A conta e todos os registros (clientes, serviços, cobranças, '
+          'pagamentos, orçamentos, mensagens e assinatura) serão removidos '
+          'permanentemente. Esta ação não pode ser desfeita.',
+      confirmLabel: 'Excluir definitivamente',
+      destructive: true,
+    );
+    if (!confirmed) return;
+    setState(() => _busy = true);
+    try {
+      await ref.read(adminRepositoryProvider).deleteUser(user.id);
+      ref.invalidate(adminDataProvider);
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Usuário excluído.')));
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$error')));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final repository = ref.read(adminRepositoryProvider);
@@ -121,15 +154,55 @@ class _UserDetailState extends ConsumerState<_UserDetail> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       children: [
-        Text(
-          user.name.isEmpty ? user.email : user.name,
-          style: Theme.of(context).textTheme.titleLarge
-              ?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        Text(
-          user.email,
-          style: Theme.of(context).textTheme.bodySmall
-              ?.copyWith(color: AppColors.mutedForeground),
+        Row(
+          children: [
+            CircleAvatar(
+              radius: 26,
+              backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+              child: Text(
+                _initials(user.name.isEmpty ? user.email : user.name),
+                style: const TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    user.name.isEmpty ? user.email : user.name,
+                    style: Theme.of(context).textTheme.titleLarge
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  Text(
+                    user.email,
+                    style: Theme.of(context).textTheme.bodySmall
+                        ?.copyWith(color: AppColors.mutedForeground),
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      if (user.isSuperadmin)
+                        _Tag('Superadmin', AppColors.primary),
+                      _Tag(
+                        user.active ? 'Ativo' : 'Bloqueado',
+                        user.active ? AppColors.success : AppColors.danger,
+                      ),
+                      if ((user.company ?? '').isNotEmpty)
+                        _Tag(user.company!, AppColors.info),
+                      if ((user.phone ?? '').isNotEmpty)
+                        _Tag(user.phone!, AppColors.mutedForeground),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 16),
         GridView.count(
@@ -299,6 +372,60 @@ class _UserDetailState extends ConsumerState<_UserDetail> {
             ],
           ),
         ),
+        if (!widget.isSelf) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.danger.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.danger.withValues(alpha: 0.4),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.warning_amber_rounded,
+                      color: AppColors.danger,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Zona de perigo',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: AppColors.danger,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Exclui o usuário e todos os registros (clientes, cobranças, '
+                  'pagamentos, orçamentos, mensagens e assinatura) permanentemente.',
+                  style: Theme.of(context).textTheme.bodySmall
+                      ?.copyWith(color: AppColors.mutedForeground),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _busy ? null : _delete,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.danger,
+                    ),
+                    icon: const Icon(Icons.delete_forever_outlined),
+                    label: const Text('Excluir usuário'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 16),
         Text(
           'Mensagens recentes',
@@ -364,6 +491,35 @@ class _UserDetailState extends ConsumerState<_UserDetail> {
                 ),
         ),
       ],
+    );
+  }
+}
+
+String _initials(String value) {
+  final parts = value.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty);
+  final letters = parts.take(2).map((p) => p[0]).join();
+  return letters.isEmpty ? '?' : letters.toUpperCase();
+}
+
+class _Tag extends StatelessWidget {
+  const _Tag(this.label, this.color);
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall
+            ?.copyWith(color: color, fontWeight: FontWeight.w700),
+      ),
     );
   }
 }
