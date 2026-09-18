@@ -72,13 +72,16 @@ class AdminData {
       .where((u) => u.subscriptionStatus == SubscriptionStatus.ativa)
       .length;
 
-  int get trials => users.where((u) => u.subscriptionStatus == SubscriptionStatus.trial).length;
+  int get trials => users
+      .where((u) => u.subscriptionStatus == SubscriptionStatus.trial)
+      .length;
 
   double get mrr => users
       .where((u) => u.subscriptionStatus == SubscriptionStatus.ativa)
       .fold<double>(0, (sum, u) => sum + (planById(u.planId)?.price ?? 0));
 
-  double get platformReceived => users.fold<double>(0, (sum, u) => sum + u.received);
+  double get platformReceived =>
+      users.fold<double>(0, (sum, u) => sum + u.received);
 
   int get totalClients => users.fold<int>(0, (sum, u) => sum + u.clients);
 
@@ -92,6 +95,7 @@ class WhatsappAdminConfig {
     this.businessAccountId,
     this.hasToken = false,
     this.hasVerifyToken = false,
+    this.hasAppSecret = false,
     this.maskedToken,
     this.apiVersion = 'v21.0',
     this.templateName = 'cobranca_aviso',
@@ -105,6 +109,7 @@ class WhatsappAdminConfig {
   final String? businessAccountId;
   final bool hasToken;
   final bool hasVerifyToken;
+  final bool hasAppSecret;
   final String? maskedToken;
   final String apiVersion;
   final String templateName;
@@ -119,6 +124,7 @@ class WhatsappAdminConfig {
       businessAccountId: map['businessAccountId'] as String?,
       hasToken: map['hasToken'] == true,
       hasVerifyToken: map['hasVerifyToken'] == true,
+      hasAppSecret: map['hasAppSecret'] == true,
       maskedToken: map['maskedToken'] as String?,
       apiVersion: (map['apiVersion'] as String?) ?? 'v21.0',
       templateName: (map['templateName'] as String?) ?? 'cobranca_aviso',
@@ -137,6 +143,8 @@ class WhatsappOverviewRow {
     required this.sent,
     required this.quota,
     this.override,
+    this.planName,
+    this.planLimit,
   });
 
   final String userId;
@@ -145,6 +153,8 @@ class WhatsappOverviewRow {
   final int sent;
   final int quota;
   final int? override;
+  final String? planName;
+  final int? planLimit;
 
   factory WhatsappOverviewRow.fromMap(Map<String, dynamic> map) {
     return WhatsappOverviewRow(
@@ -154,6 +164,8 @@ class WhatsappOverviewRow {
       sent: (map['sent'] as num?)?.toInt() ?? 0,
       quota: (map['quota'] as num?)?.toInt() ?? 0,
       override: (map['override'] as num?)?.toInt(),
+      planName: map['planName'] as String?,
+      planLimit: (map['planLimit'] as num?)?.toInt(),
     );
   }
 }
@@ -176,9 +188,13 @@ class WhatsappOverview {
     return WhatsappOverview(
       users: rawUsers is List
           ? rawUsers
-              .whereType<Map>()
-              .map((row) => WhatsappOverviewRow.fromMap(Map<String, dynamic>.from(row)))
-              .toList()
+                .whereType<Map>()
+                .map(
+                  (row) => WhatsappOverviewRow.fromMap(
+                    Map<String, dynamic>.from(row),
+                  ),
+                )
+                .toList()
           : const [],
       sentTotal: (map['sentTotal'] as num?)?.toInt() ?? 0,
       failedTotal: (map['failedTotal'] as num?)?.toInt() ?? 0,
@@ -224,7 +240,9 @@ class WhatsappMessage {
       direction: (map['direction'] as String?) ?? 'saida',
       body: (map['body'] as String?) ?? '',
       status: (map['status'] as String?) ?? '',
-      createdAt: DateTime.tryParse(map['created_at']?.toString() ?? '') ?? DateTime.now(),
+      createdAt:
+          DateTime.tryParse(map['created_at']?.toString() ?? '') ??
+          DateTime.now(),
       toPhone: map['to_phone'] as String?,
       fromPhone: map['from_phone'] as String?,
       userId: map['user_id'] as String?,

@@ -16,7 +16,8 @@ class AdminGate extends ConsumerWidget {
     return workspaceAsync.when(
       skipLoadingOnRefresh: true,
       skipLoadingOnReload: true,
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (error, _) => Scaffold(
         appBar: AppBar(title: const Text('Administração')),
         body: AsyncErrorView(

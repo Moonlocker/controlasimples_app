@@ -52,7 +52,10 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
             if (_status != null && service.status != _status) return false;
             if (query.isEmpty) return true;
             return service.name.toLowerCase().contains(query) ||
-                workspace.clientName(service.clientId).toLowerCase().contains(query);
+                workspace
+                    .clientName(service.clientId)
+                    .toLowerCase()
+                    .contains(query);
           }).toList();
           final stats = _stats(workspace);
 
@@ -93,7 +96,8 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
                     ? const EmptyState(
                         icon: Icons.work_outline,
                         title: 'Nenhum serviço encontrado',
-                        description: 'Ajuste os filtros ou cadastre um novo serviço.',
+                        description:
+                            'Ajuste os filtros ou cadastre um novo serviço.',
                       )
                     : RefreshIndicator(
                         onRefresh: () async {
@@ -105,16 +109,22 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
                         child: ListView.separated(
                           padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
                           itemCount: services.length,
-                          separatorBuilder: (_, _) => const SizedBox(height: 10),
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: 10),
                           itemBuilder: (context, index) {
                             final service = services[index];
                             return _ServiceTile(
                               service: service,
-                              clientName: workspace.clientName(service.clientId),
+                              clientName: workspace.clientName(
+                                service.clientId,
+                              ),
                               stats: stats[service.id] ?? _ServiceStats(),
-                              onTap: () => context.push('/services/${service.id}'),
-                              onDuplicate: () =>
-                                  showServiceForm(context, duplicateFrom: service),
+                              onTap: () =>
+                                  context.push('/services/${service.id}'),
+                              onDuplicate: () => showServiceForm(
+                                context,
+                                duplicateFrom: service,
+                              ),
                             );
                           },
                         ),
@@ -215,7 +225,9 @@ class _ServiceTile extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     service.name,
-                    style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                    style: textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -223,11 +235,19 @@ class _ServiceTile extends ConsumerWidget {
                 if (service.link != null && service.link!.isNotEmpty)
                   IconButton(
                     visualDensity: VisualDensity.compact,
-                    icon: const Icon(Icons.open_in_new, size: 18, color: AppColors.info),
+                    icon: const Icon(
+                      Icons.open_in_new,
+                      size: 18,
+                      color: AppColors.info,
+                    ),
                     onPressed: () => launchUrl(Uri.parse(service.link!)),
                   ),
                 PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert, size: 20, color: AppColors.mutedForeground),
+                  icon: const Icon(
+                    Icons.more_vert,
+                    size: 20,
+                    color: AppColors.mutedForeground,
+                  ),
                   onSelected: (value) async {
                     if (value == 'edit') {
                       await showServiceForm(context, service: service);
@@ -237,13 +257,14 @@ class _ServiceTile extends ConsumerWidget {
                       final confirmed = await showConfirmDialog(
                         context,
                         title: 'Excluir serviço',
-                        message:
-                            'As cobranças e recorrências vinculadas também serão removidas.',
+                        message: 'As cobranças e recorrências vinculadas também serão removidas.',
                         confirmLabel: 'Excluir',
                         destructive: true,
                       );
                       if (!confirmed) return;
-                      await ref.read(servicesRepositoryProvider).delete(service.id);
+                      await ref
+                          .read(servicesRepositoryProvider)
+                          .delete(service.id);
                       ref.invalidate(workspaceProvider);
                     }
                   },
@@ -257,15 +278,20 @@ class _ServiceTile extends ConsumerWidget {
             ),
             Text(
               '$clientName · ${service.billingType.label}',
-              style: textTheme.bodySmall?.copyWith(color: AppColors.mutedForeground),
+              style: textTheme.bodySmall?.copyWith(
+                color: AppColors.mutedForeground,
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            if (service.description != null && service.description!.isNotEmpty) ...[
+            if (service.description != null &&
+                service.description!.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
                 service.description!,
-                style: textTheme.bodySmall?.copyWith(color: AppColors.mutedForeground),
+                style: textTheme.bodySmall?.copyWith(
+                  color: AppColors.mutedForeground,
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -274,15 +300,20 @@ class _ServiceTile extends ConsumerWidget {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: _statusColor().withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
                     service.status.label,
-                    style: textTheme.labelSmall
-                        ?.copyWith(color: _statusColor(), fontWeight: FontWeight.w700),
+                    style: textTheme.labelSmall?.copyWith(
+                      color: _statusColor(),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 const Spacer(),
@@ -290,7 +321,9 @@ class _ServiceTile extends ConsumerWidget {
                   isRecurring
                       ? '${brl(stats.monthly)}/mês'
                       : brl(service.amount),
-                  style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
             ),
@@ -308,13 +341,17 @@ class _ServiceTile extends ConsumerWidget {
               const SizedBox(height: 4),
               Text(
                 '${brl(stats.received)} de ${brl(service.amount)} · ${(progress * 100).toStringAsFixed(0)}%',
-                style: textTheme.labelSmall?.copyWith(color: AppColors.mutedForeground),
+                style: textTheme.labelSmall?.copyWith(
+                  color: AppColors.mutedForeground,
+                ),
               ),
             ] else if (isRecurring) ...[
               const SizedBox(height: 4),
               Text(
                 '${stats.chargeCount} cobrança(s)',
-                style: textTheme.labelSmall?.copyWith(color: AppColors.mutedForeground),
+                style: textTheme.labelSmall?.copyWith(
+                  color: AppColors.mutedForeground,
+                ),
               ),
             ],
           ],
@@ -325,7 +362,11 @@ class _ServiceTile extends ConsumerWidget {
 }
 
 class _Pill extends StatelessWidget {
-  const _Pill({required this.label, required this.selected, required this.onTap});
+  const _Pill({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   final String label;
   final bool selected;
@@ -341,9 +382,9 @@ class _Pill extends StatelessWidget {
         onSelected: (_) => onTap(),
         showCheckmark: false,
         labelStyle: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: selected ? AppColors.primary : AppColors.mutedForeground,
-              fontWeight: FontWeight.w600,
-            ),
+          color: selected ? AppColors.primary : AppColors.mutedForeground,
+          fontWeight: FontWeight.w600,
+        ),
         selectedColor: AppColors.primary.withValues(alpha: 0.12),
         backgroundColor: AppColors.muted,
       ),

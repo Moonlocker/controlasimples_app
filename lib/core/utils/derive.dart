@@ -48,7 +48,8 @@ List<ChargeView> chargeViews(Workspace workspace, [DateTime? ref]) {
   return views;
 }
 
-double _sum(Iterable<double> values) => values.fold(0, (total, value) => total + value);
+double _sum(Iterable<double> values) =>
+    values.fold(0, (total, value) => total + value);
 
 class FinanceMetrics {
   const FinanceMetrics({
@@ -80,8 +81,12 @@ FinanceMetrics computeMetrics(Workspace workspace, [DateTime? ref]) {
   final paidThisMonth = workspace.payments.where(
     (payment) => monthKey(payment.paidAt) == currentMonth,
   );
-  final pending = views.where((view) => view.status == ChargeStatus.pendente).toList();
-  final overdue = views.where((view) => view.status == ChargeStatus.atrasado).toList();
+  final pending = views
+      .where((view) => view.status == ChargeStatus.pendente)
+      .toList();
+  final overdue = views
+      .where((view) => view.status == ChargeStatus.atrasado)
+      .toList();
   final in30 = addMonths(reference, 1);
 
   return FinanceMetrics(
@@ -89,12 +94,17 @@ FinanceMetrics computeMetrics(Workspace workspace, [DateTime? ref]) {
     toReceive: _sum(pending.map((v) => v.amount)),
     overdue: _sum(overdue.map((v) => v.amount)),
     forecast30:
-        _sum(pending.where((v) => !v.dueDate.isAfter(in30)).map((v) => v.amount)) +
-            projectedRecurring(workspace, reference, in30),
+        _sum(
+          pending.where((v) => !v.dueDate.isAfter(in30)).map((v) => v.amount),
+        ) +
+        projectedRecurring(workspace, reference, in30),
     clients: workspace.clients.length,
     pendingCount: pending.length,
     overdueCount: overdue.length,
-    upcoming: pending.where((v) => daysBetween(reference, v.dueDate) <= 15).take(6).toList(),
+    upcoming: pending
+        .where((v) => daysBetween(reference, v.dueDate) <= 15)
+        .take(6)
+        .toList(),
   );
 }
 
@@ -128,7 +138,11 @@ class MonthPoint {
   final double forecast;
 }
 
-List<MonthPoint> monthlySeries(Workspace workspace, {int months = 6, DateTime? ref}) {
+List<MonthPoint> monthlySeries(
+  Workspace workspace, {
+  int months = 6,
+  DateTime? ref,
+}) {
   final reference = ref ?? today();
   final views = chargeViews(workspace, reference);
   final points = <MonthPoint>[];
@@ -136,14 +150,17 @@ List<MonthPoint> monthlySeries(Workspace workspace, {int months = 6, DateTime? r
     final month = addMonths(DateTime(reference.year, reference.month), -i);
     final key = monthKey(month);
     final received = _sum(
-      workspace.payments.where((p) => monthKey(p.paidAt) == key).map((p) => p.amount),
+      workspace.payments
+          .where((p) => monthKey(p.paidAt) == key)
+          .map((p) => p.amount),
     );
     final open = _sum(
       views
           .where(
             (v) =>
                 monthKey(v.dueDate) == key &&
-                (v.status == ChargeStatus.pendente || v.status == ChargeStatus.atrasado),
+                (v.status == ChargeStatus.pendente ||
+                    v.status == ChargeStatus.atrasado),
           )
           .map((v) => v.amount),
     );
@@ -160,7 +177,11 @@ List<MonthPoint> monthlySeries(Workspace workspace, {int months = 6, DateTime? r
 }
 
 /// Série mensal entre [from] e [to] (inclusive), no mesmo formato do gráfico.
-List<MonthPoint> monthPointsInRange(Workspace workspace, DateTime from, DateTime to) {
+List<MonthPoint> monthPointsInRange(
+  Workspace workspace,
+  DateTime from,
+  DateTime to,
+) {
   final views = chargeViews(workspace);
   final points = <MonthPoint>[];
   var cursor = DateTime(from.year, from.month);
@@ -169,14 +190,17 @@ List<MonthPoint> monthPointsInRange(Workspace workspace, DateTime from, DateTime
   while (!cursor.isAfter(last) && guard < 600) {
     final key = monthKey(cursor);
     final received = _sum(
-      workspace.payments.where((p) => monthKey(p.paidAt) == key).map((p) => p.amount),
+      workspace.payments
+          .where((p) => monthKey(p.paidAt) == key)
+          .map((p) => p.amount),
     );
     final open = _sum(
       views
           .where(
             (v) =>
                 monthKey(v.dueDate) == key &&
-                (v.status == ChargeStatus.pendente || v.status == ChargeStatus.atrasado),
+                (v.status == ChargeStatus.pendente ||
+                    v.status == ChargeStatus.atrasado),
           )
           .map((v) => v.amount),
     );
@@ -244,7 +268,9 @@ MonthBreakdown monthBreakdown(Workspace workspace, String key) {
         id: payment.id,
         received: true,
         clientId: charge?.clientId ?? '',
-        clientName: charge == null ? 'Cliente removido' : workspace.clientName(charge.clientId),
+        clientName: charge == null
+            ? 'Cliente removido'
+            : workspace.clientName(charge.clientId),
         serviceId: charge?.serviceId,
         serviceName: workspace.serviceName(charge?.serviceId),
         description: charge?.description ?? 'Pagamento registrado',
@@ -259,7 +285,10 @@ MonthBreakdown monthBreakdown(Workspace workspace, String key) {
   final open = <MonthBreakdownRow>[];
   for (final view in views) {
     if (monthKey(view.dueDate) != key) continue;
-    if (view.status != ChargeStatus.pendente && view.status != ChargeStatus.atrasado) continue;
+    if (view.status != ChargeStatus.pendente &&
+        view.status != ChargeStatus.atrasado) {
+      continue;
+    }
     open.add(
       MonthBreakdownRow(
         id: view.id,
@@ -308,7 +337,11 @@ class BreakdownItem {
 List<BreakdownItem> receivedByMethod(Iterable<Payment> payments) {
   final map = <PaymentMethod, double>{};
   for (final payment in payments) {
-    map.update(payment.method, (value) => value + payment.amount, ifAbsent: () => payment.amount);
+    map.update(
+      payment.method,
+      (value) => value + payment.amount,
+      ifAbsent: () => payment.amount,
+    );
   }
   final items = map.entries
       .map((entry) => BreakdownItem(name: entry.key.label, value: entry.value))
@@ -317,35 +350,57 @@ List<BreakdownItem> receivedByMethod(Iterable<Payment> payments) {
   return items;
 }
 
-List<BreakdownItem> receivedByClient(Workspace workspace, Iterable<Payment> payments) {
+List<BreakdownItem> receivedByClient(
+  Workspace workspace,
+  Iterable<Payment> payments,
+) {
   final map = <String, double>{};
   for (final payment in payments) {
     final charge = workspace.chargeById(payment.chargeId);
     if (charge == null) continue;
-    map.update(charge.clientId, (value) => value + payment.amount,
-        ifAbsent: () => payment.amount);
+    map.update(
+      charge.clientId,
+      (value) => value + payment.amount,
+      ifAbsent: () => payment.amount,
+    );
   }
   final items = map.entries
-      .map((entry) => BreakdownItem(name: workspace.clientName(entry.key), value: entry.value))
+      .map(
+        (entry) => BreakdownItem(
+          name: workspace.clientName(entry.key),
+          value: entry.value,
+        ),
+      )
       .where((item) => item.value > 0)
       .toList();
   items.sort((a, b) => b.value.compareTo(a.value));
   return items.take(8).toList();
 }
 
-List<BreakdownItem> receivedByService(Workspace workspace, Iterable<Payment> payments) {
+List<BreakdownItem> receivedByService(
+  Workspace workspace,
+  Iterable<Payment> payments,
+) {
   final map = <String, double>{};
   for (final payment in payments) {
     final charge = workspace.chargeById(payment.chargeId);
     if (charge == null) continue;
     final key = charge.serviceId ?? '__none__';
-    map.update(key, (value) => value + payment.amount, ifAbsent: () => payment.amount);
+    map.update(
+      key,
+      (value) => value + payment.amount,
+      ifAbsent: () => payment.amount,
+    );
   }
   final items = map.entries
-      .map((entry) => BreakdownItem(
-            name: entry.key == '__none__' ? 'Sem serviço' : (workspace.serviceName(entry.key) ?? '—'),
-            value: entry.value,
-          ))
+      .map(
+        (entry) => BreakdownItem(
+          name: entry.key == '__none__'
+              ? 'Sem serviço'
+              : (workspace.serviceName(entry.key) ?? '—'),
+          value: entry.value,
+        ),
+      )
       .where((item) => item.value > 0)
       .toList();
   items.sort((a, b) => b.value.compareTo(a.value));
@@ -369,13 +424,16 @@ class RangeSummary {
   final int paidCount;
   final int totalCharges;
 
-  double get receiveRate => totalCharges == 0 ? 0 : (paidCount / totalCharges) * 100;
+  double get receiveRate =>
+      totalCharges == 0 ? 0 : (paidCount / totalCharges) * 100;
 }
 
 List<AppNotification> buildNotifications(Workspace workspace, [DateTime? ref]) {
   final reference = ref ?? today();
   final views = chargeViews(workspace, reference);
-  final overdue = views.where((view) => view.status == ChargeStatus.atrasado).toList();
+  final overdue = views
+      .where((view) => view.status == ChargeStatus.atrasado)
+      .toList();
   final soon = views
       .where(
         (view) =>
@@ -385,16 +443,24 @@ List<AppNotification> buildNotifications(Workspace workspace, [DateTime? ref]) {
       )
       .toList();
   final lastMonth = addMonths(reference, -1);
-  final recentPaid = workspace.payments
-      .where((p) => !p.paidAt.isBefore(lastMonth) && !p.paidAt.isAfter(reference))
-      .toList()
-    ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
-  final paidSlice = recentPaid.length > 6 ? recentPaid.sublist(recentPaid.length - 6) : recentPaid;
+  final recentPaid =
+      workspace.payments
+          .where(
+            (p) =>
+                !p.paidAt.isBefore(lastMonth) && !p.paidAt.isAfter(reference),
+          )
+          .toList()
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+  final paidSlice = recentPaid.length > 6
+      ? recentPaid.sublist(recentPaid.length - 6)
+      : recentPaid;
 
   final list = <AppNotification>[];
   for (final payment in paidSlice) {
     final charge = workspace.chargeById(payment.chargeId);
-    final clientName = charge == null ? '—' : workspace.clientName(charge.clientId);
+    final clientName = charge == null
+        ? '—'
+        : workspace.clientName(charge.clientId);
     list.add(
       AppNotification(
         id: 'n_pag_${payment.id}',
@@ -408,7 +474,8 @@ List<AppNotification> buildNotifications(Workspace workspace, [DateTime? ref]) {
     list.add(
       AppNotification(
         id: 'n_atr_${view.id}',
-        title: 'Cobrança atrasada: ${view.clientName} — ${brl(view.amount)} · ${view.description}',
+        title:
+            'Cobrança atrasada: ${view.clientName} — ${brl(view.amount)} · ${view.description}',
         kind: NotificationKind.atrasado,
         createdAt: view.dueDate,
       ),
@@ -420,7 +487,8 @@ List<AppNotification> buildNotifications(Workspace workspace, [DateTime? ref]) {
     list.add(
       AppNotification(
         id: 'n_venc_${view.id}',
-        title: 'Vence $when: ${view.clientName} — ${brl(view.amount)} · ${view.description}',
+        title:
+            'Vence $when: ${view.clientName} — ${brl(view.amount)} · ${view.description}',
         kind: NotificationKind.vencendo,
         createdAt: view.dueDate,
       ),
@@ -529,7 +597,10 @@ List<PendingOccurrence> pendingOccurrencesInRange(
   return out;
 }
 
-List<PendingOccurrence> pendingRecurrencesForMonth(Workspace workspace, String yearMonth) {
+List<PendingOccurrence> pendingRecurrencesForMonth(
+  Workspace workspace,
+  String yearMonth,
+) {
   final parts = yearMonth.split('-');
   final start = DateTime(int.parse(parts[0]), int.parse(parts[1]));
   final end = DateTime(start.year, start.month + 1, 0);

@@ -64,7 +64,10 @@ class QuotesRepository {
   }
 
   Future<void> setStatus(String id, QuoteStatus status) async {
-    await _client.from(Quote.table).update({'status': status.wire}).eq('id', id);
+    await _client
+        .from(Quote.table)
+        .update({'status': status.wire})
+        .eq('id', id);
   }
 
   Future<void> delete(String id) async {

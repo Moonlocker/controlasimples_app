@@ -8,6 +8,8 @@ class Plan {
     this.maxClients,
     this.maxChargesMonth,
     this.maxWhatsappMonth,
+    this.allowAsaasIntegration = true,
+    this.allowWhatsappNotifications = true,
     this.features = const [],
     this.highlighted = false,
     this.sortOrder = 0,
@@ -24,6 +26,8 @@ class Plan {
   final int? maxClients;
   final int? maxChargesMonth;
   final int? maxWhatsappMonth;
+  final bool allowAsaasIntegration;
+  final bool allowWhatsappNotifications;
   final List<String> features;
   final bool highlighted;
   final int sortOrder;
@@ -42,7 +46,11 @@ class Plan {
       maxClients: (map['max_clients'] as num?)?.toInt(),
       maxChargesMonth: (map['max_charges_month'] as num?)?.toInt(),
       maxWhatsappMonth: (map['max_whatsapp_month'] as num?)?.toInt(),
-      features: rawFeatures is List ? rawFeatures.map((e) => e.toString()).toList() : const [],
+      allowAsaasIntegration: map['allow_asaas_integration'] != false,
+      allowWhatsappNotifications: map['allow_whatsapp_notifications'] != false,
+      features: rawFeatures is List
+          ? rawFeatures.map((e) => e.toString()).toList()
+          : const [],
       highlighted: map['highlighted'] == true,
       sortOrder: (map['sort_order'] as num?)?.toInt() ?? 0,
       active: map['active'] != false,

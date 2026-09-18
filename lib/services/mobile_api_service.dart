@@ -51,7 +51,9 @@ class MobileApiService {
     };
     final error = data['error'];
     if (response.statusCode >= 400 || error != null) {
-      throw MobileApiException(error?.toString() ?? 'Erro ${response.statusCode}');
+      throw MobileApiException(
+        error?.toString() ?? 'Erro ${response.statusCode}',
+      );
     }
     if (decoded == null && body.isNotEmpty) {
       throw MobileApiException(
@@ -61,14 +63,20 @@ class MobileApiService {
     return data;
   }
 
-  Future<Map<String, dynamic>> get(String path, [Map<String, String>? query]) async {
+  Future<Map<String, dynamic>> get(
+    String path, [
+    Map<String, String>? query,
+  ]) async {
     final uri = Uri.parse('${AppConfig.apiBaseUrl}$path')
         .replace(queryParameters: query?.isEmpty ?? true ? null : query);
     final response = await _http.get(uri, headers: _headers());
     return _decode(response);
   }
 
-  Future<Map<String, dynamic>> post(String path, [Map<String, dynamic>? body]) async {
+  Future<Map<String, dynamic>> post(
+    String path, [
+    Map<String, dynamic>? body,
+  ]) async {
     final response = await _http.post(
       Uri.parse('${AppConfig.apiBaseUrl}$path'),
       headers: _headers(json: true),

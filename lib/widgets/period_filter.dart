@@ -50,12 +50,15 @@ class _PeriodPickerSheet extends StatelessWidget {
       context: context,
       firstDate: earliest ?? DateTime(now.year - 5),
       lastDate: DateTime(now.year + 5, 12, 31),
-      initialDateRange: current == null ? null : DateTimeRange(start: current!.from, end: current!.to),
+      initialDateRange: current == null
+          ? null
+          : DateTimeRange(start: current!.from, end: current!.to),
       helpText: 'Selecione o período',
       saveText: 'Aplicar',
     );
     if (picked != null && context.mounted) {
-      Navigator.of(context).pop(PeriodSelection(PeriodRange(picked.start, picked.end)));
+      Navigator.of(context)
+          .pop(PeriodSelection(PeriodRange(picked.start, picked.end)));
     }
   }
 
@@ -91,7 +94,9 @@ class _PeriodPickerSheet extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
             child: Text(
               'Período',
-              style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              style: textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
           Padding(
@@ -122,7 +127,10 @@ class _PeriodPickerSheet extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           ListTile(
-            leading: const Icon(Icons.all_inclusive, color: AppColors.mutedForeground),
+            leading: const Icon(
+              Icons.all_inclusive,
+              color: AppColors.mutedForeground,
+            ),
             title: Text(nullLabel),
             onTap: () => Navigator.of(context).pop(const PeriodSelection(null)),
           ),
@@ -182,15 +190,16 @@ class PeriodBar extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.calendar_month_outlined,
-                      size: 18, color: AppColors.mutedForeground),
+                  const Icon(
+                    Icons.calendar_month_outlined,
+                    size: 18,
+                    color: AppColors.mutedForeground,
+                  ),
                   const SizedBox(width: 8),
                   Flexible(
                     child: Text(
                       rangeLabel(range, nullLabel: nullLabel),
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
+                      style: Theme.of(context).textTheme.bodyMedium
                           ?.copyWith(fontWeight: FontWeight.w600),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

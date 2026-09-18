@@ -75,7 +75,11 @@ class FilterCombobox<T> extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 16, color: selected ? AppColors.primary : AppColors.mutedForeground),
+              Icon(
+                icon,
+                size: 16,
+                color: selected ? AppColors.primary : AppColors.mutedForeground,
+              ),
               const SizedBox(width: 8),
               Flexible(
                 child: Text(
@@ -83,12 +87,18 @@ class FilterCombobox<T> extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: selected ? AppColors.foreground : AppColors.mutedForeground,
-                      ),
+                    fontWeight: FontWeight.w600,
+                    color: selected
+                        ? AppColors.foreground
+                        : AppColors.mutedForeground,
+                  ),
                 ),
               ),
-              const Icon(Icons.expand_more, size: 18, color: AppColors.mutedForeground),
+              const Icon(
+                Icons.expand_more,
+                size: 18,
+                color: AppColors.mutedForeground,
+              ),
             ],
           ),
         ),
@@ -127,10 +137,12 @@ class _ComboboxSheetState<T> extends State<_ComboboxSheet<T>> {
   Widget build(BuildContext context) {
     final query = _query.trim().toLowerCase();
     final filtered = widget.options
-        .where((option) =>
-            query.isEmpty ||
-            option.label.toLowerCase().contains(query) ||
-            (option.subtitle?.toLowerCase().contains(query) ?? false))
+        .where(
+          (option) =>
+              query.isEmpty ||
+              option.label.toLowerCase().contains(query) ||
+              (option.subtitle?.toLowerCase().contains(query) ?? false),
+        )
         .toList();
 
     return Padding(
@@ -152,9 +164,7 @@ class _ComboboxSheetState<T> extends State<_ComboboxSheet<T>> {
               padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
               child: Text(
                 widget.hint,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
+                style: Theme.of(context).textTheme.titleLarge
                     ?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
@@ -174,22 +184,29 @@ class _ComboboxSheetState<T> extends State<_ComboboxSheet<T>> {
               child: ListView(
                 children: [
                   ListTile(
-                    leading: const Icon(Icons.clear_all, color: AppColors.mutedForeground),
+                    leading: const Icon(
+                      Icons.clear_all,
+                      color: AppColors.mutedForeground,
+                    ),
                     title: Text(widget.allLabel),
                     selected: widget.value == null,
-                    onTap: () => Navigator.of(context).pop(_ComboboxResult<T>(null)),
+                    onTap: () =>
+                        Navigator.of(context).pop(_ComboboxResult<T>(null)),
                   ),
                   const Divider(height: 1),
                   for (final option in filtered)
                     ListTile(
                       title: Text(option.label),
-                      subtitle: option.subtitle == null ? null : Text(option.subtitle!),
+                      subtitle: option.subtitle == null
+                          ? null
+                          : Text(option.subtitle!),
                       selected: option.value == widget.value,
                       trailing: option.value == widget.value
                           ? const Icon(Icons.check, color: AppColors.primary)
                           : null,
                       onTap: () =>
-                          Navigator.of(context).pop(_ComboboxResult<T>(option.value)),
+                          Navigator.of(context)
+                              .pop(_ComboboxResult<T>(option.value)),
                     ),
                   if (filtered.isEmpty)
                     const Padding(

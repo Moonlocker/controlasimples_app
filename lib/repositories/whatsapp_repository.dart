@@ -21,12 +21,16 @@ class WhatsappRepository {
   }
 
   Future<int> sendCharge(String chargeId) async {
-    final result = await _api.post('/api/mobile/whatsapp/send', {'chargeId': chargeId});
+    final result = await _api.post('/api/mobile/whatsapp/send', {
+      'chargeId': chargeId,
+    });
     return (result['remaining'] as num?)?.toInt() ?? 0;
   }
 
   Future<String> checkClient(String clientId) async {
-    final result = await _api.post('/api/mobile/whatsapp/check', {'clientId': clientId});
+    final result = await _api.post('/api/mobile/whatsapp/check', {
+      'clientId': clientId,
+    });
     return (result['status'] as String?) ?? 'invalid';
   }
 }

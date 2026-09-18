@@ -29,4 +29,12 @@ class ProfileRepository {
     if (payload.isEmpty) return;
     await _client.from(Profile.table).update(payload).eq('id', userId);
   }
+
+  /// Marca o assistente de primeiros passos como concluído.
+  Future<void> completeSetup(String userId) async {
+    await _client
+        .from(Profile.table)
+        .update({'setup_completed': true})
+        .eq('id', userId);
+  }
 }

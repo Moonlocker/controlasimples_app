@@ -52,7 +52,11 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
           data: (workspace) {
             final query = _query.trim().toLowerCase();
             final clients = workspace.clients
-                .where((client) => query.isEmpty || client.name.toLowerCase().contains(query))
+                .where(
+                  (client) =>
+                      query.isEmpty ||
+                      client.name.toLowerCase().contains(query),
+                )
                 .toList();
             final pendingByClient = _pendingByClient(workspace);
 
@@ -65,7 +69,8 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
                     children: [
                       const ScreenHeader(
                         title: 'Clientes',
-                        description: 'Contatos e situação financeira de cada cliente.',
+                        description:
+                            'Contatos e situação financeira de cada cliente.',
                         leading: BrandBadge(),
                       ),
                       const SizedBox(height: 16),
@@ -84,7 +89,9 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
                   child: clients.isEmpty
                       ? EmptyState(
                           icon: Icons.people_outline,
-                          title: query.isEmpty ? 'Nenhum cliente cadastrado' : 'Nada encontrado',
+                          title: query.isEmpty
+                              ? 'Nenhum cliente cadastrado'
+                              : 'Nada encontrado',
                           description: query.isEmpty
                               ? 'Cadastre o primeiro cliente para começar.'
                               : 'Tente buscar por outro nome.',
@@ -99,13 +106,15 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
                           child: ListView.separated(
                             padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
                             itemCount: clients.length,
-                            separatorBuilder: (_, _) => const SizedBox(height: 10),
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 10),
                             itemBuilder: (context, index) {
                               final client = clients[index];
                               return _ClientTile(
                                 client: client,
                                 pending: pendingByClient[client.id] ?? 0,
-                                onTap: () => context.push('/clients/${client.id}'),
+                                onTap: () =>
+                                    context.push('/clients/${client.id}'),
                               );
                             },
                           ),
@@ -122,8 +131,13 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
   Map<String, double> _pendingByClient(Workspace workspace) {
     final map = <String, double>{};
     for (final view in chargeViews(workspace)) {
-      if (view.status == ChargeStatus.pendente || view.status == ChargeStatus.atrasado) {
-        map.update(view.clientId, (value) => value + view.amount, ifAbsent: () => view.amount);
+      if (view.status == ChargeStatus.pendente ||
+          view.status == ChargeStatus.atrasado) {
+        map.update(
+          view.clientId,
+          (value) => value + view.amount,
+          ifAbsent: () => view.amount,
+        );
       }
     }
     return map;
@@ -131,7 +145,11 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
 }
 
 class _ClientTile extends StatelessWidget {
-  const _ClientTile({required this.client, required this.pending, required this.onTap});
+  const _ClientTile({
+    required this.client,
+    required this.pending,
+    required this.onTap,
+  });
 
   final Client client;
   final double pending;
@@ -173,7 +191,9 @@ class _ClientTile extends StatelessWidget {
                       Flexible(
                         child: Text(
                           client.name,
-                          style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                          style: textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -181,15 +201,19 @@ class _ClientTile extends StatelessWidget {
                       if (!client.active) ...[
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.muted,
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
                             'Inativo',
-                            style: textTheme.labelSmall
-                                ?.copyWith(color: AppColors.mutedForeground),
+                            style: textTheme.labelSmall?.copyWith(
+                              color: AppColors.mutedForeground,
+                            ),
                           ),
                         ),
                       ],
@@ -198,7 +222,9 @@ class _ClientTile extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(
                     client.phone ?? client.email ?? 'Sem contato',
-                    style: textTheme.bodySmall?.copyWith(color: AppColors.mutedForeground),
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.mutedForeground,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -211,12 +237,16 @@ class _ClientTile extends StatelessWidget {
               children: [
                 Text(
                   brl(pending),
-                  style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   'em aberto',
-                  style: textTheme.labelSmall?.copyWith(color: AppColors.mutedForeground),
+                  style: textTheme.labelSmall?.copyWith(
+                    color: AppColors.mutedForeground,
+                  ),
                 ),
               ],
             ),

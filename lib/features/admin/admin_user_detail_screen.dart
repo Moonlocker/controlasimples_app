@@ -41,7 +41,11 @@ class AdminUserDetailScreen extends ConsumerWidget {
             return const EmptyState(title: 'Usuário não encontrado');
           }
           final currentUserId = ref.watch(currentUserIdProvider);
-          return _UserDetail(data: data, user: user, isSelf: currentUserId == user.id);
+          return _UserDetail(
+            data: data,
+            user: user,
+            isSelf: currentUserId == user.id,
+          );
         },
       ),
     );
@@ -49,7 +53,11 @@ class AdminUserDetailScreen extends ConsumerWidget {
 }
 
 class _UserDetail extends ConsumerStatefulWidget {
-  const _UserDetail({required this.data, required this.user, required this.isSelf});
+  const _UserDetail({
+    required this.data,
+    required this.user,
+    required this.isSelf,
+  });
 
   final AdminData data;
   final AdminUser user;
@@ -66,14 +74,17 @@ class _UserDetailState extends ConsumerState<_UserDetail> {
   @override
   void initState() {
     super.initState();
-    _quota = TextEditingController(text: widget.user.whatsappQuotaOverride?.toString() ?? '');
+    _quota = TextEditingController(
+      text: widget.user.whatsappQuotaOverride?.toString() ?? '',
+    );
   }
 
   @override
   void didUpdateWidget(covariant _UserDetail oldWidget) {
     super.didUpdateWidget(oldWidget);
     final incoming = widget.user.whatsappQuotaOverride?.toString() ?? '';
-    if (oldWidget.user.whatsappQuotaOverride != widget.user.whatsappQuotaOverride &&
+    if (oldWidget.user.whatsappQuotaOverride !=
+            widget.user.whatsappQuotaOverride &&
         _quota.text != incoming) {
       _quota.text = incoming;
     }
@@ -92,7 +103,8 @@ class _UserDetailState extends ConsumerState<_UserDetail> {
       ref.invalidate(adminDataProvider);
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$error')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$error')));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -111,13 +123,12 @@ class _UserDetailState extends ConsumerState<_UserDetail> {
       children: [
         Text(
           user.name.isEmpty ? user.email : user.name,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+          style: Theme.of(context).textTheme.titleLarge
+              ?.copyWith(fontWeight: FontWeight.w700),
         ),
         Text(
           user.email,
-          style: Theme.of(context)
-              .textTheme
-              .bodySmall
+          style: Theme.of(context).textTheme.bodySmall
               ?.copyWith(color: AppColors.mutedForeground),
         ),
         const SizedBox(height: 16),
@@ -129,9 +140,21 @@ class _UserDetailState extends ConsumerState<_UserDetail> {
           mainAxisSpacing: 12,
           childAspectRatio: 1.5,
           children: [
-            StatCard(label: 'Clientes', value: '${user.clients}', tone: AppColors.info),
-            StatCard(label: 'Cobranças', value: '${user.charges}', tone: AppColors.warning),
-            StatCard(label: 'Recebido', value: brl(user.received), tone: AppColors.success),
+            StatCard(
+              label: 'Clientes',
+              value: '${user.clients}',
+              tone: AppColors.info,
+            ),
+            StatCard(
+              label: 'Cobranças',
+              value: '${user.charges}',
+              tone: AppColors.warning,
+            ),
+            StatCard(
+              label: 'Recebido',
+              value: brl(user.received),
+              tone: AppColors.success,
+            ),
             StatCard(
               label: 'WhatsApp no mês',
               value: '${user.whatsappSent}',
@@ -155,16 +178,19 @@ class _UserDetailState extends ConsumerState<_UserDetail> {
                 ],
                 onChanged: (value) {
                   if (_busy) return;
-                  _run(() => repository.updateSubscription(
-                        userId: user.id,
-                        planId: value,
-                      ));
+                  _run(
+                    () => repository.updateSubscription(
+                      userId: user.id,
+                      planId: value,
+                    ),
+                  );
                 },
               ),
               const SizedBox(height: 14),
               DropdownButtonFormField<SubscriptionStatus>(
                 key: ValueKey('status-${user.subscriptionStatus}'),
-                initialValue: user.subscriptionStatus ?? SubscriptionStatus.trial,
+                initialValue:
+                    user.subscriptionStatus ?? SubscriptionStatus.trial,
                 decoration: const InputDecoration(labelText: 'Situação'),
                 items: [
                   for (final status in SubscriptionStatus.values)
@@ -172,10 +198,12 @@ class _UserDetailState extends ConsumerState<_UserDetail> {
                 ],
                 onChanged: (value) {
                   if (value == null || _busy) return;
-                  _run(() => repository.updateSubscription(
-                        userId: user.id,
-                        status: value,
-                      ));
+                  _run(
+                    () => repository.updateSubscription(
+                      userId: user.id,
+                      status: value,
+                    ),
+                  );
                 },
               ),
               if (user.currentPeriodEnd != null) ...[
@@ -184,9 +212,7 @@ class _UserDetailState extends ConsumerState<_UserDetail> {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'Válido até ${formatDate(user.currentPeriodEnd!)}',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
+                    style: Theme.of(context).textTheme.bodySmall
                         ?.copyWith(color: AppColors.mutedForeground),
                   ),
                 ),
@@ -197,9 +223,7 @@ class _UserDetailState extends ConsumerState<_UserDetail> {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'Asaas: ${user.asaasStatus}',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
+                    style: Theme.of(context).textTheme.bodySmall
                         ?.copyWith(color: AppColors.mutedForeground),
                   ),
                 ),
@@ -217,10 +241,12 @@ class _UserDetailState extends ConsumerState<_UserDetail> {
                 value: user.active,
                 onChanged: (value) {
                   if (_busy) return;
-                  _run(() => repository.updateProfile(
-                        userId: user.id,
-                        active: value,
-                      ));
+                  _run(
+                    () => repository.updateProfile(
+                      userId: user.id,
+                      active: value,
+                    ),
+                  );
                 },
                 title: const Text('Acesso liberado'),
               ),
@@ -259,10 +285,14 @@ class _UserDetailState extends ConsumerState<_UserDetail> {
               FilledButton(
                 onPressed: () {
                   if (_busy) return;
-                  _run(() => repository.setWhatsappQuota(
-                        user.id,
-                        _quota.text.trim().isEmpty ? null : int.tryParse(_quota.text.trim()),
-                      ));
+                  _run(
+                    () => repository.setWhatsappQuota(
+                      user.id,
+                      _quota.text.trim().isEmpty
+                          ? null
+                          : int.tryParse(_quota.text.trim()),
+                    ),
+                  );
                 },
                 child: const Text('Salvar'),
               ),
@@ -272,7 +302,8 @@ class _UserDetailState extends ConsumerState<_UserDetail> {
         const SizedBox(height: 16),
         Text(
           'Mensagens recentes',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          style: Theme.of(context).textTheme.titleMedium
+              ?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
         messagesAsync.when(
@@ -284,7 +315,10 @@ class _UserDetailState extends ConsumerState<_UserDetail> {
           ),
           error: (error, _) => Text('$error'),
           data: (messages) => messages.isEmpty
-              ? const EmptyState(icon: Icons.chat_outlined, title: 'Nenhuma mensagem')
+              ? const EmptyState(
+                  icon: Icons.chat_outlined,
+                  title: 'Nenhuma mensagem',
+                )
               : Column(
                   children: [
                     for (final message in messages.take(20))

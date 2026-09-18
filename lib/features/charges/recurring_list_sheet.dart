@@ -53,16 +53,12 @@ class _RecurringListSheet extends ConsumerWidget {
                     children: [
                       Text(
                         'Recorrências',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleLarge
+                        style: Theme.of(context).textTheme.titleLarge
                             ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                       Text(
                         'Mensalidades e cobranças automáticas.',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
+                        style: Theme.of(context).textTheme.bodySmall
                             ?.copyWith(color: AppColors.mutedForeground),
                       ),
                     ],
@@ -83,9 +79,7 @@ class _RecurringListSheet extends ConsumerWidget {
                       padding: const EdgeInsets.all(24),
                       child: Text(
                         'Nenhuma recorrência cadastrada.',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
+                        style: Theme.of(context).textTheme.bodyMedium
                             ?.copyWith(color: AppColors.mutedForeground),
                       ),
                     ),
@@ -150,17 +144,25 @@ class _RecurringTile extends ConsumerWidget {
               Expanded(
                 child: Text(
                   clientName,
-                  style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                  style: textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               Text(
                 brl(item.amount),
-                style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
+                style: textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert, size: 20, color: AppColors.mutedForeground),
+                icon: const Icon(
+                  Icons.more_vert,
+                  size: 20,
+                  color: AppColors.mutedForeground,
+                ),
                 onSelected: (value) async {
                   final repository = ref.read(chargesRepositoryProvider);
                   if (value == 'edit') {
@@ -195,7 +197,9 @@ class _RecurringTile extends ConsumerWidget {
           const SizedBox(height: 3),
           Text(
             '${item.description}${serviceName == null ? '' : ' · $serviceName'}',
-            style: textTheme.bodySmall?.copyWith(color: AppColors.mutedForeground),
+            style: textTheme.bodySmall?.copyWith(
+              color: AppColors.mutedForeground,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -204,10 +208,15 @@ class _RecurringTile extends ConsumerWidget {
             children: [
               _Tag(
                 label: item.active ? 'Ativa' : 'Pausada',
-                color: item.active ? AppColors.success : AppColors.mutedForeground,
+                color: item.active
+                    ? AppColors.success
+                    : AppColors.mutedForeground,
               ),
               const SizedBox(width: 8),
-              _Tag(label: '${item.frequency.label} · dia ${item.dueDay}', color: AppColors.info),
+              _Tag(
+                label: '${item.frequency.label} · dia ${item.dueDay}',
+                color: AppColors.info,
+              ),
               if (item.autoAsaas) ...[
                 const SizedBox(width: 8),
                 const _Tag(label: 'Asaas', color: AppColors.primary),
@@ -236,9 +245,7 @@ class _Tag extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: Theme.of(context)
-            .textTheme
-            .labelSmall
+        style: Theme.of(context).textTheme.labelSmall
             ?.copyWith(color: color, fontWeight: FontWeight.w700),
       ),
     );

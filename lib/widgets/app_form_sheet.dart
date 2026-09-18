@@ -77,13 +77,16 @@ class AppFormSheet extends StatelessWidget {
                       children: [
                         Text(
                           title,
-                          style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                          style: textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                         if (subtitle != null)
                           Text(
                             subtitle!,
-                            style: textTheme.bodySmall
-                                ?.copyWith(color: AppColors.mutedForeground),
+                            style: textTheme.bodySmall?.copyWith(
+                              color: AppColors.mutedForeground,
+                            ),
                           ),
                       ],
                     ),

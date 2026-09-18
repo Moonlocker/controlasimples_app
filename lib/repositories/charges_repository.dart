@@ -45,7 +45,10 @@ class ChargesRepository {
   }
 
   Future<void> cancel(String id) async {
-    await _client.from(Charge.table).update({'status': ChargeStatus.cancelado.wire}).eq('id', id);
+    await _client
+        .from(Charge.table)
+        .update({'status': ChargeStatus.cancelado.wire})
+        .eq('id', id);
   }
 
   Future<void> registerPayment({
@@ -64,18 +67,21 @@ class ChargesRepository {
       'received_at': receivedAt?.toIso8601String(),
       'method': method.wire,
     });
-    await _client.from(Charge.table).update({
-      'status': ChargeStatus.pago.wire,
-      'paid_date': isoDate(paidAt),
-    }).eq('id', chargeId);
+    await _client
+        .from(Charge.table)
+        .update({
+          'status': ChargeStatus.pago.wire,
+          'paid_date': isoDate(paidAt),
+        })
+        .eq('id', chargeId);
   }
 
   Future<void> reopen(String chargeId) async {
     await _client.from(Payment.table).delete().eq('charge_id', chargeId);
-    await _client.from(Charge.table).update({
-      'status': ChargeStatus.pendente.wire,
-      'paid_date': null,
-    }).eq('id', chargeId);
+    await _client
+        .from(Charge.table)
+        .update({'status': ChargeStatus.pendente.wire, 'paid_date': null})
+        .eq('id', chargeId);
   }
 
   Future<void> insertOccurrences(List<Map<String, dynamic>> rows) async {
@@ -123,7 +129,10 @@ class ChargesRepository {
   }
 
   Future<void> toggleRecurring(String id, bool active) async {
-    await _client.from(RecurringCharge.table).update({'active': active}).eq('id', id);
+    await _client
+        .from(RecurringCharge.table)
+        .update({'active': active})
+        .eq('id', id);
   }
 
   Future<void> deleteRecurring(String id) async {

@@ -58,11 +58,15 @@ class _ClientFormSheetState extends ConsumerState<ClientFormSheet> {
     if (userId == null) return;
     setState(() => _busy = true);
     try {
-      await ref.read(clientsRepositoryProvider).save(
+      await ref
+          .read(clientsRepositoryProvider)
+          .save(
             id: widget.client?.id,
             userId: userId,
             name: _name.text.trim(),
-            document: _document.text.trim().isEmpty ? null : _document.text.trim(),
+            document: _document.text.trim().isEmpty
+                ? null
+                : _document.text.trim(),
             phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
             email: _email.text.trim().isEmpty ? null : _email.text.trim(),
             notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
@@ -129,7 +133,9 @@ class _ClientFormSheetState extends ConsumerState<ClientFormSheet> {
           value: _active,
           onChanged: (value) => setState(() => _active = value),
           title: const Text('Cliente ativo'),
-          subtitle: const Text('Clientes inativos não aparecem em novos registros.'),
+          subtitle: const Text(
+            'Clientes inativos não aparecem em novos registros.',
+          ),
         ),
       ],
     );

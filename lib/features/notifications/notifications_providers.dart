@@ -7,7 +7,9 @@ import '../../repositories/workspace_providers.dart';
 import '../auth/auth_providers.dart';
 
 final readNotificationIdsProvider =
-    AsyncNotifierProvider<ReadNotificationIds, Set<String>>(ReadNotificationIds.new);
+    AsyncNotifierProvider<ReadNotificationIds, Set<String>>(
+      ReadNotificationIds.new,
+    );
 
 class ReadNotificationIds extends AsyncNotifier<Set<String>> {
   String get _key {
@@ -44,6 +46,7 @@ final appNotificationsProvider = Provider<List<AppNotification>>((ref) {
 
 final unreadNotificationCountProvider = Provider<int>((ref) {
   final notifications = ref.watch(appNotificationsProvider);
-  final readIds = ref.watch(readNotificationIdsProvider).value ?? const <String>{};
+  final readIds =
+      ref.watch(readNotificationIdsProvider).value ?? const <String>{};
   return notifications.where((n) => !readIds.contains(n.id)).length;
 });

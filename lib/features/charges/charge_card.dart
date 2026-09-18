@@ -86,9 +86,13 @@ class ChargeCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary.withValues(alpha: 0.06) : AppColors.surface,
+          color: selected
+              ? AppColors.primary.withValues(alpha: 0.06)
+              : AppColors.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: selected ? AppColors.primary : AppColors.border),
+          border: Border.all(
+            color: selected ? AppColors.primary : AppColors.border,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,16 +113,20 @@ class ChargeCard extends StatelessWidget {
                     showClient
                         ? view.clientName
                         : (view.charge.recurringId != null
-                            ? '${view.description} · recorrente'
-                            : view.description),
-                    style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                              ? '${view.description} · recorrente'
+                              : view.description),
+                    style: textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Text(
                   brl(view.amount),
-                  style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
+                  style: textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 if (!selectionMode) ChargeActionsButton(charge: view.charge),
               ],
@@ -129,7 +137,9 @@ class ChargeCard extends StatelessWidget {
                 view.charge.recurringId != null
                     ? '${view.description} · recorrente'
                     : view.description,
-                style: textTheme.bodySmall?.copyWith(color: AppColors.mutedForeground),
+                style: textTheme.bodySmall?.copyWith(
+                  color: AppColors.mutedForeground,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -137,15 +147,25 @@ class ChargeCard extends StatelessWidget {
             const SizedBox(height: 10),
             Row(
               children: [
-                Icon(Icons.event_outlined, size: 14, color: AppColors.mutedForeground),
+                Icon(
+                  Icons.event_outlined,
+                  size: 14,
+                  color: AppColors.mutedForeground,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   'Vence ${formatDate(view.dueDate)}',
-                  style: textTheme.bodySmall?.copyWith(color: AppColors.mutedForeground),
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.mutedForeground,
+                  ),
                 ),
                 if (view.charge.asaasPaymentId != null) ...[
                   const SizedBox(width: 8),
-                  const Icon(Icons.receipt_outlined, size: 14, color: AppColors.info),
+                  const Icon(
+                    Icons.receipt_outlined,
+                    size: 14,
+                    color: AppColors.info,
+                  ),
                 ],
                 const Spacer(),
                 StatusBadge(status: view.status),
@@ -166,34 +186,60 @@ class ChargeActionsButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isOpen =
-        charge.status == ChargeStatus.pendente || charge.status == ChargeStatus.atrasado;
+        charge.status == ChargeStatus.pendente ||
+        charge.status == ChargeStatus.atrasado;
     final isPaid = charge.status == ChargeStatus.pago;
     final emitted = charge.asaasPaymentId != null;
 
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert, size: 20, color: AppColors.mutedForeground),
+      icon: const Icon(
+        Icons.more_vert,
+        size: 20,
+        color: AppColors.mutedForeground,
+      ),
       onSelected: (value) => _handle(context, ref, value),
       itemBuilder: (context) => [
         if (isOpen && !emitted)
           const PopupMenuItem(value: 'emit', child: Text('Emitir no Asaas')),
         if (emitted)
-          const PopupMenuItem(value: 'files', child: Text('Ver pagamento (Pix/boleto)')),
+          const PopupMenuItem(
+            value: 'files',
+            child: Text('Ver pagamento (Pix/boleto)'),
+          ),
         if (emitted && isOpen)
-          const PopupMenuItem(value: 'sync', child: Text('Atualizar status no Asaas')),
+          const PopupMenuItem(
+            value: 'sync',
+            child: Text('Atualizar status no Asaas'),
+          ),
         if (isOpen)
-          const PopupMenuItem(value: 'whatsapp', child: Text('Enviar WhatsApp')),
+          const PopupMenuItem(
+            value: 'whatsapp',
+            child: Text('Enviar WhatsApp'),
+          ),
         if (isOpen) const PopupMenuDivider(),
         if (isOpen)
-          const PopupMenuItem(value: 'pay', child: Text('Registrar recebimento')),
+          const PopupMenuItem(
+            value: 'pay',
+            child: Text('Registrar recebimento'),
+          ),
         if (isOpen) const PopupMenuItem(value: 'edit', child: Text('Editar')),
-        if (isPaid) const PopupMenuItem(value: 'reopen', child: Text('Reabrir cobrança')),
-        if (isOpen) const PopupMenuItem(value: 'cancel', child: Text('Cancelar cobrança')),
+        if (isPaid)
+          const PopupMenuItem(value: 'reopen', child: Text('Reabrir cobrança')),
+        if (isOpen)
+          const PopupMenuItem(
+            value: 'cancel',
+            child: Text('Cancelar cobrança'),
+          ),
         const PopupMenuItem(value: 'delete', child: Text('Excluir')),
       ],
     );
   }
 
-  Future<void> _handle(BuildContext context, WidgetRef ref, String action) async {
+  Future<void> _handle(
+    BuildContext context,
+    WidgetRef ref,
+    String action,
+  ) async {
     final repository = ref.read(chargesRepositoryProvider);
     try {
       switch (action) {
@@ -203,11 +249,16 @@ class ChargeActionsButton extends ConsumerWidget {
           final files = await _withProgress(
             context,
             'Emitindo cobrança…',
-            () => ref.read(asaasRepositoryProvider).emit(charge.id, billingType),
+            () =>
+                ref.read(asaasRepositoryProvider).emit(charge.id, billingType),
           );
           ref.invalidate(workspaceProvider);
           if (context.mounted) {
-            await showPaymentFilesSheet(context, files, description: charge.description);
+            await showPaymentFilesSheet(
+              context,
+              files,
+              description: charge.description,
+            );
           }
         case 'files':
           final files = await _withProgress(
@@ -216,7 +267,11 @@ class ChargeActionsButton extends ConsumerWidget {
             () => ref.read(asaasRepositoryProvider).files(charge.id),
           );
           if (context.mounted) {
-            await showPaymentFilesSheet(context, files, description: charge.description);
+            await showPaymentFilesSheet(
+              context,
+              files,
+              description: charge.description,
+            );
           }
         case 'sync':
           final status = await _withProgress(
@@ -226,9 +281,9 @@ class ChargeActionsButton extends ConsumerWidget {
           );
           ref.invalidate(workspaceProvider);
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Status no Asaas: $status')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('Status no Asaas: $status')));
           }
         case 'whatsapp':
           final confirmed = await showConfirmDialog(
@@ -244,9 +299,9 @@ class ChargeActionsButton extends ConsumerWidget {
             () => ref.read(whatsappRepositoryProvider).sendCharge(charge.id),
           );
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Mensagem enviada.')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Mensagem enviada.')));
           }
         case 'pay':
           await showPaymentForm(context, charge: charge);

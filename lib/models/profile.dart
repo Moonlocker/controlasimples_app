@@ -9,6 +9,9 @@ class Profile {
     this.phone,
     this.document,
     this.active = true,
+    this.onboardingCompleted = false,
+    this.setupCompleted = true,
+    this.whatsappQuotaOverride,
     required this.createdAt,
   });
 
@@ -21,6 +24,14 @@ class Profile {
   final String? phone;
   final String? document;
   final bool active;
+  final bool onboardingCompleted;
+
+  /// Indica que o assistente de primeiros passos foi concluído.
+  ///
+  /// Se a coluna ainda não existir no banco (migração não aplicada), assume
+  /// `true` para não prender todos os usuários no assistente.
+  final bool setupCompleted;
+  final int? whatsappQuotaOverride;
   final DateTime createdAt;
 
   factory Profile.fromMap(Map<String, dynamic> map) {
@@ -32,15 +43,16 @@ class Profile {
       phone: map['phone'] as String?,
       document: map['document'] as String?,
       active: map['active'] != false,
+      onboardingCompleted: map['onboarding_completed'] == true,
+      setupCompleted: map.containsKey('setup_completed')
+          ? map['setup_completed'] == true
+          : true,
+      whatsappQuotaOverride: (map['whatsapp_quota_override'] as num?)?.toInt(),
       createdAt: parseDate(map['created_at']),
     );
   }
 
   Map<String, dynamic> toMap() {
-    return {
-      'name': name,
-      'company': company,
-      'phone': phone,
-    };
+    return {'name': name, 'company': company, 'phone': phone};
   }
 }

@@ -12,18 +12,24 @@ Future<void> showPaymentFilesSheet(
   BuildContext context,
   AsaasPaymentFiles files, {
   String? description,
+  String title = 'Pagamento da cobrança',
 }) {
   return showAppFormSheet(
     context,
-    _PaymentFilesSheet(files: files, description: description),
+    _PaymentFilesSheet(files: files, description: description, title: title),
   );
 }
 
 class _PaymentFilesSheet extends StatelessWidget {
-  const _PaymentFilesSheet({required this.files, this.description});
+  const _PaymentFilesSheet({
+    required this.files,
+    this.description,
+    required this.title,
+  });
 
   final AsaasPaymentFiles files;
   final String? description;
+  final String title;
 
   @override
   Widget build(BuildContext context) {
@@ -52,14 +58,17 @@ class _PaymentFilesSheet extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Pagamento da cobrança',
-                        style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                        title,
+                        style: textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       if (description != null)
                         Text(
                           description!,
-                          style: textTheme.bodySmall
-                              ?.copyWith(color: AppColors.mutedForeground),
+                          style: textTheme.bodySmall?.copyWith(
+                            color: AppColors.mutedForeground,
+                          ),
                         ),
                     ],
                   ),
@@ -98,7 +107,9 @@ class _PaymentFilesSheet extends StatelessWidget {
                 if (files.pixPayload != null && files.pixPayload!.isNotEmpty)
                   OutlinedButton.icon(
                     onPressed: () async {
-                      await Clipboard.setData(ClipboardData(text: files.pixPayload!));
+                      await Clipboard.setData(
+                        ClipboardData(text: files.pixPayload!),
+                      );
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Código PIX copiado.')),
@@ -108,7 +119,8 @@ class _PaymentFilesSheet extends StatelessWidget {
                     icon: const Icon(Icons.copy),
                     label: const Text('Copiar código PIX'),
                   ),
-                if (files.invoiceUrl != null && files.invoiceUrl!.isNotEmpty) ...[
+                if (files.invoiceUrl != null &&
+                    files.invoiceUrl!.isNotEmpty) ...[
                   const SizedBox(height: 10),
                   OutlinedButton.icon(
                     onPressed: () => launchUrl(Uri.parse(files.invoiceUrl!)),
@@ -116,7 +128,8 @@ class _PaymentFilesSheet extends StatelessWidget {
                     label: const Text('Abrir link de pagamento'),
                   ),
                 ],
-                if (files.bankSlipUrl != null && files.bankSlipUrl!.isNotEmpty) ...[
+                if (files.bankSlipUrl != null &&
+                    files.bankSlipUrl!.isNotEmpty) ...[
                   const SizedBox(height: 10),
                   OutlinedButton.icon(
                     onPressed: () => launchUrl(Uri.parse(files.bankSlipUrl!)),
@@ -128,7 +141,9 @@ class _PaymentFilesSheet extends StatelessWidget {
                   const SizedBox(height: 16),
                   Text(
                     'Status no Asaas: ${files.asaasStatus}',
-                    style: textTheme.bodySmall?.copyWith(color: AppColors.mutedForeground),
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.mutedForeground,
+                    ),
                   ),
                 ],
               ],

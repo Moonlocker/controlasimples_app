@@ -16,7 +16,11 @@ class AsyncErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.cloud_off_outlined, size: 40, color: AppColors.mutedForeground),
+            const Icon(
+              Icons.cloud_off_outlined,
+              size: 40,
+              color: AppColors.mutedForeground,
+            ),
             const SizedBox(height: 12),
             Text(
               'Não foi possível carregar os dados.',
@@ -26,9 +30,7 @@ class AsyncErrorView extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               '$error',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
+              style: Theme.of(context).textTheme.bodySmall
                   ?.copyWith(color: AppColors.mutedForeground),
               textAlign: TextAlign.center,
             ),

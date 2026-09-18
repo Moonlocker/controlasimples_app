@@ -24,32 +24,59 @@ class WorkspaceRepository {
 
   List<Map<String, dynamic>> _rows(Object? data) {
     if (data is List) {
-      return data.whereType<Map>().map((row) => Map<String, dynamic>.from(row)).toList();
+      return data
+          .whereType<Map>()
+          .map((row) => Map<String, dynamic>.from(row))
+          .toList();
     }
     return const [];
   }
 
   Future<Workspace> fetchWorkspace(String userId) async {
-    final clientsFuture =
-        _client.from(Client.table).select().eq('user_id', userId).order('name');
-    final servicesFuture =
-        _client.from(Service.table).select().eq('user_id', userId).order('created_at');
-    final chargesFuture =
-        _client.from(Charge.table).select().eq('user_id', userId).order('due_date');
-    final recurringFuture =
-        _client.from(RecurringCharge.table).select().eq('user_id', userId).order('created_at');
+    final clientsFuture = _client
+        .from(Client.table)
+        .select()
+        .eq('user_id', userId)
+        .order('name');
+    final servicesFuture = _client
+        .from(Service.table)
+        .select()
+        .eq('user_id', userId)
+        .order('created_at');
+    final chargesFuture = _client
+        .from(Charge.table)
+        .select()
+        .eq('user_id', userId)
+        .order('due_date');
+    final recurringFuture = _client
+        .from(RecurringCharge.table)
+        .select()
+        .eq('user_id', userId)
+        .order('created_at');
     final paymentsFuture = _client
         .from(Payment.table)
         .select()
         .eq('user_id', userId)
         .order('paid_at', ascending: false);
-    final profileFuture =
-        _client.from(Profile.table).select().eq('id', userId).maybeSingle();
-    final subscriptionFuture =
-        _client.from(Subscription.table).select().eq('user_id', userId).maybeSingle();
-    final rolesFuture = _client.from('user_roles').select('role').eq('user_id', userId);
-    final plansFuture =
-        _client.from(Plan.table).select().eq('active', true).order('sort_order');
+    final profileFuture = _client
+        .from(Profile.table)
+        .select()
+        .eq('id', userId)
+        .maybeSingle();
+    final subscriptionFuture = _client
+        .from(Subscription.table)
+        .select()
+        .eq('user_id', userId)
+        .maybeSingle();
+    final rolesFuture = _client
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
+    final plansFuture = _client
+        .from(Plan.table)
+        .select()
+        .eq('active', true)
+        .order('sort_order');
 
     final clients = await clientsFuture;
     final services = await servicesFuture;
@@ -68,7 +95,9 @@ class WorkspaceRepository {
       recurring: _rows(recurring).map(RecurringCharge.fromMap).toList(),
       payments: _rows(payments).map(Payment.fromMap).toList(),
       profile: profile == null ? null : Profile.fromMap(profile),
-      subscription: subscription == null ? null : Subscription.fromMap(subscription),
+      subscription: subscription == null
+          ? null
+          : Subscription.fromMap(subscription),
       roles: _rows(roles)
           .map((row) => AppRole.fromWire(row['role'] as String?))
           .whereType<AppRole>()

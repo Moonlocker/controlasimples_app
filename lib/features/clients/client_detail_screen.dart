@@ -42,10 +42,14 @@ class ClientDetailScreen extends ConsumerWidget {
     final workspaceAsync = ref.watch(workspaceProvider);
 
     return workspaceAsync.when(
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (error, _) => Scaffold(
         appBar: AppBar(),
-        body: AsyncErrorView(error: error, onRetry: () => ref.invalidate(workspaceProvider)),
+        body: AsyncErrorView(
+          error: error,
+          onRetry: () => ref.invalidate(workspaceProvider),
+        ),
       ),
       data: (workspace) {
         final client = workspace.clientById(clientId);
@@ -61,10 +65,12 @@ class ClientDetailScreen extends ConsumerWidget {
             .toList()
             .reversed
             .toList();
-        final services =
-            workspace.services.where((service) => service.clientId == client.id).toList();
-        final recurring =
-            workspace.recurring.where((item) => item.clientId == client.id).toList();
+        final services = workspace.services
+            .where((service) => service.clientId == client.id)
+            .toList();
+        final recurring = workspace.recurring
+            .where((item) => item.clientId == client.id)
+            .toList();
 
         return DefaultTabController(
           length: 3,
@@ -80,7 +86,8 @@ class ClientDetailScreen extends ConsumerWidget {
               ],
             ),
             floatingActionButton: FloatingActionButton.extended(
-              onPressed: () => showChargeForm(context, initialClientId: client.id),
+              onPressed: () =>
+                  showChargeForm(context, initialClientId: client.id),
               icon: const Icon(Icons.add),
               label: const Text('Nova cobrança'),
             ),
@@ -133,8 +140,7 @@ class _ClientMenu extends ConsumerWidget {
           final confirmed = await showConfirmDialog(
             context,
             title: 'Excluir cliente',
-            message:
-                'Todos os serviços, cobranças e pagamentos vinculados também serão removidos. Esta ação não pode ser desfeita.',
+            message: 'Todos os serviços, cobranças e pagamentos vinculados também serão removidos. Esta ação não pode ser desfeita.',
             confirmLabel: 'Excluir',
             destructive: true,
           );
@@ -172,8 +178,10 @@ class _ClientHeader extends ConsumerWidget {
             backgroundColor: AppColors.primary.withValues(alpha: 0.12),
             child: Text(
               initials(client.name),
-              style: textTheme.labelLarge
-                  ?.copyWith(color: AppColors.primary, fontWeight: FontWeight.w700),
+              style: textTheme.labelLarge?.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -183,22 +191,30 @@ class _ClientHeader extends ConsumerWidget {
               children: [
                 Text(
                   client.phone ?? client.email ?? 'Sem contato',
-                  style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 if (client.phone != null && client.email != null)
                   Text(
                     client.email!,
-                    style: textTheme.bodySmall?.copyWith(color: AppColors.mutedForeground),
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.mutedForeground,
+                    ),
                   ),
                 if (!client.active)
                   Text(
                     'Cliente inativo',
-                    style: textTheme.bodySmall?.copyWith(color: AppColors.danger),
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.danger,
+                    ),
                   ),
                 if (client.whatsappValid == true)
                   Text(
                     'WhatsApp confirmado',
-                    style: textTheme.bodySmall?.copyWith(color: AppColors.success),
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.success,
+                    ),
                   ),
               ],
             ),
@@ -227,11 +243,14 @@ class _ClientHeader extends ConsumerWidget {
   Future<void> _checkWhatsapp(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final status = await ref.read(whatsappRepositoryProvider).checkClient(client.id);
+      final status = await ref
+          .read(whatsappRepositoryProvider)
+          .checkClient(client.id);
       ref.invalidate(workspaceProvider);
       final label = switch (status) {
         'valid' => 'Número confirmado no WhatsApp.',
-        'processing' => 'A Meta ainda está processando. Tente novamente mais tarde.',
+        'processing' =>
+          'A Meta ainda está processando. Tente novamente mais tarde.',
         _ => 'Este número não parece ser um WhatsApp válido.',
       };
       messenger.showSnackBar(SnackBar(content: Text(label)));
@@ -259,7 +278,8 @@ class _ChargesTab extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
       itemCount: views.length,
       separatorBuilder: (_, _) => const SizedBox(height: 10),
-      itemBuilder: (context, index) => ChargeCard(view: views[index], showClient: false),
+      itemBuilder: (context, index) =>
+          ChargeCard(view: views[index], showClient: false),
     );
   }
 }
@@ -281,7 +301,8 @@ class _ServicesTab extends StatelessWidget {
       return const EmptyState(
         icon: Icons.work_outline,
         title: 'Nenhum serviço',
-        description: 'Cadastre um serviço ou uma recorrência para este cliente.',
+        description:
+            'Cadastre um serviço ou uma recorrência para este cliente.',
       );
     }
     return ListView(
@@ -291,7 +312,8 @@ class _ServicesTab extends StatelessWidget {
           children: [
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: () => showServiceForm(context, initialClientId: clientId),
+                onPressed: () =>
+                    showServiceForm(context, initialClientId: clientId),
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('Serviço'),
               ),
@@ -299,7 +321,8 @@ class _ServicesTab extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: () => showRecurringForm(context, initialClientId: clientId),
+                onPressed: () =>
+                    showRecurringForm(context, initialClientId: clientId),
                 icon: const Icon(Icons.repeat, size: 18),
                 label: const Text('Recorrência'),
               ),
@@ -368,21 +391,27 @@ class _ServiceRow extends StatelessWidget {
                 children: [
                   Text(
                     name,
-                    style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                    style: textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
                   Text(
                     '$subtitle · $status',
-                    style: textTheme.bodySmall?.copyWith(color: AppColors.mutedForeground),
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.mutedForeground,
+                    ),
                   ),
                 ],
               ),
             ),
             Text(
               brl(amount),
-              style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+              style: textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ],
         ),
@@ -433,11 +462,16 @@ class _ReportTabState extends ConsumerState<_ReportTab> {
   Workspace _clientScope() {
     final workspace = widget.workspace;
     final clientId = widget.client.id;
-    final charges = workspace.charges.where((c) => c.clientId == clientId).toList();
+    final charges = workspace.charges
+        .where((c) => c.clientId == clientId)
+        .toList();
     final chargeIds = charges.map((c) => c.id).toSet();
-    final payments =
-        workspace.payments.where((p) => chargeIds.contains(p.chargeId)).toList();
-    final recurring = workspace.recurring.where((r) => r.clientId == clientId).toList();
+    final payments = workspace.payments
+        .where((p) => chargeIds.contains(p.chargeId))
+        .toList();
+    final recurring = workspace.recurring
+        .where((r) => r.clientId == clientId)
+        .toList();
     return Workspace(
       clients: workspace.clients,
       services: workspace.services,
@@ -449,13 +483,15 @@ class _ReportTabState extends ConsumerState<_ReportTab> {
 
   Workspace _scope(Workspace base, DateTime from, DateTime to) {
     bool inRange(DateTime date) =>
-        !dateOnly(date).isBefore(dateOnly(from)) && !dateOnly(date).isAfter(dateOnly(to));
+        !dateOnly(date).isBefore(dateOnly(from)) &&
+        !dateOnly(date).isAfter(dateOnly(to));
     final charges = base.charges
         .where((c) => _serviceId == null || c.serviceId == _serviceId)
         .toList();
     final allIds = charges.map((c) => c.id).toSet();
-    final payments =
-        base.payments.where((p) => allIds.contains(p.chargeId) && inRange(p.paidAt)).toList();
+    final payments = base.payments
+        .where((p) => allIds.contains(p.chargeId) && inRange(p.paidAt))
+        .toList();
     final recurring = base.recurring
         .where((r) => _serviceId == null || r.serviceId == _serviceId)
         .toList();
@@ -529,16 +565,26 @@ class _ReportTabState extends ConsumerState<_ReportTab> {
     final views = chargeViews(scoped)
         .where((v) => _range == null || _range!.contains(v.dueDate))
         .toList();
-    final received = scoped.payments.fold<double>(0, (sum, p) => sum + p.amount);
+    final received = scoped.payments.fold<double>(
+      0,
+      (sum, p) => sum + p.amount,
+    );
     final open = views
-        .where((v) => v.status == ChargeStatus.pendente || v.status == ChargeStatus.atrasado)
+        .where(
+          (v) =>
+              v.status == ChargeStatus.pendente ||
+              v.status == ChargeStatus.atrasado,
+        )
         .fold<double>(0, (sum, v) => sum + v.amount);
-    final ticket = scoped.payments.isEmpty ? 0.0 : received / scoped.payments.length;
+    final ticket = scoped.payments.isEmpty
+        ? 0.0
+        : received / scoped.payments.length;
     final series = monthPointsInRange(scoped, from, to);
     final byMethod = receivedByMethod(scoped.payments);
     final byService = receivedByService(scoped, scoped.payments);
-    final clientServices =
-        widget.workspace.services.where((s) => s.clientId == widget.client.id).toList();
+    final clientServices = widget.workspace.services
+        .where((s) => s.clientId == widget.client.id)
+        .toList();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
@@ -553,7 +599,10 @@ class _ReportTabState extends ConsumerState<_ReportTab> {
           const SizedBox(height: 10),
           FilterCombobox<String?>(
             options: [
-              const FilterOption<String?>(value: null, label: 'Todos os serviços'),
+              const FilterOption<String?>(
+                value: null,
+                label: 'Todos os serviços',
+              ),
               for (final service in clientServices)
                 FilterOption<String?>(value: service.id, label: service.name),
             ],
@@ -644,12 +693,9 @@ class _InfoHint extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Text(
         message,
-        style: Theme.of(context)
-            .textTheme
-            .bodySmall
+        style: Theme.of(context).textTheme.bodySmall
             ?.copyWith(color: AppColors.mutedForeground),
       ),
     );
   }
 }
-

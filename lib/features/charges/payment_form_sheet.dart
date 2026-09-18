@@ -33,7 +33,9 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
   @override
   void initState() {
     super.initState();
-    _amount = TextEditingController(text: CurrencyInputFormatter.fromDouble(widget.charge.amount));
+    _amount = TextEditingController(
+      text: CurrencyInputFormatter.fromDouble(widget.charge.amount),
+    );
   }
 
   @override
@@ -48,7 +50,9 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
     if (userId == null) return;
     setState(() => _busy = true);
     try {
-      await ref.read(chargesRepositoryProvider).registerPayment(
+      await ref
+          .read(chargesRepositoryProvider)
+          .registerPayment(
             userId: userId,
             chargeId: widget.charge.id,
             amount: CurrencyInputFormatter.parse(_amount.text),

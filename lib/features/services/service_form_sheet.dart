@@ -71,7 +71,9 @@ class _ServiceFormSheetState extends ConsumerState<ServiceFormSheet> {
     _name = TextEditingController(text: source?.name ?? '');
     _description = TextEditingController(text: source?.description ?? '');
     _link = TextEditingController(text: source?.link ?? '');
-    _amount = TextEditingController(text: CurrencyInputFormatter.fromDouble(source?.amount ?? 0));
+    _amount = TextEditingController(
+      text: CurrencyInputFormatter.fromDouble(source?.amount ?? 0),
+    );
     _recurringAmount = TextEditingController();
     _dueDay = TextEditingController(text: '10');
     _clientId = source?.clientId ?? widget.initialClientId;
@@ -88,7 +90,9 @@ class _ServiceFormSheetState extends ConsumerState<ServiceFormSheet> {
       if (existing != null && existing.isNotEmpty) {
         final recurring = existing.first;
         _recurringId = recurring.id;
-        _recurringAmount.text = CurrencyInputFormatter.fromDouble(recurring.amount);
+        _recurringAmount.text = CurrencyInputFormatter.fromDouble(
+          recurring.amount,
+        );
         _dueDay.text = recurring.dueDay.toString();
         _frequency = recurring.frequency;
         _autoAsaas = recurring.autoAsaas;
@@ -117,14 +121,20 @@ class _ServiceFormSheetState extends ConsumerState<ServiceFormSheet> {
       final oneTime = _billing == ServiceBilling.recorrente
           ? 0.0
           : CurrencyInputFormatter.parse(_amount.text);
-      final recurringAmount = CurrencyInputFormatter.parse(_recurringAmount.text);
+      final recurringAmount = CurrencyInputFormatter.parse(
+        _recurringAmount.text,
+      );
 
-      final serviceId = await ref.read(servicesRepositoryProvider).save(
+      final serviceId = await ref
+          .read(servicesRepositoryProvider)
+          .save(
             id: widget.service?.id,
             userId: userId,
             clientId: _clientId!,
             name: _name.text.trim(),
-            description: _description.text.trim().isEmpty ? null : _description.text.trim(),
+            description: _description.text.trim().isEmpty
+                ? null
+                : _description.text.trim(),
             link: _link.text.trim().isEmpty ? null : _link.text.trim(),
             amount: oneTime,
             status: _status,
@@ -135,7 +145,9 @@ class _ServiceFormSheetState extends ConsumerState<ServiceFormSheet> {
 
       final chargesRepository = ref.read(chargesRepositoryProvider);
       if (_billing == ServiceBilling.unico) {
-        await ref.read(servicesRepositoryProvider).deactivateRecurring(serviceId);
+        await ref
+            .read(servicesRepositoryProvider)
+            .deactivateRecurring(serviceId);
       } else if (recurringAmount > 0) {
         await chargesRepository.saveRecurring(
           id: _recurringId,
@@ -152,11 +164,15 @@ class _ServiceFormSheetState extends ConsumerState<ServiceFormSheet> {
           autoAsaas: _autoAsaas,
         );
       } else {
-        await ref.read(servicesRepositoryProvider).deactivateRecurring(serviceId);
+        await ref
+            .read(servicesRepositoryProvider)
+            .deactivateRecurring(serviceId);
       }
 
       if (isNew && _billing != ServiceBilling.recorrente && oneTime > 0) {
-        await ref.read(servicesRepositoryProvider).createCharge(
+        await ref
+            .read(servicesRepositoryProvider)
+            .createCharge(
               userId: userId,
               clientId: _clientId!,
               serviceId: serviceId,
@@ -239,25 +255,36 @@ class _ServiceFormSheetState extends ConsumerState<ServiceFormSheet> {
             decoration: const InputDecoration(labelText: 'Frequência'),
             items: [
               for (final frequency in Recurrence.values)
-                DropdownMenuItem(value: frequency, child: Text(frequency.label)),
+                DropdownMenuItem(
+                  value: frequency,
+                  child: Text(frequency.label),
+                ),
             ],
-            onChanged: (value) => setState(() => _frequency = value ?? _frequency),
+            onChanged: (value) =>
+                setState(() => _frequency = value ?? _frequency),
           ),
           const SizedBox(height: 14),
           TextFormField(
             controller: _dueDay,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Dia do vencimento (1 a 28)'),
+            decoration: const InputDecoration(
+              labelText: 'Dia do vencimento (1 a 28)',
+            ),
             validator: (value) {
               if (!isRecurring) return null;
               final day = int.tryParse(value ?? '');
-              if (day == null || day < 1 || day > 28) return 'Informe um dia entre 1 e 28';
+              if (day == null || day < 1 || day > 28) {
+                return 'Informe um dia entre 1 e 28';
+              }
               return null;
             },
           ),
           if (_billing == ServiceBilling.misto) ...[
             const SizedBox(height: 14),
-            MoneyField(controller: _amount, label: 'Valor único inicial (opcional)'),
+            MoneyField(
+              controller: _amount,
+              label: 'Valor único inicial (opcional)',
+            ),
           ],
           const SizedBox(height: 8),
           SwitchListTile(
@@ -281,7 +308,8 @@ class _ServiceFormSheetState extends ConsumerState<ServiceFormSheet> {
         DateField(
           label: 'Início',
           value: _startDate,
-          onChanged: (value) => setState(() => _startDate = value ?? _startDate),
+          onChanged: (value) =>
+              setState(() => _startDate = value ?? _startDate),
         ),
         const SizedBox(height: 14),
         DateField(

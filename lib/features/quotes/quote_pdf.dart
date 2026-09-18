@@ -13,7 +13,11 @@ import '../../models/user_business.dart';
 import '../../repositories/workspace_providers.dart';
 import 'quotes_providers.dart';
 
-Future<void> previewQuotePdf(BuildContext context, WidgetRef ref, Quote quote) async {
+Future<void> previewQuotePdf(
+  BuildContext context,
+  WidgetRef ref,
+  Quote quote,
+) async {
   final workspace = ref.read(workspaceProvider).value;
   final business = ref.read(businessProvider).value;
   final profile = workspace?.profile;
@@ -56,45 +60,76 @@ Future<Uint8List> buildQuotePdf({
   }
 
   pw.Widget identity() => pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          if (logoImage != null) ...[
-            pw.Image(logoImage, height: 42, fit: pw.BoxFit.contain),
-            pw.SizedBox(height: 6),
-          ],
-          pw.Text(company,
-              style: pw.TextStyle(
-                fontSize: 18,
-                fontWeight: pw.FontWeight.bold,
-                color: isModern ? PdfColors.white : PdfColors.black,
-              )),
-          if (documentId != null)
-            pw.Text('CNPJ/CPF: $documentId',
-                style: pw.TextStyle(color: isModern ? PdfColors.white : PdfColors.black)),
-          if (phone != null)
-            pw.Text(phone, style: pw.TextStyle(color: isModern ? PdfColors.white : PdfColors.black)),
-          if (email != null)
-            pw.Text(email, style: pw.TextStyle(color: isModern ? PdfColors.white : PdfColors.black)),
-        ],
-      );
+    crossAxisAlignment: pw.CrossAxisAlignment.start,
+    children: [
+      if (logoImage != null) ...[
+        pw.Image(logoImage, height: 42, fit: pw.BoxFit.contain),
+        pw.SizedBox(height: 6),
+      ],
+      pw.Text(
+        company,
+        style: pw.TextStyle(
+          fontSize: 18,
+          fontWeight: pw.FontWeight.bold,
+          color: isModern ? PdfColors.white : PdfColors.black,
+        ),
+      ),
+      if (documentId != null)
+        pw.Text(
+          'CNPJ/CPF: $documentId',
+          style: pw.TextStyle(
+            color: isModern ? PdfColors.white : PdfColors.black,
+          ),
+        ),
+      if (phone != null)
+        pw.Text(
+          phone,
+          style: pw.TextStyle(
+            color: isModern ? PdfColors.white : PdfColors.black,
+          ),
+        ),
+      if (email != null)
+        pw.Text(
+          email,
+          style: pw.TextStyle(
+            color: isModern ? PdfColors.white : PdfColors.black,
+          ),
+        ),
+    ],
+  );
 
   pw.Widget titleBlock() => pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.end,
-        children: [
-          pw.Text('ORÇAMENTO',
-              style: pw.TextStyle(
-                fontSize: 16,
-                fontWeight: pw.FontWeight.bold,
-                color: isModern ? PdfColors.white : accent,
-              )),
-          pw.Text(quote.number, style: pw.TextStyle(color: isModern ? PdfColors.white : PdfColors.black)),
-          pw.Text('Emitido em ${formatDate(quote.issuedOn)}',
-              style: pw.TextStyle(color: isModern ? PdfColors.white : PdfColors.black)),
-          if (quote.validUntil != null)
-            pw.Text('Válido até ${formatDate(quote.validUntil!)}',
-                style: pw.TextStyle(color: isModern ? PdfColors.white : PdfColors.black)),
-        ],
-      );
+    crossAxisAlignment: pw.CrossAxisAlignment.end,
+    children: [
+      pw.Text(
+        'ORÇAMENTO',
+        style: pw.TextStyle(
+          fontSize: 16,
+          fontWeight: pw.FontWeight.bold,
+          color: isModern ? PdfColors.white : accent,
+        ),
+      ),
+      pw.Text(
+        quote.number,
+        style: pw.TextStyle(
+          color: isModern ? PdfColors.white : PdfColors.black,
+        ),
+      ),
+      pw.Text(
+        'Emitido em ${formatDate(quote.issuedOn)}',
+        style: pw.TextStyle(
+          color: isModern ? PdfColors.white : PdfColors.black,
+        ),
+      ),
+      if (quote.validUntil != null)
+        pw.Text(
+          'Válido até ${formatDate(quote.validUntil!)}',
+          style: pw.TextStyle(
+            color: isModern ? PdfColors.white : PdfColors.black,
+          ),
+        ),
+    ],
+  );
 
   document.addPage(
     pw.MultiPage(
@@ -123,8 +158,10 @@ Future<Uint8List> buildQuotePdf({
         pw.SizedBox(height: 20),
         pw.Divider(),
         pw.SizedBox(height: 8),
-        pw.Text(quote.title,
-            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+        pw.Text(
+          quote.title,
+          style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+        ),
         pw.SizedBox(height: 4),
         pw.Text('Cliente: $clientName'),
         pw.SizedBox(height: 16),
@@ -156,7 +193,8 @@ Future<Uint8List> buildQuotePdf({
             child: pw.Column(
               children: [
                 _totalRow('Subtotal', brl(quote.subtotal)),
-                if (quote.discount > 0) _totalRow('Desconto', '- ${brl(quote.discount)}'),
+                if (quote.discount > 0)
+                  _totalRow('Desconto', '- ${brl(quote.discount)}'),
                 pw.Divider(),
                 _totalRow('Total', brl(quote.total), bold: true),
               ],
@@ -165,14 +203,20 @@ Future<Uint8List> buildQuotePdf({
         ),
         if (quote.note != null && quote.note!.isNotEmpty) ...[
           pw.SizedBox(height: 20),
-          pw.Text('Observações', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+          pw.Text(
+            'Observações',
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+          ),
           pw.SizedBox(height: 4),
           pw.Text(quote.note!),
         ],
-        if (business?.paymentInfo != null && business!.paymentInfo!.isNotEmpty) ...[
+        if (business?.paymentInfo != null &&
+            business!.paymentInfo!.isNotEmpty) ...[
           pw.SizedBox(height: 16),
-          pw.Text('Formas de pagamento',
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+          pw.Text(
+            'Formas de pagamento',
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+          ),
           pw.SizedBox(height: 4),
           pw.Text(business.paymentInfo!),
         ],
@@ -192,7 +236,10 @@ pw.Widget _totalRow(String label, String value, {bool bold = false}) {
     padding: const pw.EdgeInsets.symmetric(vertical: 2),
     child: pw.Row(
       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-      children: [pw.Text(label, style: style), pw.Text(value, style: style)],
+      children: [
+        pw.Text(label, style: style),
+        pw.Text(value, style: style),
+      ],
     ),
   );
 }

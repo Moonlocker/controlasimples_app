@@ -56,7 +56,9 @@ class _ChargeFormSheetState extends ConsumerState<ChargeFormSheet> {
     super.initState();
     final charge = widget.charge;
     _description = TextEditingController(text: charge?.description ?? '');
-    _amount = TextEditingController(text: CurrencyInputFormatter.fromDouble(charge?.amount ?? 0));
+    _amount = TextEditingController(
+      text: CurrencyInputFormatter.fromDouble(charge?.amount ?? 0),
+    );
     _clientId = charge?.clientId ?? widget.initialClientId;
     _serviceId = charge?.serviceId ?? widget.initialServiceId;
     _dueDate = charge?.dueDate ?? DateTime.now();
@@ -75,7 +77,9 @@ class _ChargeFormSheetState extends ConsumerState<ChargeFormSheet> {
     if (userId == null || _clientId == null) return;
     setState(() => _busy = true);
     try {
-      await ref.read(chargesRepositoryProvider).save(
+      await ref
+          .read(chargesRepositoryProvider)
+          .save(
             id: widget.charge?.id,
             userId: userId,
             clientId: _clientId!,
@@ -129,7 +133,10 @@ class _ChargeFormSheetState extends ConsumerState<ChargeFormSheet> {
           initialValue: _serviceId,
           decoration: const InputDecoration(labelText: 'Serviço (opcional)'),
           items: [
-            const DropdownMenuItem(value: null, child: Text('Sem serviço vinculado')),
+            const DropdownMenuItem(
+              value: null,
+              child: Text('Sem serviço vinculado'),
+            ),
             for (final service in services)
               DropdownMenuItem(value: service.id, child: Text(service.name)),
           ],
@@ -140,8 +147,9 @@ class _ChargeFormSheetState extends ConsumerState<ChargeFormSheet> {
           controller: _description,
           textInputAction: TextInputAction.next,
           decoration: const InputDecoration(labelText: 'Descrição'),
-          validator: (value) =>
-              (value == null || value.trim().isEmpty) ? 'Informe a descrição' : null,
+          validator: (value) => (value == null || value.trim().isEmpty)
+              ? 'Informe a descrição'
+              : null,
         ),
         const SizedBox(height: 14),
         MoneyField(controller: _amount),

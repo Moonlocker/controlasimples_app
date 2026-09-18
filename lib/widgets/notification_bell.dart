@@ -33,7 +33,11 @@ class NotificationBell extends ConsumerWidget {
               child: Text(
                 unread > 9 ? '9+' : '$unread',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),

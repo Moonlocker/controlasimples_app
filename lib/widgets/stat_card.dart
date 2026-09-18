@@ -47,7 +47,9 @@ class StatCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   label,
-                  style: textTheme.labelMedium?.copyWith(color: AppColors.mutedForeground),
+                  style: textTheme.labelMedium?.copyWith(
+                    color: AppColors.mutedForeground,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -65,7 +67,9 @@ class StatCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               hint!,
-              style: textTheme.bodySmall?.copyWith(color: AppColors.mutedForeground),
+              style: textTheme.bodySmall?.copyWith(
+                color: AppColors.mutedForeground,
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),

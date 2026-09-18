@@ -76,14 +76,19 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
 
   Future<void> _bulkEmit(List<ChargeView> views) async {
     final targets = views
-        .where((view) =>
-            _selected.contains(view.charge.id) &&
-            view.charge.asaasPaymentId == null &&
-            (view.status == ChargeStatus.pendente || view.status == ChargeStatus.atrasado))
+        .where(
+          (view) =>
+              _selected.contains(view.charge.id) &&
+              view.charge.asaasPaymentId == null &&
+              (view.status == ChargeStatus.pendente ||
+                  view.status == ChargeStatus.atrasado),
+        )
         .toList();
     if (targets.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nenhuma cobrança elegível para emissão.')),
+        const SnackBar(
+          content: Text('Nenhuma cobrança elegível para emissão.'),
+        ),
       );
       return;
     }
@@ -94,7 +99,9 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
     var failed = 0;
     for (final view in targets) {
       try {
-        await ref.read(asaasRepositoryProvider).emit(view.charge.id, billingType);
+        await ref
+            .read(asaasRepositoryProvider)
+            .emit(view.charge.id, billingType);
         ok++;
       } catch (_) {
         failed++;
@@ -107,7 +114,11 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
       _selected.clear();
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$ok emitida(s)${failed > 0 ? ' · $failed falha(s)' : ''}.')),
+      SnackBar(
+        content: Text(
+          '$ok emitida(s)${failed > 0 ? ' · $failed falha(s)' : ''}.',
+        ),
+      ),
     );
   }
 
@@ -117,7 +128,8 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
     final confirmed = await showConfirmDialog(
       context,
       title: 'Excluir cobranças',
-      message: '${ids.length} cobrança(s) serão excluídas. Esta ação não pode ser desfeita.',
+      message:
+          '${ids.length} cobrança(s) serão excluídas. Esta ação não pode ser desfeita.',
       confirmLabel: 'Excluir',
       destructive: true,
     );
@@ -130,7 +142,8 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
       ref.invalidate(workspaceProvider);
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$error')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$error')));
       }
     } finally {
       if (mounted) {
@@ -147,7 +160,9 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
     if (userId == null || pending.isEmpty) return;
     setState(() => _generating = true);
     try {
-      final rows = pending.map((occurrence) => occurrence.toChargeMap(userId)).toList();
+      final rows = pending
+          .map((occurrence) => occurrence.toChargeMap(userId))
+          .toList();
       await ref.read(chargesRepositoryProvider).insertOccurrences(rows);
       ref.invalidate(workspaceProvider);
       if (mounted) {
@@ -197,11 +212,14 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
             onRetry: () => ref.invalidate(workspaceProvider),
           ),
           data: (workspace) {
-            if (!_autoRan && workspace.recurring.any((r) => r.active && r.autoAsaas)) {
+            if (!_autoRan &&
+                workspace.recurring.any((r) => r.active && r.autoAsaas)) {
               _autoRan = true;
               WidgetsBinding.instance.addPostFrameCallback((_) async {
                 try {
-                  final created = await ref.read(asaasRepositoryProvider).runAuto();
+                  final created = await ref
+                      .read(asaasRepositoryProvider)
+                      .runAuto();
                   if (created > 0) ref.invalidate(workspaceProvider);
                 } catch (_) {
                   // Falha silenciosa: o usuário pode emitir manualmente.
@@ -209,20 +227,34 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
               });
             }
             final inRange = chargeViews(workspace)
-                .where((view) => _range == null || _range!.contains(view.dueDate))
+                .where(
+                  (view) => _range == null || _range!.contains(view.dueDate),
+                )
                 .toList()
                 .reversed
                 .toList();
             final views = inRange.where(_matches).toList();
-            final pending = (_range == null
-                    ? const <PendingOccurrence>[]
-                    : pendingOccurrencesInRange(workspace, _range!.from, _range!.to))
-                .where((occurrence) =>
-                    (_clientId == null || occurrence.clientId == _clientId) &&
-                    (_query.trim().isEmpty ||
-                        occurrence.clientName.toLowerCase().contains(_query.toLowerCase()) ||
-                        occurrence.description.toLowerCase().contains(_query.toLowerCase())))
-                .toList();
+            final pending =
+                (_range == null
+                        ? const <PendingOccurrence>[]
+                        : pendingOccurrencesInRange(
+                            workspace,
+                            _range!.from,
+                            _range!.to,
+                          ))
+                    .where(
+                      (occurrence) =>
+                          (_clientId == null ||
+                              occurrence.clientId == _clientId) &&
+                          (_query.trim().isEmpty ||
+                              occurrence.clientName.toLowerCase().contains(
+                                _query.toLowerCase(),
+                              ) ||
+                              occurrence.description.toLowerCase().contains(
+                                _query.toLowerCase(),
+                              )),
+                    )
+                    .toList();
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -271,7 +303,8 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
                   child: TextField(
                     onChanged: (value) => setState(() => _query = value),
                     decoration: const InputDecoration(
-                      hintText: 'Buscar por cliente, serviço, descrição ou valor',
+                      hintText:
+                          'Buscar por cliente, serviço, descrição ou valor',
                       prefixIcon: Icon(Icons.search),
                     ),
                   ),
@@ -306,9 +339,15 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: FilterCombobox<String?>(
                     options: [
-                      const FilterOption<String?>(value: null, label: 'Todos os clientes'),
+                      const FilterOption<String?>(
+                        value: null,
+                        label: 'Todos os clientes',
+                      ),
                       for (final client in workspace.clients)
-                        FilterOption<String?>(value: client.id, label: client.name),
+                        FilterOption<String?>(
+                          value: client.id,
+                          label: client.name,
+                        ),
                     ],
                     value: _clientId,
                     hint: 'Todos os clientes',
@@ -328,20 +367,26 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.autorenew, size: 18, color: AppColors.info),
+                          const Icon(
+                            Icons.autorenew,
+                            size: 18,
+                            color: AppColors.info,
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               '${pending.length} recorrência(s) ainda não gerada(s).',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
+                              style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(color: AppColors.foreground),
                             ),
                           ),
                           TextButton(
-                            onPressed: _generating ? null : () => _generate(pending),
-                            child: Text(_generating ? 'Gerando…' : 'Gerar todas'),
+                            onPressed: _generating
+                                ? null
+                                : () => _generate(pending),
+                            child: Text(
+                              _generating ? 'Gerando…' : 'Gerar todas',
+                            ),
                           ),
                         ],
                       ),
@@ -378,7 +423,8 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
                                   selectionMode: _selected.isNotEmpty,
                                   selected: _selected.contains(view.charge.id),
                                   onToggle: () => _toggleSelect(view.charge.id),
-                                  onLongPress: () => _toggleSelect(view.charge.id),
+                                  onLongPress: () =>
+                                      _toggleSelect(view.charge.id),
                                 ),
                                 const SizedBox(height: 10),
                               ],
@@ -433,9 +479,7 @@ class _BulkBar extends StatelessWidget {
             Expanded(
               child: Text(
                 '$count selecionada(s)',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
+                style: Theme.of(context).textTheme.bodyMedium
                     ?.copyWith(fontWeight: FontWeight.w600),
               ),
             ),
@@ -446,7 +490,11 @@ class _BulkBar extends StatelessWidget {
             ),
             TextButton.icon(
               onPressed: busy ? null : onDelete,
-              icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.danger),
+              icon: const Icon(
+                Icons.delete_outline,
+                size: 18,
+                color: AppColors.danger,
+              ),
               label: const Text('Excluir'),
             ),
             IconButton(
@@ -485,32 +533,44 @@ class _PendingCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   occurrence.clientName,
-                  style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                  style: textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               Text(
                 brl(occurrence.amount),
-                style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
+                style: textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 3),
           Text(
             occurrence.description,
-            style: textTheme.bodySmall?.copyWith(color: AppColors.mutedForeground),
+            style: textTheme.bodySmall?.copyWith(
+              color: AppColors.mutedForeground,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 8),
           Row(
             children: [
-              Icon(Icons.event_outlined, size: 14, color: AppColors.mutedForeground),
+              Icon(
+                Icons.event_outlined,
+                size: 14,
+                color: AppColors.mutedForeground,
+              ),
               const SizedBox(width: 4),
               Text(
                 'Vence ${formatDate(occurrence.dueDate)}',
-                style: textTheme.bodySmall?.copyWith(color: AppColors.mutedForeground),
+                style: textTheme.bodySmall?.copyWith(
+                  color: AppColors.mutedForeground,
+                ),
               ),
               const Spacer(),
               Container(
@@ -521,13 +581,12 @@ class _PendingCard extends StatelessWidget {
                 ),
                 child: Text(
                   'Não gerada',
-                  style: textTheme.labelSmall?.copyWith(color: AppColors.mutedForeground),
+                  style: textTheme.labelSmall?.copyWith(
+                    color: AppColors.mutedForeground,
+                  ),
                 ),
               ),
-              TextButton(
-                onPressed: onGenerate,
-                child: const Text('Gerar'),
-              ),
+              TextButton(onPressed: onGenerate, child: const Text('Gerar')),
             ],
           ),
         ],
@@ -537,7 +596,11 @@ class _PendingCard extends StatelessWidget {
 }
 
 class _Pill extends StatelessWidget {
-  const _Pill({required this.label, required this.selected, required this.onTap});
+  const _Pill({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   final String label;
   final bool selected;
@@ -553,9 +616,9 @@ class _Pill extends StatelessWidget {
         onSelected: (_) => onTap(),
         showCheckmark: false,
         labelStyle: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: selected ? AppColors.primary : AppColors.mutedForeground,
-              fontWeight: FontWeight.w600,
-            ),
+          color: selected ? AppColors.primary : AppColors.mutedForeground,
+          fontWeight: FontWeight.w600,
+        ),
         selectedColor: AppColors.primary.withValues(alpha: 0.12),
         backgroundColor: AppColors.muted,
       ),

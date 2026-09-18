@@ -75,7 +75,8 @@ class ServicesRepository {
   Future<void> deactivateRecurring(String serviceId) async {
     await _client
         .from(RecurringCharge.table)
-        .update({'active': false}).eq('project_id', serviceId);
+        .update({'active': false})
+        .eq('project_id', serviceId);
   }
 
   Future<void> delete(String id, {bool removeCharges = true}) async {
@@ -87,6 +88,9 @@ class ServicesRepository {
   }
 
   Future<void> setStatus(String id, ServiceStatus status) async {
-    await _client.from(Service.table).update({'status': status.wire}).eq('id', id);
+    await _client
+        .from(Service.table)
+        .update({'status': status.wire})
+        .eq('id', id);
   }
 }

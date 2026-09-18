@@ -37,7 +37,10 @@ class AdminPlansScreen extends ConsumerWidget {
         ),
         data: (data) {
           if (data.plans.isEmpty) {
-            return const EmptyState(icon: Icons.workspace_premium_outlined, title: 'Nenhum plano');
+            return const EmptyState(
+              icon: Icons.workspace_premium_outlined,
+              title: 'Nenhum plano',
+            );
           }
           return RefreshIndicator(
             onRefresh: () async {
@@ -52,8 +55,9 @@ class AdminPlansScreen extends ConsumerWidget {
               separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
                 final plan = data.plans[index];
-                final subscribers =
-                    data.users.where((user) => user.planId == plan.id).length;
+                final subscribers = data.users
+                    .where((user) => user.planId == plan.id)
+                    .length;
                 return Container(
                   key: ValueKey(plan.id),
                   padding: const EdgeInsets.all(14),
@@ -61,7 +65,9 @@ class AdminPlansScreen extends ConsumerWidget {
                     color: AppColors.surface,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: plan.highlighted ? AppColors.primary : AppColors.border,
+                      color: plan.highlighted
+                          ? AppColors.primary
+                          : AppColors.border,
                     ),
                   ),
                   child: Column(
@@ -72,17 +78,15 @@ class AdminPlansScreen extends ConsumerWidget {
                           Expanded(
                             child: Text(
                               plan.name,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyLarge
+                              style: Theme.of(context).textTheme.bodyLarge
                                   ?.copyWith(fontWeight: FontWeight.w600),
                             ),
                           ),
                           Text(
-                            plan.price <= 0 ? 'Grátis' : '${brl(plan.price)}/mês',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
+                            plan.price <= 0
+                                ? 'Grátis'
+                                : '${brl(plan.price)}/mês',
+                            style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(fontWeight: FontWeight.w700),
                           ),
                           Switch(
@@ -95,8 +99,9 @@ class AdminPlansScreen extends ConsumerWidget {
                                 ref.invalidate(adminDataProvider);
                               } catch (error) {
                                 if (context.mounted) {
-                                  ScaffoldMessenger.of(context)
-                                      .showSnackBar(SnackBar(content: Text('$error')));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('$error')),
+                                  );
                                 }
                               }
                             },
@@ -106,18 +111,14 @@ class AdminPlansScreen extends ConsumerWidget {
                       if (plan.description.isNotEmpty)
                         Text(
                           plan.description,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
+                          style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: AppColors.mutedForeground),
                         ),
                       if (plan.features.isNotEmpty) ...[
                         const SizedBox(height: 6),
                         Text(
                           plan.features.take(4).join(' · '),
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
+                          style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: AppColors.mutedForeground),
                         ),
                       ],
@@ -126,20 +127,23 @@ class AdminPlansScreen extends ConsumerWidget {
                         children: [
                           Text(
                             '$subscribers assinante(s)',
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
+                            style: Theme.of(context).textTheme.labelSmall
                                 ?.copyWith(color: AppColors.mutedForeground),
                           ),
                           const Spacer(),
                           IconButton(
                             icon: const Icon(Icons.edit_outlined, size: 18),
-                            onPressed: () =>
-                                showAppFormSheet(context, _PlanFormSheet(plan: plan)),
+                            onPressed: () => showAppFormSheet(
+                              context,
+                              _PlanFormSheet(plan: plan),
+                            ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.delete_outline,
-                                size: 18, color: AppColors.danger),
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              size: 18,
+                              color: AppColors.danger,
+                            ),
                             onPressed: () async {
                               final confirmed = await showConfirmDialog(
                                 context,
@@ -150,12 +154,15 @@ class AdminPlansScreen extends ConsumerWidget {
                               );
                               if (!confirmed) return;
                               try {
-                                await ref.read(adminRepositoryProvider).deletePlan(plan.id);
+                                await ref
+                                    .read(adminRepositoryProvider)
+                                    .deletePlan(plan.id);
                                 ref.invalidate(adminDataProvider);
                               } catch (error) {
                                 if (context.mounted) {
-                                  ScaffoldMessenger.of(context)
-                                      .showSnackBar(SnackBar(content: Text('$error')));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('$error')),
+                                  );
                                 }
                               }
                             },
@@ -194,6 +201,8 @@ class _PlanFormSheetState extends ConsumerState<_PlanFormSheet> {
   late final TextEditingController _maxCharges;
   late final TextEditingController _maxWhatsapp;
   late final TextEditingController _features;
+  late bool _allowAsaas;
+  late bool _allowWhatsapp;
   late bool _highlighted;
   late bool _active;
   bool _busy = false;
@@ -205,12 +214,22 @@ class _PlanFormSheetState extends ConsumerState<_PlanFormSheet> {
     _name = TextEditingController(text: plan?.name ?? '');
     _slug = TextEditingController(text: plan?.slug ?? '');
     _description = TextEditingController(text: plan?.description ?? '');
-    _price = TextEditingController(text: CurrencyInputFormatter.fromDouble(plan?.price ?? 0));
+    _price = TextEditingController(
+      text: CurrencyInputFormatter.fromDouble(plan?.price ?? 0),
+    );
     _sortOrder = TextEditingController(text: (plan?.sortOrder ?? 0).toString());
-    _maxClients = TextEditingController(text: plan?.maxClients?.toString() ?? '');
-    _maxCharges = TextEditingController(text: plan?.maxChargesMonth?.toString() ?? '');
-    _maxWhatsapp = TextEditingController(text: plan?.maxWhatsappMonth?.toString() ?? '');
+    _maxClients = TextEditingController(
+      text: plan?.maxClients?.toString() ?? '',
+    );
+    _maxCharges = TextEditingController(
+      text: plan?.maxChargesMonth?.toString() ?? '',
+    );
+    _maxWhatsapp = TextEditingController(
+      text: plan?.maxWhatsappMonth?.toString() ?? '',
+    );
     _features = TextEditingController(text: plan?.features.join('\n') ?? '');
+    _allowAsaas = plan?.allowAsaasIntegration ?? true;
+    _allowWhatsapp = plan?.allowWhatsappNotifications ?? true;
     _highlighted = plan?.highlighted ?? false;
     _active = plan?.active ?? true;
   }
@@ -239,16 +258,21 @@ class _PlanFormSheetState extends ConsumerState<_PlanFormSheet> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _busy = true);
     try {
-      await ref.read(adminRepositoryProvider).savePlan(
+      await ref
+          .read(adminRepositoryProvider)
+          .savePlan(
             id: widget.plan?.id,
             name: _name.text.trim(),
             slug: _slug.text.trim(),
             description: _description.text.trim(),
-            priceCents: (CurrencyInputFormatter.parse(_price.text) * 100).round(),
+            priceCents: (CurrencyInputFormatter.parse(_price.text) * 100)
+                .round(),
             sortOrder: int.tryParse(_sortOrder.text.trim()) ?? 0,
             maxClients: _parseOptional(_maxClients.text),
             maxChargesMonth: _parseOptional(_maxCharges.text),
             maxWhatsappMonth: _parseOptional(_maxWhatsapp.text),
+            allowAsaasIntegration: _allowAsaas,
+            allowWhatsappNotifications: _allowWhatsapp,
             features: _features.text
                 .split('\n')
                 .map((line) => line.trim())
@@ -261,7 +285,8 @@ class _PlanFormSheetState extends ConsumerState<_PlanFormSheet> {
       if (mounted) Navigator.of(context).pop();
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$error')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$error')));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -312,7 +337,9 @@ class _PlanFormSheetState extends ConsumerState<_PlanFormSheet> {
               child: TextFormField(
                 controller: _maxCharges,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Máx. cobranças/mês'),
+                decoration: const InputDecoration(
+                  labelText: 'Máx. cobranças/mês',
+                ),
               ),
             ),
           ],
@@ -324,7 +351,9 @@ class _PlanFormSheetState extends ConsumerState<_PlanFormSheet> {
               child: TextFormField(
                 controller: _maxWhatsapp,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Máx. WhatsApp/mês'),
+                decoration: const InputDecoration(
+                  labelText: 'Máx. WhatsApp/mês',
+                ),
               ),
             ),
             const SizedBox(width: 10),
@@ -346,6 +375,18 @@ class _PlanFormSheetState extends ConsumerState<_PlanFormSheet> {
           ),
         ),
         const SizedBox(height: 8),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          value: _allowAsaas,
+          onChanged: (value) => setState(() => _allowAsaas = value),
+          title: const Text('Permitir integração Asaas'),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          value: _allowWhatsapp,
+          onChanged: (value) => setState(() => _allowWhatsapp = value),
+          title: const Text('Permitir notificações WhatsApp'),
+        ),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           value: _highlighted,

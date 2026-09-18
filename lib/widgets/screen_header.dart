@@ -22,23 +22,24 @@ class ScreenHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (leading != null) ...[
-          leading!,
-          const SizedBox(width: 12),
-        ],
+        if (leading != null) ...[leading!, const SizedBox(width: 12)],
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 title,
-                style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+                style: textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               if (description != null) ...[
                 const SizedBox(height: 4),
                 Text(
                   description!,
-                  style: textTheme.bodyMedium?.copyWith(color: AppColors.mutedForeground),
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: AppColors.mutedForeground,
+                  ),
                 ),
               ],
             ],

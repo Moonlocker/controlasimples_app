@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class AppShell extends StatelessWidget {
+import '../features/onboarding/onboarding_wizard_screen.dart';
+import '../repositories/auth_repository.dart';
+import '../repositories/workspace_providers.dart';
+
+class AppShell extends ConsumerWidget {
   const AppShell({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
@@ -14,7 +19,23 @@ class AppShell extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Conta bloqueada pelo superadmin: encerra a sessão, como no fluxo web.
+    ref.listen(workspaceProvider, (previous, next) {
+      final profile = next.value?.profile;
+      if (profile != null && !profile.active) {
+        ref.read(authRepositoryProvider).signOut();
+      }
+    });
+
+    // Primeiro acesso: assistente guiado de configuração (conta, marca e plano).
+    final workspace = ref.watch(workspaceProvider).value;
+    if (workspace != null &&
+        !workspace.isSuperadmin &&
+        workspace.profile?.setupCompleted == false) {
+      return const OnboardingWizardScreen();
+    }
+
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: NavigationBar(

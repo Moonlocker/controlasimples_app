@@ -43,13 +43,12 @@ class EmptyState extends StatelessWidget {
             Text(
               description!,
               textAlign: TextAlign.center,
-              style: textTheme.bodyMedium?.copyWith(color: AppColors.mutedForeground),
+              style: textTheme.bodyMedium?.copyWith(
+                color: AppColors.mutedForeground,
+              ),
             ),
           ],
-          if (action != null) ...[
-            const SizedBox(height: 20),
-            action!,
-          ],
+          if (action != null) ...[const SizedBox(height: 20), action!],
         ],
       ),
     );

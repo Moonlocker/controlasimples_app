@@ -11,7 +11,8 @@ class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
   @override
-  ConsumerState<NotificationsScreen> createState() => _NotificationsScreenState();
+  ConsumerState<NotificationsScreen> createState() =>
+      _NotificationsScreenState();
 }
 
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
@@ -38,7 +39,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             IconButton(
               tooltip: 'Limpar',
               icon: const Icon(Icons.delete_sweep_outlined),
-              onPressed: () => ref.read(readNotificationIdsProvider.notifier).clear(),
+              onPressed: () =>
+                  ref.read(readNotificationIdsProvider.notifier).clear(),
             ),
         ],
       ),
@@ -46,13 +48,15 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           ? const EmptyState(
               icon: Icons.notifications_none,
               title: 'Nenhuma notificação',
-              description: 'Avisos de vencimentos, atrasos e pagamentos aparecem aqui.',
+              description:
+                  'Avisos de vencimentos, atrasos e pagamentos aparecem aqui.',
             )
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               itemCount: notifications.length,
               separatorBuilder: (_, _) => const SizedBox(height: 10),
-              itemBuilder: (context, index) => _NotificationTile(item: notifications[index]),
+              itemBuilder: (context, index) =>
+                  _NotificationTile(item: notifications[index]),
             ),
     );
   }
@@ -64,16 +68,20 @@ class _NotificationTile extends ConsumerWidget {
   final AppNotification item;
 
   (IconData, Color) get _style => switch (item.kind) {
-        NotificationKind.pago => (Icons.check_circle_outline, AppColors.success),
-        NotificationKind.atrasado => (Icons.warning_amber_outlined, AppColors.danger),
-        NotificationKind.vencendo => (Icons.schedule_outlined, AppColors.warning),
-        NotificationKind.recorrente => (Icons.autorenew, AppColors.info),
-        NotificationKind.resumo => (Icons.summarize_outlined, AppColors.info),
-      };
+    NotificationKind.pago => (Icons.check_circle_outline, AppColors.success),
+    NotificationKind.atrasado => (
+      Icons.warning_amber_outlined,
+      AppColors.danger,
+    ),
+    NotificationKind.vencendo => (Icons.schedule_outlined, AppColors.warning),
+    NotificationKind.recorrente => (Icons.autorenew, AppColors.info),
+    NotificationKind.resumo => (Icons.summarize_outlined, AppColors.info),
+  };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final readIds = ref.watch(readNotificationIdsProvider).value ?? const <String>{};
+    final readIds =
+        ref.watch(readNotificationIdsProvider).value ?? const <String>{};
     final read = readIds.contains(item.id);
     final (icon, color) = _style;
     final textTheme = Theme.of(context).textTheme;
@@ -83,7 +91,9 @@ class _NotificationTile extends ConsumerWidget {
       decoration: BoxDecoration(
         color: read ? AppColors.surface : color.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: read ? AppColors.border : color.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: read ? AppColors.border : color.withValues(alpha: 0.3),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,7 +120,9 @@ class _NotificationTile extends ConsumerWidget {
                 const SizedBox(height: 3),
                 Text(
                   notificationTime(item.createdAt),
-                  style: textTheme.bodySmall?.copyWith(color: AppColors.mutedForeground),
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.mutedForeground,
+                  ),
                 ),
               ],
             ),
@@ -120,7 +132,10 @@ class _NotificationTile extends ConsumerWidget {
               width: 8,
               height: 8,
               margin: const EdgeInsets.only(top: 4),
-              decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+              decoration: const BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+              ),
             ),
         ],
       ),

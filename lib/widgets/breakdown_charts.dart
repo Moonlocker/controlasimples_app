@@ -68,9 +68,7 @@ class BreakdownPie extends StatelessWidget {
                       Expanded(
                         child: Text(
                           items[i].name,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
+                          style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: AppColors.mutedForeground),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -78,9 +76,7 @@ class BreakdownPie extends StatelessWidget {
                       ),
                       Text(
                         brl(items[i].value),
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
+                        style: Theme.of(context).textTheme.bodySmall
                             ?.copyWith(fontWeight: FontWeight.w600),
                       ),
                     ],
@@ -89,9 +85,7 @@ class BreakdownPie extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 'Total ${brl(total)}',
-                style: Theme.of(context)
-                    .textTheme
-                    .labelSmall
+                style: Theme.of(context).textTheme.labelSmall
                     ?.copyWith(color: AppColors.mutedForeground),
               ),
             ],
@@ -103,7 +97,11 @@ class BreakdownPie extends StatelessWidget {
 }
 
 class BreakdownBars extends StatelessWidget {
-  const BreakdownBars({super.key, required this.items, this.tone = AppColors.primary});
+  const BreakdownBars({
+    super.key,
+    required this.items,
+    this.tone = AppColors.primary,
+  });
 
   final List<BreakdownItem> items;
   final Color tone;
@@ -111,7 +109,10 @@ class BreakdownBars extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) return const SizedBox.shrink();
-    final max = items.fold<double>(0, (value, item) => item.value > value ? item.value : value);
+    final max = items.fold<double>(
+      0,
+      (value, item) => item.value > value ? item.value : value,
+    );
     final textTheme = Theme.of(context).textTheme;
     return Column(
       children: [

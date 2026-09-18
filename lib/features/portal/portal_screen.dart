@@ -36,7 +36,8 @@ class PortalScreen extends ConsumerWidget {
               _PortalCard(
                 icon: Icons.admin_panel_settings_outlined,
                 title: 'Painel administrativo',
-                description: 'Usuários, planos, WhatsApp e Asaas da plataforma.',
+                description:
+                    'Usuários, planos, WhatsApp e Asaas da plataforma.',
                 tone: AppColors.primary,
                 onTap: () => context.push('/admin'),
               ),
@@ -100,17 +101,13 @@ class _PortalCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
+                    style: Theme.of(context).textTheme.titleMedium
                         ?.copyWith(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     description,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
+                    style: Theme.of(context).textTheme.bodySmall
                         ?.copyWith(color: AppColors.mutedForeground),
                   ),
                 ],

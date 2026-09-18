@@ -83,17 +83,13 @@ Future<void> showRecordsSheet(
                     children: [
                       Text(
                         title,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleLarge
+                        style: Theme.of(context).textTheme.titleLarge
                             ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                       if (subtitle != null)
                         Text(
                           subtitle,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
+                          style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: AppColors.mutedForeground),
                         ),
                     ],
@@ -115,9 +111,7 @@ Future<void> showRecordsSheet(
                       child: Text(
                         emptyHint,
                         textAlign: TextAlign.center,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
+                        style: Theme.of(context).textTheme.bodyMedium
                             ?.copyWith(color: AppColors.mutedForeground),
                       ),
                     ),
@@ -156,7 +150,10 @@ class _SectionHeader extends StatelessWidget {
           Container(
             width: 8,
             height: 8,
-            decoration: BoxDecoration(color: section.tone, shape: BoxShape.circle),
+            decoration: BoxDecoration(
+              color: section.tone,
+              shape: BoxShape.circle,
+            ),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -165,12 +162,16 @@ class _SectionHeader extends StatelessWidget {
               children: [
                 Text(
                   section.title,
-                  style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                  style: textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 if (section.hint != null)
                   Text(
                     section.hint!,
-                    style: textTheme.bodySmall?.copyWith(color: AppColors.mutedForeground),
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.mutedForeground,
+                    ),
                   ),
               ],
             ),
@@ -209,7 +210,9 @@ class _RecordTile extends StatelessWidget {
               children: [
                 Text(
                   row.clientName,
-                  style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -218,7 +221,9 @@ class _RecordTile extends StatelessWidget {
                   row.serviceName == null
                       ? row.description
                       : '${row.description} · ${row.serviceName}',
-                  style: textTheme.bodySmall?.copyWith(color: AppColors.mutedForeground),
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.mutedForeground,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -227,18 +232,24 @@ class _RecordTile extends StatelessWidget {
                   children: [
                     Text(
                       '${row.dateLabel} ${formatDate(row.date)}',
-                      style: textTheme.bodySmall?.copyWith(color: AppColors.mutedForeground),
+                      style: textTheme.bodySmall?.copyWith(
+                        color: AppColors.mutedForeground,
+                      ),
                     ),
                     if (row.method != null) ...[
                       Text(
                         ' · ${row.method!.label}',
-                        style: textTheme.bodySmall?.copyWith(color: AppColors.mutedForeground),
+                        style: textTheme.bodySmall?.copyWith(
+                          color: AppColors.mutedForeground,
+                        ),
                       ),
                     ],
                     if (row.note != null) ...[
                       Text(
                         ' · ${row.note}',
-                        style: textTheme.bodySmall?.copyWith(color: AppColors.warning),
+                        style: textTheme.bodySmall?.copyWith(
+                          color: AppColors.warning,
+                        ),
                       ),
                     ],
                   ],
@@ -252,7 +263,9 @@ class _RecordTile extends StatelessWidget {
             children: [
               Text(
                 brl(row.amount),
-                style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                style: textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               if (row.badgeLabel != null) ...[
                 const SizedBox(height: 4),

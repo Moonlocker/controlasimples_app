@@ -32,9 +32,7 @@ class MoreScreen extends ConsumerWidget {
               const SizedBox(height: 6),
               Text(
                 'Gerencie sua conta, serviços e preferências.',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
+                style: Theme.of(context).textTheme.bodyMedium
                     ?.copyWith(color: AppColors.mutedForeground),
               ),
               const SizedBox(height: 20),
@@ -44,52 +42,54 @@ class MoreScreen extends ConsumerWidget {
                 hasError: workspaceAsync.hasError && workspace == null,
                 onRetry: () => ref.invalidate(workspaceProvider),
               ),
-            const SizedBox(height: 20),
-            _MenuCard(
-              children: [
-                _MenuItem(
-                  icon: Icons.notifications_none,
-                  label: 'Notificações',
-                  onTap: () => context.push('/notifications'),
-                ),
-                _MenuItem(
-                  icon: Icons.work_outline,
-                  label: 'Serviços',
-                  onTap: () => context.push('/services'),
-                ),
-                _MenuItem(
-                  icon: Icons.description_outlined,
-                  label: 'Orçamentos',
-                  onTap: () => context.push('/quotes'),
-                ),
-                _MenuItem(
-                  icon: Icons.bar_chart_outlined,
-                  label: 'Relatórios',
-                  onTap: () => context.push('/reports'),
-                ),
-                _MenuItem(
-                  icon: Icons.settings_outlined,
-                  label: 'Configurações',
-                  onTap: () => context.push('/settings'),
-                ),
-                if (workspace?.isSuperadmin == true)
+              const SizedBox(height: 20),
+              _MenuCard(
+                children: [
                   _MenuItem(
-                    icon: Icons.admin_panel_settings_outlined,
-                    label: 'Administração',
-                    onTap: () => context.push('/admin'),
+                    icon: Icons.notifications_none,
+                    label: 'Notificações',
+                    onTap: () => context.push('/notifications'),
                   ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            OutlinedButton.icon(
-              onPressed: () => ref.read(authRepositoryProvider).signOut(),
-              icon: const Icon(Icons.logout),
-              label: const Text('Sair'),
-              style: OutlinedButton.styleFrom(foregroundColor: AppColors.danger),
-            ),
-            const SizedBox(height: 32),
-            const _BrandFooter(),
-          ],
+                  _MenuItem(
+                    icon: Icons.work_outline,
+                    label: 'Serviços',
+                    onTap: () => context.push('/services'),
+                  ),
+                  _MenuItem(
+                    icon: Icons.description_outlined,
+                    label: 'Orçamentos',
+                    onTap: () => context.push('/quotes'),
+                  ),
+                  _MenuItem(
+                    icon: Icons.bar_chart_outlined,
+                    label: 'Relatórios',
+                    onTap: () => context.push('/reports'),
+                  ),
+                  _MenuItem(
+                    icon: Icons.settings_outlined,
+                    label: 'Configurações',
+                    onTap: () => context.push('/settings'),
+                  ),
+                  if (workspace?.isSuperadmin == true)
+                    _MenuItem(
+                      icon: Icons.admin_panel_settings_outlined,
+                      label: 'Administração',
+                      onTap: () => context.push('/admin'),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              OutlinedButton.icon(
+                onPressed: () => ref.read(authRepositoryProvider).signOut(),
+                icon: const Icon(Icons.logout),
+                label: const Text('Sair'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.danger,
+                ),
+              ),
+              const SizedBox(height: 32),
+              const _BrandFooter(),
+            ],
           ),
         ),
       ),
@@ -140,12 +140,17 @@ class _AccountCard extends StatelessWidget {
     } else if (hasError) {
       child = Row(
         children: [
-          const Icon(Icons.cloud_off_outlined, color: AppColors.mutedForeground),
+          const Icon(
+            Icons.cloud_off_outlined,
+            color: AppColors.mutedForeground,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               'Não foi possível carregar sua conta.',
-              style: textTheme.bodyMedium?.copyWith(color: AppColors.mutedForeground),
+              style: textTheme.bodyMedium?.copyWith(
+                color: AppColors.mutedForeground,
+              ),
             ),
           ),
           TextButton(onPressed: onRetry, child: const Text('Tentar')),
@@ -174,20 +179,26 @@ class _AccountCard extends StatelessWidget {
               children: [
                 Text(
                   profile?.name ?? 'Usuário',
-                  style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                  style: textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   profile?.email ?? '',
-                  style: textTheme.bodySmall?.copyWith(color: AppColors.mutedForeground),
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.mutedForeground,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Plano ${plan?.name ?? '—'}',
-                  style: textTheme.labelMedium?.copyWith(color: AppColors.primary),
+                  style: textTheme.labelMedium?.copyWith(
+                    color: AppColors.primary,
+                  ),
                 ),
               ],
             ),
@@ -245,7 +256,11 @@ class _MenuCard extends StatelessWidget {
 }
 
 class _MenuItem extends StatelessWidget {
-  const _MenuItem({required this.icon, required this.label, required this.onTap});
+  const _MenuItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String label;
@@ -257,7 +272,10 @@ class _MenuItem extends StatelessWidget {
       onTap: onTap,
       leading: Icon(icon, color: AppColors.mutedForeground),
       title: Text(label),
-      trailing: const Icon(Icons.chevron_right, color: AppColors.mutedForeground),
+      trailing: const Icon(
+        Icons.chevron_right,
+        color: AppColors.mutedForeground,
+      ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
     );
   }
@@ -284,7 +302,9 @@ class _BrandFooter extends StatelessWidget {
         Text(
           'Cobranças e receitas sem complicação',
           textAlign: TextAlign.center,
-          style: textTheme.bodySmall?.copyWith(color: AppColors.mutedForeground),
+          style: textTheme.bodySmall?.copyWith(
+            color: AppColors.mutedForeground,
+          ),
         ),
       ],
     );

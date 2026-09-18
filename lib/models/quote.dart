@@ -2,11 +2,7 @@ import '../core/constants/enums.dart';
 import '../core/utils/dates.dart';
 
 class QuoteItem {
-  const QuoteItem({
-    required this.description,
-    this.qty = 1,
-    this.price = 0,
-  });
+  const QuoteItem({required this.description, this.qty = 1, this.price = 0});
 
   final String description;
   final double qty;
@@ -79,9 +75,11 @@ class Quote {
       note: map['note'] as String?,
       items: rawItems is List
           ? rawItems
-              .whereType<Map>()
-              .map((item) => QuoteItem.fromMap(Map<String, dynamic>.from(item)))
-              .toList()
+                .whereType<Map>()
+                .map(
+                  (item) => QuoteItem.fromMap(Map<String, dynamic>.from(item)),
+                )
+                .toList()
           : const [],
       subtotal: (map['subtotal'] as num?)?.toDouble() ?? 0,
       discount: (map['discount'] as num?)?.toDouble() ?? 0,
@@ -90,10 +88,7 @@ class Quote {
   }
 
   Map<String, dynamic> toInsertMap(String userId) {
-    return {
-      'user_id': userId,
-      ..._payload(),
-    };
+    return {'user_id': userId, ..._payload()};
   }
 
   Map<String, dynamic> toUpdateMap() => _payload();

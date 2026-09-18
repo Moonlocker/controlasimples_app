@@ -53,27 +53,42 @@ final routerProvider = Provider<GoRouter>((ref) {
         branches: [
           StatefulShellBranch(
             routes: [
-              GoRoute(path: '/dashboard', builder: (context, state) => const DashboardScreen()),
+              GoRoute(
+                path: '/dashboard',
+                builder: (context, state) => const DashboardScreen(),
+              ),
             ],
           ),
           StatefulShellBranch(
             routes: [
-              GoRoute(path: '/clients', builder: (context, state) => const ClientsScreen()),
+              GoRoute(
+                path: '/clients',
+                builder: (context, state) => const ClientsScreen(),
+              ),
             ],
           ),
           StatefulShellBranch(
             routes: [
-              GoRoute(path: '/charges', builder: (context, state) => const ChargesScreen()),
+              GoRoute(
+                path: '/charges',
+                builder: (context, state) => const ChargesScreen(),
+              ),
             ],
           ),
           StatefulShellBranch(
             routes: [
-              GoRoute(path: '/more', builder: (context, state) => const MoreScreen()),
+              GoRoute(
+                path: '/more',
+                builder: (context, state) => const MoreScreen(),
+              ),
             ],
           ),
         ],
       ),
-      GoRoute(path: '/services', builder: (context, state) => const ServicesScreen()),
+      GoRoute(
+        path: '/services',
+        builder: (context, state) => const ServicesScreen(),
+      ),
       GoRoute(
         path: '/services/:id',
         builder: (context, state) =>
@@ -84,7 +99,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) =>
             ClientDetailScreen(clientId: state.pathParameters['id']!),
       ),
-      GoRoute(path: '/quotes', builder: (context, state) => const QuotesScreen()),
+      GoRoute(
+        path: '/quotes',
+        builder: (context, state) => const QuotesScreen(),
+      ),
       GoRoute(
         path: '/quotes/new',
         builder: (context, state) => QuoteEditorScreen(
@@ -93,31 +111,53 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/quotes/:id',
-        builder: (context, state) => QuoteEditorScreen(quoteId: state.pathParameters['id']),
+        builder: (context, state) =>
+            QuoteEditorScreen(quoteId: state.pathParameters['id']),
       ),
-      GoRoute(path: '/reports', builder: (context, state) => const ReportsScreen()),
-      GoRoute(path: '/settings', builder: (context, state) => const SettingsScreen()),
+      GoRoute(
+        path: '/reports',
+        builder: (context, state) => const ReportsScreen(),
+      ),
+      GoRoute(
+        path: '/settings',
+        builder: (context, state) => const SettingsScreen(),
+      ),
       GoRoute(
         path: '/notifications',
         builder: (context, state) => const NotificationsScreen(),
       ),
-      GoRoute(path: '/portal', builder: (context, state) => const PortalScreen()),
+      GoRoute(
+        path: '/portal',
+        builder: (context, state) => const PortalScreen(),
+      ),
       ShellRoute(
         builder: (context, state, child) => AdminGate(child: child),
         routes: [
-          GoRoute(path: '/admin', builder: (context, state) => const AdminHomeScreen()),
-          GoRoute(path: '/admin/users', builder: (context, state) => const AdminUsersScreen()),
+          GoRoute(
+            path: '/admin',
+            builder: (context, state) => const AdminHomeScreen(),
+          ),
+          GoRoute(
+            path: '/admin/users',
+            builder: (context, state) => const AdminUsersScreen(),
+          ),
           GoRoute(
             path: '/admin/users/:id',
             builder: (context, state) =>
                 AdminUserDetailScreen(userId: state.pathParameters['id']!),
           ),
-          GoRoute(path: '/admin/plans', builder: (context, state) => const AdminPlansScreen()),
+          GoRoute(
+            path: '/admin/plans',
+            builder: (context, state) => const AdminPlansScreen(),
+          ),
           GoRoute(
             path: '/admin/whatsapp',
             builder: (context, state) => const AdminWhatsappScreen(),
           ),
-          GoRoute(path: '/admin/asaas', builder: (context, state) => const AdminAsaasScreen()),
+          GoRoute(
+            path: '/admin/asaas',
+            builder: (context, state) => const AdminAsaasScreen(),
+          ),
         ],
       ),
     ],

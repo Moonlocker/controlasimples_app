@@ -9,7 +9,10 @@ final authStateProvider = StreamProvider<AuthState>((ref) {
 
 final currentUserProvider = Provider<User?>((ref) {
   final authState = ref.watch(authStateProvider);
-  return authState.value?.session?.user ?? ref.watch(supabaseProvider).auth.currentUser;
+  return authState.value?.session?.user ??
+      ref.watch(supabaseProvider).auth.currentUser;
 });
 
-final currentUserIdProvider = Provider<String?>((ref) => ref.watch(currentUserProvider)?.id);
+final currentUserIdProvider = Provider<String?>(
+  (ref) => ref.watch(currentUserProvider)?.id,
+);

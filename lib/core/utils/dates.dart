@@ -1,4 +1,5 @@
-DateTime dateOnly(DateTime value) => DateTime(value.year, value.month, value.day);
+DateTime dateOnly(DateTime value) =>
+    DateTime(value.year, value.month, value.day);
 
 DateTime today() => dateOnly(DateTime.now());
 

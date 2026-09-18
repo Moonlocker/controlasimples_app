@@ -62,7 +62,13 @@ class _QuoteEditorScreenState extends ConsumerState<QuoteEditorScreen> {
       _status = QuoteStatus.rascunho;
       _layout = source.layout;
       for (final item in source.items) {
-        _items.add(_ItemDraft(description: item.description, qty: item.qty, price: item.price));
+        _items.add(
+          _ItemDraft(
+            description: item.description,
+            qty: item.qty,
+            price: item.price,
+          ),
+        );
       }
     }
     if (_items.isEmpty) _items.add(_ItemDraft());
@@ -94,13 +100,20 @@ class _QuoteEditorScreenState extends ConsumerState<QuoteEditorScreen> {
       _items.add(_ItemDraft());
     } else {
       for (final item in quote.items) {
-        _items.add(_ItemDraft(description: item.description, qty: item.qty, price: item.price));
+        _items.add(
+          _ItemDraft(
+            description: item.description,
+            qty: item.qty,
+            price: item.price,
+          ),
+        );
       }
     }
     _initialized = true;
   }
 
-  double get _subtotal => _items.fold(0, (total, item) => total + item.toItem().total);
+  double get _subtotal =>
+      _items.fold(0, (total, item) => total + item.toItem().total);
   double get _discountValue => CurrencyInputFormatter.parse(_discount.text);
   double get _total => _subtotal - _discountValue;
 
@@ -116,7 +129,10 @@ class _QuoteEditorScreenState extends ConsumerState<QuoteEditorScreen> {
       status: _status,
       layout: _layout,
       note: _note.text.trim().isEmpty ? null : _note.text.trim(),
-      items: _items.map((item) => item.toItem()).where((item) => item.description.isNotEmpty).toList(),
+      items: _items
+          .map((item) => item.toItem())
+          .where((item) => item.description.isNotEmpty)
+          .toList(),
       subtotal: _subtotal,
       discount: _discountValue,
       createdAt: DateTime.now(),
@@ -132,8 +148,10 @@ class _QuoteEditorScreenState extends ConsumerState<QuoteEditorScreen> {
       );
       return;
     }
-    final items =
-        _items.map((item) => item.toItem()).where((item) => item.description.isNotEmpty).toList();
+    final items = _items
+        .map((item) => item.toItem())
+        .where((item) => item.description.isNotEmpty)
+        .toList();
     if (items.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Adicione ao menos um item.')),
@@ -142,12 +160,16 @@ class _QuoteEditorScreenState extends ConsumerState<QuoteEditorScreen> {
     }
     setState(() => _busy = true);
     try {
-      await ref.read(quotesRepositoryProvider).save(
+      await ref
+          .read(quotesRepositoryProvider)
+          .save(
             id: widget.quoteId,
             userId: userId,
             clientId: _clientId!,
             number: _number.text.trim(),
-            title: _title.text.trim().isEmpty ? 'Orçamento' : _title.text.trim(),
+            title: _title.text.trim().isEmpty
+                ? 'Orçamento'
+                : _title.text.trim(),
             issuedOn: _issuedOn,
             validUntil: _validUntil,
             status: _status,
@@ -180,10 +202,14 @@ class _QuoteEditorScreenState extends ConsumerState<QuoteEditorScreen> {
     }
 
     return quotesAsync.when(
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (error, _) => Scaffold(
         appBar: AppBar(),
-        body: AsyncErrorView(error: error, onRetry: () => ref.invalidate(quotesProvider)),
+        body: AsyncErrorView(
+          error: error,
+          onRetry: () => ref.invalidate(quotesProvider),
+        ),
       ),
       data: (quotes) {
         if (!_initialized) {
@@ -213,7 +239,9 @@ class _QuoteEditorScreenState extends ConsumerState<QuoteEditorScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.quoteId == null ? 'Novo orçamento' : 'Editar orçamento'),
+        title: Text(
+          widget.quoteId == null ? 'Novo orçamento' : 'Editar orçamento',
+        ),
         actions: [
           IconButton(
             tooltip: 'Gerar PDF',
@@ -255,9 +283,13 @@ class _QuoteEditorScreenState extends ConsumerState<QuoteEditorScreen> {
                   decoration: const InputDecoration(labelText: 'Situação'),
                   items: [
                     for (final status in QuoteStatus.values)
-                      DropdownMenuItem(value: status, child: Text(status.label)),
+                      DropdownMenuItem(
+                        value: status,
+                        child: Text(status.label),
+                      ),
                   ],
-                  onChanged: (value) => setState(() => _status = value ?? _status),
+                  onChanged: (value) =>
+                      setState(() => _status = value ?? _status),
                 ),
               ),
             ],
@@ -269,7 +301,8 @@ class _QuoteEditorScreenState extends ConsumerState<QuoteEditorScreen> {
                 child: DateField(
                   label: 'Emissão',
                   value: _issuedOn,
-                  onChanged: (value) => setState(() => _issuedOn = value ?? _issuedOn),
+                  onChanged: (value) =>
+                      setState(() => _issuedOn = value ?? _issuedOn),
                 ),
               ),
               const SizedBox(width: 12),
@@ -288,7 +321,9 @@ class _QuoteEditorScreenState extends ConsumerState<QuoteEditorScreen> {
             children: [
               Text(
                 'Modelo do PDF',
-                style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                style: textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const Spacer(),
               SegmentedButton<String>(
@@ -298,7 +333,8 @@ class _QuoteEditorScreenState extends ConsumerState<QuoteEditorScreen> {
                 ],
                 selected: {_layout},
                 showSelectedIcon: false,
-                onSelectionChanged: (value) => setState(() => _layout = value.first),
+                onSelectionChanged: (value) =>
+                    setState(() => _layout = value.first),
               ),
             ],
           ),
@@ -307,7 +343,9 @@ class _QuoteEditorScreenState extends ConsumerState<QuoteEditorScreen> {
             children: [
               Text(
                 'Itens',
-                style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const Spacer(),
               TextButton.icon(
@@ -326,7 +364,11 @@ class _QuoteEditorScreenState extends ConsumerState<QuoteEditorScreen> {
               onRemove: () => setState(() => _items.removeAt(i).dispose()),
             ),
           const SizedBox(height: 16),
-          MoneyField(controller: _discount, label: 'Desconto', onChanged: (_) => setState(() {})),
+          MoneyField(
+            controller: _discount,
+            label: 'Desconto',
+            onChanged: (_) => setState(() {}),
+          ),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(16),
@@ -370,11 +412,16 @@ class _QuoteEditorScreenState extends ConsumerState<QuoteEditorScreen> {
     );
   }
 
-  Widget _totalRow(BuildContext context, String label, double value, {bool bold = false}) {
+  Widget _totalRow(
+    BuildContext context,
+    String label,
+    double value, {
+    bool bold = false,
+  }) {
     final style = Theme.of(context).textTheme.bodyMedium?.copyWith(
-          fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
-          color: bold ? AppColors.foreground : AppColors.mutedForeground,
-        );
+      fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+      color: bold ? AppColors.foreground : AppColors.mutedForeground,
+    );
     final display = value == 0
         ? 'R\$ 0,00'
         : '${value < 0 ? '- ' : ''}${CurrencyInputFormatter.formatCents((value.abs() * 100).round())}';
@@ -392,9 +439,11 @@ class _QuoteEditorScreenState extends ConsumerState<QuoteEditorScreen> {
 
 class _ItemDraft {
   _ItemDraft({String description = '', double qty = 1, double price = 0})
-      : descriptionController = TextEditingController(text: description),
-        qtyController = TextEditingController(text: _formatQty(qty)),
-        priceController = TextEditingController(text: CurrencyInputFormatter.fromDouble(price));
+    : descriptionController = TextEditingController(text: description),
+      qtyController = TextEditingController(text: _formatQty(qty)),
+      priceController = TextEditingController(
+        text: CurrencyInputFormatter.fromDouble(price),
+      );
 
   final TextEditingController descriptionController;
   final TextEditingController qtyController;
@@ -473,7 +522,10 @@ class _ItemEditor extends StatelessWidget {
               ),
               if (canRemove)
                 IconButton(
-                  icon: const Icon(Icons.delete_outline, color: AppColors.danger),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: AppColors.danger,
+                  ),
                   onPressed: onRemove,
                 ),
             ],

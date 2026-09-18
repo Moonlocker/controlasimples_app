@@ -60,8 +60,18 @@ void main() {
     final workspace = Workspace(
       clients: [client(id: 'cl1', name: 'Cliente')],
       charges: [
-        charge(id: 'c1', clientId: 'cl1', amount: 100, dueDate: DateTime(2026, 9, 5)),
-        charge(id: 'c2', clientId: 'cl1', amount: 200, dueDate: DateTime(2026, 9, 20)),
+        charge(
+          id: 'c1',
+          clientId: 'cl1',
+          amount: 100,
+          dueDate: DateTime(2026, 9, 5),
+        ),
+        charge(
+          id: 'c2',
+          clientId: 'cl1',
+          amount: 200,
+          dueDate: DateTime(2026, 9, 20),
+        ),
         charge(
           id: 'c3',
           clientId: 'cl1',

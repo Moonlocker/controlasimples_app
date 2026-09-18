@@ -33,11 +33,19 @@ class AsaasRepository {
   }
 
   Future<({bool ok, String message})> testConnection() async {
-    final result = await _api.post('/api/mobile/asaas/config', {'action': 'test'});
-    return (ok: result['ok'] == true, message: (result['message'] as String?) ?? '');
+    final result = await _api.post('/api/mobile/asaas/config', {
+      'action': 'test',
+    });
+    return (
+      ok: result['ok'] == true,
+      message: (result['message'] as String?) ?? '',
+    );
   }
 
-  Future<AsaasPaymentFiles> emit(String chargeId, BillingType billingType) async {
+  Future<AsaasPaymentFiles> emit(
+    String chargeId,
+    BillingType billingType,
+  ) async {
     final result = await _api.post('/api/mobile/asaas/emit', {
       'chargeId': chargeId,
       'billingType': billingType.wire,
@@ -52,7 +60,9 @@ class AsaasRepository {
   }
 
   Future<String> sync(String chargeId) async {
-    final result = await _api.post('/api/mobile/asaas/sync', {'chargeId': chargeId});
+    final result = await _api.post('/api/mobile/asaas/sync', {
+      'chargeId': chargeId,
+    });
     return (result['status'] as String?) ?? '';
   }
 

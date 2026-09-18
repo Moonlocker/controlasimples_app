@@ -25,6 +25,7 @@ import '../../widgets/app_form_sheet.dart';
 import '../../widgets/async_error_view.dart';
 import '../auth/auth_providers.dart';
 import '../quotes/quotes_providers.dart';
+import '../subscription/subscription_flow.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -50,7 +51,8 @@ class SettingsScreen extends ConsumerWidget {
               _Section(
                 title: 'Conta',
                 action: TextButton(
-                  onPressed: () => showAppFormSheet(context, const _ProfileFormSheet()),
+                  onPressed: () =>
+                      showAppFormSheet(context, const _ProfileFormSheet()),
                   child: const Text('Editar'),
                 ),
                 children: [
@@ -85,7 +87,9 @@ class SettingsScreen extends ConsumerWidget {
                 onPressed: () => ref.read(authRepositoryProvider).signOut(),
                 icon: const Icon(Icons.logout),
                 label: const Text('Sair'),
-                style: OutlinedButton.styleFrom(foregroundColor: AppColors.danger),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.danger,
+                ),
               ),
             ],
           );
@@ -104,7 +108,8 @@ class _BusinessSection extends ConsumerWidget {
     return _Section(
       title: 'Dados para orçamentos',
       action: TextButton(
-        onPressed: () => showAppFormSheet(context, _BusinessFormSheet(business: business)),
+        onPressed: () =>
+            showAppFormSheet(context, _BusinessFormSheet(business: business)),
         child: const Text('Editar'),
       ),
       children: [
@@ -167,7 +172,8 @@ class _DataSectionState extends ConsumerState<_DataSection> {
       );
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$error')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$error')));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -181,7 +187,10 @@ class _DataSectionState extends ConsumerState<_DataSection> {
       children: [
         ListTile(
           contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.download_outlined, color: AppColors.primary),
+          leading: const Icon(
+            Icons.download_outlined,
+            color: AppColors.primary,
+          ),
           title: const Text('Exportar backup (JSON)'),
           subtitle: const Text('Baixe uma cópia completa dos seus dados.'),
           trailing: _busy
@@ -190,7 +199,10 @@ class _DataSectionState extends ConsumerState<_DataSection> {
                   height: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Icon(Icons.chevron_right, color: AppColors.mutedForeground),
+              : const Icon(
+                  Icons.chevron_right,
+                  color: AppColors.mutedForeground,
+                ),
           onTap: _busy ? null : _export,
         ),
       ],
@@ -215,8 +227,8 @@ class _Section extends StatelessWidget {
             Expanded(
               child: Text(
                 title,
-                style:
-                    Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                style: Theme.of(context).textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
             ?action,
@@ -254,18 +266,14 @@ class _InfoRow extends StatelessWidget {
             width: 96,
             child: Text(
               label,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
+              style: Theme.of(context).textTheme.bodyMedium
                   ?.copyWith(color: AppColors.mutedForeground),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
+              style: Theme.of(context).textTheme.bodyMedium
                   ?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
@@ -306,7 +314,9 @@ class _ProfileFormSheetState extends ConsumerState<_ProfileFormSheet> {
     if (userId == null) return;
     setState(() => _busy = true);
     try {
-      await ref.read(profileRepositoryProvider).update(
+      await ref
+          .read(profileRepositoryProvider)
+          .update(
             userId: userId,
             name: _name.text.trim(),
             company: _company.text.trim(),
@@ -444,7 +454,9 @@ class _BusinessFormSheetState extends ConsumerState<_BusinessFormSheet> {
     if (userId == null) return;
     setState(() => _busy = true);
     try {
-      await ref.read(quotesRepositoryProvider).saveBusiness(
+      await ref
+          .read(quotesRepositoryProvider)
+          .saveBusiness(
             userId: userId,
             logo: _logo,
             company: _company.text.trim(),
@@ -489,12 +501,17 @@ class _BusinessFormSheetState extends ConsumerState<_BusinessFormSheet> {
               ),
               clipBehavior: Clip.antiAlias,
               child: _logo == null
-                  ? const Icon(Icons.image_outlined, color: AppColors.mutedForeground)
+                  ? const Icon(
+                      Icons.image_outlined,
+                      color: AppColors.mutedForeground,
+                    )
                   : Image.memory(
                       base64Decode(_logo!.split(',').last),
                       fit: BoxFit.contain,
-                      errorBuilder: (_, _, _) =>
-                          const Icon(Icons.broken_image_outlined, color: AppColors.mutedForeground),
+                      errorBuilder: (_, _, _) => const Icon(
+                        Icons.broken_image_outlined,
+                        color: AppColors.mutedForeground,
+                      ),
                     ),
             ),
             const SizedBox(width: 14),
@@ -565,50 +582,6 @@ class _BusinessFormSheetState extends ConsumerState<_BusinessFormSheet> {
 class _SubscriptionSection extends ConsumerWidget {
   const _SubscriptionSection();
 
-  Future<void> _subscribe(BuildContext context, WidgetRef ref, Plan plan) async {
-    final userId = ref.read(currentUserIdProvider);
-    if (userId == null) return;
-    try {
-      if (plan.price <= 0) {
-        await ref.read(subscriptionRepositoryProvider).setPlanDirect(
-              userId: userId,
-              planId: plan.id,
-              status: SubscriptionStatus.ativa,
-            );
-        ref.invalidate(workspaceProvider);
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Plano ${plan.name} ativado.')),
-          );
-        }
-        return;
-      }
-      final result = await showAppFormSheetResult<({String document, BillingType billing})>(
-        context,
-        _SubscribeFormSheet(plan: plan),
-      );
-      if (result == null) return;
-      final response = await ref.read(subscriptionRepositoryProvider).subscribe(
-            planId: plan.id,
-            document: result.document,
-            billingType: result.billing,
-          );
-      ref.invalidate(workspaceProvider);
-      if (response.invoiceUrl != null && context.mounted) {
-        await launchUrl(Uri.parse(response.invoiceUrl!));
-      }
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Assinatura atualizada.')),
-        );
-      }
-    } catch (error) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$error')));
-      }
-    }
-  }
-
   Future<void> _cancel(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -635,13 +608,14 @@ class _SubscriptionSection extends ConsumerWidget {
       await ref.read(subscriptionRepositoryProvider).cancel();
       ref.invalidate(workspaceProvider);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Assinatura cancelada.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Assinatura cancelada.')));
       }
     } catch (error) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$error')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$error')));
       }
     }
   }
@@ -652,7 +626,8 @@ class _SubscriptionSection extends ConsumerWidget {
     if (workspace == null) return const SizedBox.shrink();
     final currentPlan = workspace.plan;
     final subscription = workspace.subscription;
-    final canCancel = subscription != null &&
+    final canCancel =
+        subscription != null &&
         (currentPlan?.price ?? 0) > 0 &&
         subscription.status != SubscriptionStatus.cancelada;
 
@@ -662,12 +637,16 @@ class _SubscriptionSection extends ConsumerWidget {
         _InfoRow(label: 'Plano', value: currentPlan?.name ?? 'Sem plano'),
         _InfoRow(label: 'Situação', value: subscription?.status.label ?? '—'),
         if (subscription?.currentPeriodEnd != null)
-          _InfoRow(label: 'Válido até', value: formatDate(subscription!.currentPeriodEnd!)),
+          _InfoRow(
+            label: 'Válido até',
+            value: formatDate(subscription!.currentPeriodEnd!),
+          ),
         if (subscription?.asaasInvoiceUrl != null)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 6),
             child: OutlinedButton.icon(
-              onPressed: () => launchUrl(Uri.parse(subscription!.asaasInvoiceUrl!)),
+              onPressed: () =>
+                  launchUrl(Uri.parse(subscription!.asaasInvoiceUrl!)),
               icon: const Icon(Icons.open_in_new, size: 18),
               label: const Text('Abrir fatura'),
             ),
@@ -686,7 +665,7 @@ class _SubscriptionSection extends ConsumerWidget {
           _PlanCard(
             plan: plan,
             current: plan.id == currentPlan?.id,
-            onTap: () => _subscribe(context, ref, plan),
+            onTap: () => subscribeToPlanFlow(context, ref, plan),
           ),
           const SizedBox(height: 10),
         ],
@@ -696,7 +675,11 @@ class _SubscriptionSection extends ConsumerWidget {
 }
 
 class _PlanCard extends StatelessWidget {
-  const _PlanCard({required this.plan, required this.current, required this.onTap});
+  const _PlanCard({
+    required this.plan,
+    required this.current,
+    required this.onTap,
+  });
 
   final Plan plan;
   final bool current;
@@ -728,12 +711,16 @@ class _PlanCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     plan.name,
-                    style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                    style: textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 Text(
                   plan.price <= 0 ? 'Grátis' : '${brl(plan.price)}/mês',
-                  style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
             ),
@@ -741,7 +728,9 @@ class _PlanCard extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 plan.description,
-                style: textTheme.bodySmall?.copyWith(color: AppColors.mutedForeground),
+                style: textTheme.bodySmall?.copyWith(
+                  color: AppColors.mutedForeground,
+                ),
               ),
             ],
             if (plan.features.isNotEmpty) ...[
@@ -752,7 +741,10 @@ class _PlanCard extends StatelessWidget {
                 children: [
                   for (final feature in plan.features)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.muted,
                         borderRadius: BorderRadius.circular(999),
@@ -774,78 +766,13 @@ class _PlanCard extends StatelessWidget {
             else
               Text(
                 'Toque para assinar',
-                style: textTheme.labelMedium?.copyWith(color: AppColors.mutedForeground),
+                style: textTheme.labelMedium?.copyWith(
+                  color: AppColors.mutedForeground,
+                ),
               ),
           ],
         ),
       ),
-    );
-  }
-}
-
-class _SubscribeFormSheet extends ConsumerStatefulWidget {
-  const _SubscribeFormSheet({required this.plan});
-
-  final Plan plan;
-
-  @override
-  ConsumerState<_SubscribeFormSheet> createState() => _SubscribeFormSheetState();
-}
-
-class _SubscribeFormSheetState extends ConsumerState<_SubscribeFormSheet> {
-  final _formKey = GlobalKey<FormState>();
-  final _document = TextEditingController();
-  BillingType _billing = BillingType.boleto;
-
-  @override
-  void initState() {
-    super.initState();
-    _document.text = ref.read(workspaceProvider).value?.profile?.document ?? '';
-  }
-
-  @override
-  void dispose() {
-    _document.dispose();
-    super.dispose();
-  }
-
-  void _submit() {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
-    Navigator.of(context).pop((document: _document.text.trim(), billing: _billing));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AppFormSheet(
-      title: 'Assinar ${widget.plan.name}',
-      subtitle: '${brl(widget.plan.price)} por mês.',
-      formKey: _formKey,
-      saveLabel: 'Continuar',
-      onSave: () async => _submit(),
-      children: [
-        TextFormField(
-          controller: _document,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(labelText: 'CPF/CNPJ do titular'),
-          validator: (value) {
-            final digits = (value ?? '').replaceAll(RegExp(r'\D'), '');
-            if (digits.length != 11 && digits.length != 14) {
-              return 'Informe um CPF ou CNPJ válido';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 14),
-        DropdownButtonFormField<BillingType>(
-          initialValue: _billing,
-          decoration: const InputDecoration(labelText: 'Forma de pagamento'),
-          items: [
-            for (final type in BillingType.values)
-              DropdownMenuItem(value: type, child: Text(type.label)),
-          ],
-          onChanged: (value) => setState(() => _billing = value ?? _billing),
-        ),
-      ],
     );
   }
 }
@@ -855,6 +782,22 @@ class _AsaasSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final canUse = ref.watch(workspaceProvider).value?.canUseAsaas ?? true;
+    if (!canUse) {
+      return _Section(
+        title: 'Asaas',
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Text(
+              'A integração Asaas não está disponível no seu plano atual. Faça upgrade para emitir cobranças.',
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(color: AppColors.mutedForeground),
+            ),
+          ),
+        ],
+      );
+    }
     final configAsync = ref.watch(asaasConfigProvider);
     return configAsync.when(
       loading: () => const _Section(
@@ -881,18 +824,24 @@ class _AsaasSection extends ConsumerWidget {
       data: (config) => _Section(
         title: 'Asaas',
         action: TextButton(
-          onPressed: () => showAppFormSheet(context, _AsaasConfigSheet(config: config)),
+          onPressed: () =>
+              showAppFormSheet(context, _AsaasConfigSheet(config: config)),
           child: const Text('Configurar'),
         ),
         children: [
-          _InfoRow(label: 'Situação', value: config.enabled ? 'Ativado' : 'Desativado'),
+          _InfoRow(
+            label: 'Situação',
+            value: config.enabled ? 'Ativado' : 'Desativado',
+          ),
           _InfoRow(
             label: 'Ambiente',
             value: config.isProduction ? 'Produção' : 'Sandbox',
           ),
           _InfoRow(
             label: 'Chave',
-            value: config.maskedKey ?? (config.hasKey ? 'Configurada' : 'Não configurada'),
+            value:
+                config.maskedKey ??
+                (config.hasKey ? 'Configurada' : 'Não configurada'),
           ),
         ],
       ),
@@ -933,7 +882,9 @@ class _AsaasConfigSheetState extends ConsumerState<_AsaasConfigSheet> {
   Future<void> _save() async {
     setState(() => _busy = true);
     try {
-      await ref.read(asaasRepositoryProvider).saveConfig(
+      await ref
+          .read(asaasRepositoryProvider)
+          .saveConfig(
             enabled: _enabled,
             environment: _environment,
             apiKey: _apiKey.text.trim().isEmpty ? null : _apiKey.text.trim(),
@@ -957,12 +908,15 @@ class _AsaasConfigSheetState extends ConsumerState<_AsaasConfigSheet> {
       final result = await ref.read(asaasRepositoryProvider).testConnection();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result.message.isEmpty ? 'Testado.' : result.message)),
+          SnackBar(
+            content: Text(result.message.isEmpty ? 'Testado.' : result.message),
+          ),
         );
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$error')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$error')));
       }
     } finally {
       if (mounted) setState(() => _testing = false);
@@ -992,7 +946,8 @@ class _AsaasConfigSheetState extends ConsumerState<_AsaasConfigSheet> {
             DropdownMenuItem(value: 'sandbox', child: Text('Sandbox (testes)')),
             DropdownMenuItem(value: 'production', child: Text('Produção')),
           ],
-          onChanged: (value) => setState(() => _environment = value ?? _environment),
+          onChanged: (value) =>
+              setState(() => _environment = value ?? _environment),
         ),
         const SizedBox(height: 14),
         TextFormField(
@@ -1000,7 +955,9 @@ class _AsaasConfigSheetState extends ConsumerState<_AsaasConfigSheet> {
           obscureText: true,
           decoration: InputDecoration(
             labelText: 'Chave de API',
-            hintText: widget.config.hasKey ? 'Deixe vazio para manter a atual' : 'Sua chave Asaas',
+            hintText: widget.config.hasKey
+                ? 'Deixe vazio para manter a atual'
+                : 'Sua chave Asaas',
           ),
         ),
         const SizedBox(height: 16),
@@ -1025,6 +982,22 @@ class _WhatsappSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final canUse = ref.watch(workspaceProvider).value?.canUseWhatsapp ?? true;
+    if (!canUse) {
+      return _Section(
+        title: 'WhatsApp',
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Text(
+              'As notificações por WhatsApp não estão disponíveis no seu plano atual. Faça upgrade para usá-las.',
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(color: AppColors.mutedForeground),
+            ),
+          ),
+        ],
+      );
+    }
     final usageAsync = ref.watch(whatsappUsageProvider);
     return usageAsync.when(
       loading: () => const _Section(
@@ -1049,12 +1022,20 @@ class _WhatsappSection extends ConsumerWidget {
         ],
       ),
       data: (usage) {
-        final progress = usage.quota == 0 ? 0.0 : (usage.sent / usage.quota).clamp(0.0, 1.0);
+        final progress = usage.quota == 0
+            ? 0.0
+            : (usage.sent / usage.quota).clamp(0.0, 1.0);
         return _Section(
           title: 'WhatsApp',
           children: [
-            _InfoRow(label: 'Situação', value: usage.enabled ? 'Ativado' : 'Desativado'),
-            _InfoRow(label: 'Enviadas no mês', value: '${usage.sent} de ${usage.quota}'),
+            _InfoRow(
+              label: 'Situação',
+              value: usage.enabled ? 'Ativado' : 'Desativado',
+            ),
+            _InfoRow(
+              label: 'Enviadas no mês',
+              value: '${usage.sent} de ${usage.quota}',
+            ),
             _InfoRow(label: 'Restantes', value: '${usage.remaining}'),
             const SizedBox(height: 8),
             ClipRRect(
@@ -1063,7 +1044,9 @@ class _WhatsappSection extends ConsumerWidget {
                 value: progress,
                 minHeight: 8,
                 backgroundColor: AppColors.muted,
-                color: usage.remaining < 5 ? AppColors.danger : AppColors.primary,
+                color: usage.remaining < 5
+                    ? AppColors.danger
+                    : AppColors.primary,
               ),
             ),
             const SizedBox(height: 12),
@@ -1078,7 +1061,8 @@ class _ChangePasswordDialog extends ConsumerStatefulWidget {
   const _ChangePasswordDialog();
 
   @override
-  ConsumerState<_ChangePasswordDialog> createState() => _ChangePasswordDialogState();
+  ConsumerState<_ChangePasswordDialog> createState() =>
+      _ChangePasswordDialogState();
 }
 
 class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
@@ -1098,19 +1082,23 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _busy = true);
     try {
-      await ref.read(authRepositoryProvider).updatePassword(_passwordController.text);
+      await ref
+          .read(authRepositoryProvider)
+          .updatePassword(_passwordController.text);
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Senha atualizada.')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Senha atualizada.')));
     } on AuthException catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error.message)));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Não foi possível alterar a senha. Tente novamente.')),
+        const SnackBar(
+          content: Text('Não foi possível alterar a senha. Tente novamente.'),
+        ),
       );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -1138,8 +1126,9 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
               controller: _confirmController,
               obscureText: true,
               decoration: const InputDecoration(labelText: 'Confirmar senha'),
-              validator: (value) =>
-                  value != _passwordController.text ? 'As senhas não conferem' : null,
+              validator: (value) => value != _passwordController.text
+                  ? 'As senhas não conferem'
+                  : null,
             ),
           ],
         ),

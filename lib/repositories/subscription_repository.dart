@@ -1,26 +1,27 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../core/constants/enums.dart';
 import '../models/asaas.dart';
-import '../models/subscription.dart';
 import '../services/mobile_api_service.dart';
-import '../services/supabase_service.dart';
 
 final subscriptionRepositoryProvider = Provider<SubscriptionRepository>((ref) {
-  return SubscriptionRepository(
-    ref.watch(mobileApiServiceProvider),
-    ref.watch(supabaseProvider),
-  );
+  return SubscriptionRepository(ref.watch(mobileApiServiceProvider));
 });
 
 class SubscriptionRepository {
-  SubscriptionRepository(this._api, this._client);
+  SubscriptionRepository(this._api);
 
   final MobileApiService _api;
-  final SupabaseClient _client;
 
-  Future<({String? invoiceUrl, String status})> subscribe({
+  Future<
+    ({
+      String? invoiceUrl,
+      String? bankSlipUrl,
+      String? pixPayload,
+      String? pixQrCode,
+      String status,
+    })
+  >
+  subscribe({
     required String planId,
     required String document,
     BillingType? billingType,
@@ -32,6 +33,9 @@ class SubscriptionRepository {
     });
     return (
       invoiceUrl: result['invoiceUrl'] as String?,
+      bankSlipUrl: result['bankSlipUrl'] as String?,
+      pixPayload: result['pixPayload'] as String?,
+      pixQrCode: result['pixQrCode'] as String?,
       status: (result['status'] as String?) ?? '',
     );
   }
@@ -42,27 +46,5 @@ class SubscriptionRepository {
       ok: result['ok'] == true,
       fallbackToFree: result['fallbackToFree'] == true,
     );
-  }
-
-  Future<void> setPlanDirect({
-    required String userId,
-    required String? planId,
-    required SubscriptionStatus status,
-  }) async {
-    final payload = {'plan_id': planId, 'status': status.wire};
-    final existing = await _client
-        .from(Subscription.table)
-        .select('user_id')
-        .eq('user_id', userId)
-        .maybeSingle();
-    if (existing == null) {
-      await _client.from(Subscription.table).insert({
-        'user_id': userId,
-        'started_at': DateTime.now().toIso8601String(),
-        ...payload,
-      });
-    } else {
-      await _client.from(Subscription.table).update(payload).eq('user_id', userId);
-    }
   }
 }

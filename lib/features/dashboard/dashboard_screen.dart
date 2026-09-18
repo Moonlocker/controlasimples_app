@@ -199,8 +199,12 @@ class _DashboardBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final metrics = computeMetrics(workspace);
-    final firstName = (workspace.profile?.name ?? '').trim().split(RegExp(r'\s+')).first;
-    final needsOnboarding = workspace.clients.isEmpty || workspace.charges.isEmpty;
+    final firstName = (workspace.profile?.name ?? '')
+        .trim()
+        .split(RegExp(r'\s+'))
+        .first;
+    final needsOnboarding =
+        workspace.clients.isEmpty || workspace.charges.isEmpty;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
@@ -278,8 +282,8 @@ class _DashboardBody extends StatelessWidget {
             children: [
               Text(
                 'Evolução das receitas',
-                style:
-                    Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                style: Theme.of(context).textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 12),
               RevenueChart(
@@ -296,7 +300,8 @@ class _DashboardBody extends StatelessWidget {
           children: [
             Text(
               'Próximas cobranças',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w700),
             ),
             const Spacer(),
             TextButton(
@@ -316,7 +321,8 @@ class _DashboardBody extends StatelessWidget {
             child: const EmptyState(
               icon: Icons.receipt_long_outlined,
               title: 'Nenhuma cobrança nos próximos dias',
-              description: 'Quando houver pendências a vencer, elas aparecem aqui.',
+              description:
+                  'Quando houver pendências a vencer, elas aparecem aqui.',
             ),
           )
         else
@@ -389,17 +395,13 @@ class _OnboardingBanner extends StatelessWidget {
         children: [
           Text(
             title,
-            style: Theme.of(context)
-                .textTheme
-                .titleSmall
+            style: Theme.of(context).textTheme.titleSmall
                 ?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
           Text(
             message,
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
+            style: Theme.of(context).textTheme.bodySmall
                 ?.copyWith(color: AppColors.mutedForeground),
           ),
           const SizedBox(height: 12),
@@ -407,7 +409,9 @@ class _OnboardingBanner extends StatelessWidget {
             onPressed: action,
             icon: const Icon(Icons.add, size: 18),
             label: Text(label),
-            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(44)),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(44),
+            ),
           ),
         ],
       ),
@@ -433,21 +437,27 @@ class _UpcomingTile extends StatelessWidget {
               children: [
                 Text(
                   view.clientName,
-                  style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   view.description,
-                  style: textTheme.bodySmall?.copyWith(color: AppColors.mutedForeground),
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.mutedForeground,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Vence ${formatDate(view.dueDate)}',
-                  style: textTheme.bodySmall?.copyWith(color: AppColors.mutedForeground),
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.mutedForeground,
+                  ),
                 ),
               ],
             ),
@@ -458,7 +468,9 @@ class _UpcomingTile extends StatelessWidget {
             children: [
               Text(
                 brl(view.amount),
-                style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                style: textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 6),
               StatusBadge(status: view.status),

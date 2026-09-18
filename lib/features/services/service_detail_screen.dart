@@ -32,10 +32,14 @@ class ServiceDetailScreen extends ConsumerWidget {
     final workspaceAsync = ref.watch(workspaceProvider);
 
     return workspaceAsync.when(
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (error, _) => Scaffold(
         appBar: AppBar(),
-        body: AsyncErrorView(error: error, onRetry: () => ref.invalidate(workspaceProvider)),
+        body: AsyncErrorView(
+          error: error,
+          onRetry: () => ref.invalidate(workspaceProvider),
+        ),
       ),
       data: (workspace) {
         final service = workspace.serviceById(serviceId);
@@ -51,13 +55,18 @@ class ServiceDetailScreen extends ConsumerWidget {
             .toList()
             .reversed
             .toList();
-        final recurring =
-            workspace.recurring.where((item) => item.serviceId == service.id).toList();
+        final recurring = workspace.recurring
+            .where((item) => item.serviceId == service.id)
+            .toList();
 
         final chargeIds = views.map((view) => view.id).toSet();
-        final payments =
-            workspace.payments.where((p) => chargeIds.contains(p.chargeId)).toList();
-        final received = payments.fold<double>(0, (total, p) => total + p.amount);
+        final payments = workspace.payments
+            .where((p) => chargeIds.contains(p.chargeId))
+            .toList();
+        final received = payments.fold<double>(
+          0,
+          (total, p) => total + p.amount,
+        );
         final open = views
             .where((v) => v.status == ChargeStatus.pendente)
             .fold<double>(0, (total, v) => total + v.amount);
@@ -92,8 +101,14 @@ class ServiceDetailScreen extends ConsumerWidget {
                 title: 'Informações',
                 child: Column(
                   children: [
-                    _InfoLine(label: 'Cliente', value: workspace.clientName(service.clientId)),
-                    _InfoLine(label: 'Cobrança', value: service.billingType.label),
+                    _InfoLine(
+                      label: 'Cliente',
+                      value: workspace.clientName(service.clientId),
+                    ),
+                    _InfoLine(
+                      label: 'Cobrança',
+                      value: service.billingType.label,
+                    ),
                     _InfoLine(label: 'Situação', value: service.status.label),
                     _InfoLine(label: 'Valor', value: brl(service.amount)),
                     if (recurring.any((item) => item.active))
@@ -102,18 +117,27 @@ class ServiceDetailScreen extends ConsumerWidget {
                         value: brl(
                           recurring
                               .where((item) => item.active)
-                              .fold<double>(0, (sum, item) => sum + item.amount),
+                              .fold<double>(
+                                0,
+                                (sum, item) => sum + item.amount,
+                              ),
                         ),
                       ),
-                    _InfoLine(label: 'Início', value: formatDate(service.startDate)),
+                    _InfoLine(
+                      label: 'Início',
+                      value: formatDate(service.startDate),
+                    ),
                     _InfoLine(
                       label: 'Término',
-                      value: service.endDate == null ? 'Contínuo' : formatDate(service.endDate!),
+                      value: service.endDate == null
+                          ? 'Contínuo'
+                          : formatDate(service.endDate!),
                     ),
                   ],
                 ),
               ),
-              if (service.description != null && service.description!.isNotEmpty) ...[
+              if (service.description != null &&
+                  service.description!.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 SectionCard(
                   title: 'Descrição',
@@ -183,9 +207,7 @@ class ServiceDetailScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
                 Text(
                   'Recorrências',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleSmall
+                  style: Theme.of(context).textTheme.titleSmall
                       ?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 8),
@@ -197,7 +219,8 @@ class ServiceDetailScreen extends ConsumerWidget {
               const SizedBox(height: 20),
               Text(
                 'Cobranças',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                style: Theme.of(context).textTheme.titleSmall
+                    ?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
               if (views.isEmpty)
@@ -239,8 +262,7 @@ class _ServiceMenu extends ConsumerWidget {
           final confirmed = await showConfirmDialog(
             context,
             title: 'Excluir serviço',
-            message:
-                'As cobranças e recorrências vinculadas a este serviço também serão removidas.',
+            message: 'As cobranças e recorrências vinculadas a este serviço também serão removidas.',
             confirmLabel: 'Excluir',
             destructive: true,
           );
@@ -257,7 +279,10 @@ class _ServiceMenu extends ConsumerWidget {
             child: Text('Marcar como ${status.label.toLowerCase()}'),
           ),
         const PopupMenuDivider(),
-        const PopupMenuItem(value: 'duplicate', child: Text('Duplicar serviço')),
+        const PopupMenuItem(
+          value: 'duplicate',
+          child: Text('Duplicar serviço'),
+        ),
         const PopupMenuItem(value: 'delete', child: Text('Excluir serviço')),
       ],
     );
@@ -290,21 +315,31 @@ class _RecurringRow extends ConsumerWidget {
                 children: [
                   Text(
                     item.description,
-                    style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                    style: textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   Text(
                     '${item.frequency.label} · ${item.active ? 'Ativa' : 'Pausada'} · dia ${item.dueDay}',
-                    style: textTheme.bodySmall?.copyWith(color: AppColors.mutedForeground),
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.mutedForeground,
+                    ),
                   ),
                 ],
               ),
             ),
             Text(
               brl(item.amount),
-              style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+              style: textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
             PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, size: 20, color: AppColors.mutedForeground),
+              icon: const Icon(
+                Icons.more_vert,
+                size: 20,
+                color: AppColors.mutedForeground,
+              ),
               onSelected: (value) async {
                 final repository = ref.read(chargesRepositoryProvider);
                 if (value == 'toggle') {
@@ -324,7 +359,10 @@ class _RecurringRow extends ConsumerWidget {
                 }
               },
               itemBuilder: (context) => [
-                PopupMenuItem(value: 'toggle', child: Text(item.active ? 'Pausar' : 'Reativar')),
+                PopupMenuItem(
+                  value: 'toggle',
+                  child: Text(item.active ? 'Pausar' : 'Reativar'),
+                ),
                 const PopupMenuItem(value: 'delete', child: Text('Excluir')),
               ],
             ),
@@ -350,9 +388,7 @@ class _InfoLine extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
+              style: Theme.of(context).textTheme.bodyMedium
                   ?.copyWith(color: AppColors.mutedForeground),
             ),
           ),
@@ -360,8 +396,8 @@ class _InfoLine extends StatelessWidget {
             child: Text(
               value,
               textAlign: TextAlign.right,
-              style:
-                  Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
         ],

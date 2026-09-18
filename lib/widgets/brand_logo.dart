@@ -65,7 +65,12 @@ class BrandMark extends StatelessWidget {
 
 /// Bloco de marca com o símbolo em destaque, usado em cabeçalhos e cartões.
 class BrandBadge extends StatelessWidget {
-  const BrandBadge({super.key, this.size = 44, this.radius = 14, this.onDark = false});
+  const BrandBadge({
+    super.key,
+    this.size = 44,
+    this.radius = 14,
+    this.onDark = false,
+  });
 
   final double size;
   final double radius;
@@ -77,7 +82,9 @@ class BrandBadge extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: onDark ? Colors.white.withValues(alpha: 0.08) : AppColors.primarySoft,
+        color: onDark
+            ? Colors.white.withValues(alpha: 0.08)
+            : AppColors.primarySoft,
         borderRadius: BorderRadius.circular(radius),
       ),
       alignment: Alignment.center,

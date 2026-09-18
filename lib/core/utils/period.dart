@@ -9,13 +9,14 @@ class PeriodRange {
   final DateTime to;
 
   bool contains(DateTime value) =>
-      !dateOnly(value).isBefore(dateOnly(from)) && !dateOnly(value).isAfter(dateOnly(to));
+      !dateOnly(value).isBefore(dateOnly(from)) &&
+      !dateOnly(value).isAfter(dateOnly(to));
 }
 
 PeriodRange monthWindowOf(DateTime date) => PeriodRange(
-      DateTime(date.year, date.month, 1),
-      DateTime(date.year, date.month + 1, 0),
-    );
+  DateTime(date.year, date.month, 1),
+  DateTime(date.year, date.month + 1, 0),
+);
 
 PeriodRange currentMonthWindow() => monthWindowOf(today());
 
@@ -23,10 +24,12 @@ bool isMonthAligned(PeriodRange range) {
   if (monthKey(range.from) != monthKey(range.to)) return false;
   final start = DateTime(range.from.year, range.from.month, 1);
   final end = DateTime(range.from.year, range.from.month + 1, 0);
-  return isoDate(range.from) == isoDate(start) && isoDate(range.to) == isoDate(end);
+  return isoDate(range.from) == isoDate(start) &&
+      isoDate(range.to) == isoDate(end);
 }
 
-String? monthKeyOf(PeriodRange range) => isMonthAligned(range) ? monthKey(range.from) : null;
+String? monthKeyOf(PeriodRange range) =>
+    isMonthAligned(range) ? monthKey(range.from) : null;
 
 bool isCurrentMonth(PeriodRange range) =>
     isMonthAligned(range) && monthKey(range.from) == monthKey(today());
@@ -39,7 +42,10 @@ PeriodRange shiftPeriod(PeriodRange? range, int offset) {
   return PeriodRange(from, DateTime(from.year, from.month + 1, 0));
 }
 
-String rangeLabel(PeriodRange? range, {String nullLabel = 'Todos os períodos'}) {
+String rangeLabel(
+  PeriodRange? range, {
+  String nullLabel = 'Todos os períodos',
+}) {
   if (range == null) return nullLabel;
   final single = monthKeyOf(range);
   if (single != null) return monthLongLabel(single);
@@ -60,7 +66,11 @@ enum PeriodPreset {
   final String label;
 }
 
-PeriodRange? presetRange(PeriodPreset preset, DateTime? earliest, [DateTime? now]) {
+PeriodRange? presetRange(
+  PeriodPreset preset,
+  DateTime? earliest, [
+  DateTime? now,
+]) {
   final reference = now ?? today();
   final y = reference.year;
   final m = reference.month;

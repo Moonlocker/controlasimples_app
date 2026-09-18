@@ -64,13 +64,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   Workspace _scope(Workspace workspace, DateTime from, DateTime to) {
     bool inRange(DateTime date) =>
-        !dateOnly(date).isBefore(dateOnly(from)) && !dateOnly(date).isAfter(dateOnly(to));
+        !dateOnly(date).isBefore(dateOnly(from)) &&
+        !dateOnly(date).isAfter(dateOnly(to));
     bool matchScope(String clientId, String? serviceId) =>
         (_clientId == null || clientId == _clientId) &&
         (_serviceId == null || serviceId == _serviceId);
 
-    final charges =
-        workspace.charges.where((c) => matchScope(c.clientId, c.serviceId)).toList();
+    final charges = workspace.charges
+        .where((c) => matchScope(c.clientId, c.serviceId))
+        .toList();
     final allScopedIds = charges.map((c) => c.id).toSet();
     final payments = workspace.payments
         .where((p) => allScopedIds.contains(p.chargeId) && inRange(p.paidAt))
@@ -91,9 +93,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final views = chargeViews(scoped)
         .where((v) => range == null || range.contains(v.dueDate))
         .toList();
-    final received = scoped.payments.fold<double>(0, (sum, p) => sum + p.amount);
+    final received = scoped.payments.fold<double>(
+      0,
+      (sum, p) => sum + p.amount,
+    );
     final open = views
-        .where((v) => v.status == ChargeStatus.pendente || v.status == ChargeStatus.atrasado)
+        .where(
+          (v) =>
+              v.status == ChargeStatus.pendente ||
+              v.status == ChargeStatus.atrasado,
+        )
         .fold<double>(0, (sum, v) => sum + v.amount);
     final overdue = views
         .where((v) => v.status == ChargeStatus.atrasado)
@@ -103,14 +112,18 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       received: received,
       open: open,
       overdue: overdue,
-      avgTicket: scoped.payments.isEmpty ? 0 : received / scoped.payments.length,
+      avgTicket: scoped.payments.isEmpty
+          ? 0
+          : received / scoped.payments.length,
       paidCount: paidCount,
       totalCharges: views.length,
     );
   }
 
   Future<void> _exportCharges(Workspace scoped) async {
-    final buffer = StringBuffer('Cliente;Descricao;Servico;Vencimento;Valor;Status\n');
+    final buffer = StringBuffer(
+      'Cliente;Descricao;Servico;Vencimento;Valor;Status\n',
+    );
     for (final view in chargeViews(scoped)) {
       buffer.writeln(
         '${view.clientName};${view.description};${view.serviceName ?? ''};'
@@ -135,13 +148,21 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   Future<void> _share(String name, String content) async {
-    final file = XFile.fromData(utf8.encode(content), name: name, mimeType: 'text/csv');
+    final file = XFile.fromData(
+      utf8.encode(content),
+      name: name,
+      mimeType: 'text/csv',
+    );
     await SharePlus.instance.share(
       ShareParams(files: [file], subject: 'Relatório Controla Simples'),
     );
   }
 
-  Future<void> _exportPdf(Workspace workspace, Workspace scoped, RangeSummary summary) async {
+  Future<void> _exportPdf(
+    Workspace workspace,
+    Workspace scoped,
+    RangeSummary summary,
+  ) async {
     final bytes = await buildReportPdf(
       scoped: scoped,
       range: _range,
@@ -149,7 +170,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       summary: summary,
       company: workspace.profile?.company ?? workspace.profile?.name,
       clientName: _clientId == null ? null : workspace.clientName(_clientId),
-      serviceName: _serviceId == null ? null : workspace.serviceName(_serviceId),
+      serviceName: _serviceId == null
+          ? null
+          : workspace.serviceName(_serviceId),
     );
     await Printing.layoutPdf(onLayout: (_) async => bytes, name: 'relatorio');
   }
@@ -170,8 +193,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 () {
                   final charge = scoped.chargeById(payment.chargeId);
                   return RecordRow(
-                    clientName:
-                        charge == null ? '—' : scoped.clientName(charge.clientId),
+                    clientName: charge == null
+                        ? '—'
+                        : scoped.clientName(charge.clientId),
                     serviceName: scoped.serviceName(charge?.serviceId),
                     description: charge?.description ?? 'Pagamento registrado',
                     amount: payment.amount,
@@ -191,8 +215,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final filtered = kind == 'overdue'
         ? views.where((v) => v.status == ChargeStatus.atrasado).toList()
         : views
-            .where((v) => v.status == ChargeStatus.pendente || v.status == ChargeStatus.atrasado)
-            .toList();
+              .where(
+                (v) =>
+                    v.status == ChargeStatus.pendente ||
+                    v.status == ChargeStatus.atrasado,
+              )
+              .toList();
     showRecordsSheet(
       context,
       title: kind == 'overdue' ? 'Atrasado no período' : 'Em aberto no período',
@@ -294,14 +322,21 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           final byService = receivedByService(scoped, scoped.payments);
 
           final clientOptions = [
-            const FilterOption<String?>(value: null, label: 'Todos os clientes'),
+            const FilterOption<String?>(
+              value: null,
+              label: 'Todos os clientes',
+            ),
             for (final client in workspace.clients.where((c) => c.active))
               FilterOption<String?>(value: client.id, label: client.name),
           ];
           final serviceOptions = [
-            const FilterOption<String?>(value: null, label: 'Todos os serviços'),
-            for (final service in workspace.services
-                .where((s) => _clientId == null || s.clientId == _clientId))
+            const FilterOption<String?>(
+              value: null,
+              label: 'Todos os serviços',
+            ),
+            for (final service in workspace.services.where(
+              (s) => _clientId == null || s.clientId == _clientId,
+            ))
               FilterOption<String?>(value: service.id, label: service.name),
           ];
 
@@ -358,25 +393,31 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 mainAxisSpacing: 12,
                 childAspectRatio: 1.45,
                 children: [
-                  _tap(() => _openStat(context, scoped, 'received'),
-                      StatCard(
-                        label: 'Recebido',
-                        value: brl(summary.received),
-                        hint: '${scoped.payments.length} pagamentos',
-                        tone: AppColors.success,
-                      )),
-                  _tap(() => _openStat(context, scoped, 'open'),
-                      StatCard(
-                        label: 'Em aberto',
-                        value: brl(summary.open),
-                        tone: AppColors.info,
-                      )),
-                  _tap(() => _openStat(context, scoped, 'overdue'),
-                      StatCard(
-                        label: 'Atrasado',
-                        value: brl(summary.overdue),
-                        tone: AppColors.danger,
-                      )),
+                  _tap(
+                    () => _openStat(context, scoped, 'received'),
+                    StatCard(
+                      label: 'Recebido',
+                      value: brl(summary.received),
+                      hint: '${scoped.payments.length} pagamentos',
+                      tone: AppColors.success,
+                    ),
+                  ),
+                  _tap(
+                    () => _openStat(context, scoped, 'open'),
+                    StatCard(
+                      label: 'Em aberto',
+                      value: brl(summary.open),
+                      tone: AppColors.info,
+                    ),
+                  ),
+                  _tap(
+                    () => _openStat(context, scoped, 'overdue'),
+                    StatCard(
+                      label: 'Atrasado',
+                      value: brl(summary.overdue),
+                      tone: AppColors.danger,
+                    ),
+                  ),
                   StatCard(
                     label: 'Ticket médio',
                     value: brl(summary.avgTicket),
@@ -385,7 +426,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   StatCard(
                     label: 'Taxa de recebimento',
                     value: '${summary.receiveRate.toStringAsFixed(0)}%',
-                    hint: '${summary.paidCount} pagas de ${summary.totalCharges}',
+                    hint:
+                        '${summary.paidCount} pagas de ${summary.totalCharges}',
                     tone: AppColors.warning,
                   ),
                 ],
@@ -459,7 +501,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   Widget _tap(VoidCallback onTap, Widget child) {
-    return InkWell(onTap: onTap, borderRadius: BorderRadius.circular(16), child: child);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: child,
+    );
   }
 }
 
@@ -474,9 +520,7 @@ class _EmptyHint extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Text(
         message,
-        style: Theme.of(context)
-            .textTheme
-            .bodySmall
+        style: Theme.of(context).textTheme.bodySmall
             ?.copyWith(color: AppColors.mutedForeground),
       ),
     );

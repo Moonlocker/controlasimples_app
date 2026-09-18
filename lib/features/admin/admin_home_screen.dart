@@ -99,9 +99,7 @@ class AdminHomeScreen extends ConsumerWidget {
                 const SizedBox(height: 20),
                 Text(
                   'Áreas de gestão',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
+                  style: Theme.of(context).textTheme.titleMedium
                       ?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 10),
@@ -136,9 +134,7 @@ class AdminHomeScreen extends ConsumerWidget {
                 const SizedBox(height: 20),
                 Text(
                   'Usuários recentes',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
+                  style: Theme.of(context).textTheme.titleMedium
                       ?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 10),
@@ -153,13 +149,19 @@ class AdminHomeScreen extends ConsumerWidget {
                       for (var i = 0; i < recent.length; i++) ...[
                         if (i > 0) const Divider(height: 1),
                         ListTile(
-                          title: Text(recent[i].name.isEmpty ? recent[i].email : recent[i].name),
+                          title: Text(
+                            recent[i].name.isEmpty
+                                ? recent[i].email
+                                : recent[i].name,
+                          ),
                           subtitle: Text(recent[i].email),
                           trailing: Text(
-                            data.planById(recent[i].planId)?.name ?? 'Sem plano',
+                            data.planById(recent[i].planId)?.name ??
+                                'Sem plano',
                             style: Theme.of(context).textTheme.labelSmall,
                           ),
-                          onTap: () => context.push('/admin/users/${recent[i].id}'),
+                          onTap: () =>
+                              context.push('/admin/users/${recent[i].id}'),
                         ),
                       ],
                     ],
@@ -212,7 +214,10 @@ class _AdminMenuItem extends StatelessWidget {
       leading: Icon(icon, color: AppColors.primary),
       title: Text(label),
       subtitle: Text(subtitle),
-      trailing: const Icon(Icons.chevron_right, color: AppColors.mutedForeground),
+      trailing: const Icon(
+        Icons.chevron_right,
+        color: AppColors.mutedForeground,
+      ),
     );
   }
 }

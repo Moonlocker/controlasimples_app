@@ -67,11 +67,14 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                         child: ListView.separated(
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                           itemCount: users.length,
-                          separatorBuilder: (_, _) => const SizedBox(height: 10),
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: 10),
                           itemBuilder: (context, index) => _AdminUserTile(
                             key: ValueKey(users[index].id),
                             user: users[index],
-                            planName: data.planById(users[index].planId)?.name ?? 'Sem plano',
+                            planName:
+                                data.planById(users[index].planId)?.name ??
+                                'Sem plano',
                           ),
                         ),
                       ),
@@ -107,7 +110,8 @@ class _AdminUserTileState extends ConsumerState<_AdminUserTile> {
       ref.invalidate(adminDataProvider);
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$error')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$error')));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -141,7 +145,9 @@ class _AdminUserTileState extends ConsumerState<_AdminUserTile> {
                         Expanded(
                           child: Text(
                             user.name.isEmpty ? user.email : user.name,
-                            style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                            style: textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -149,14 +155,19 @@ class _AdminUserTileState extends ConsumerState<_AdminUserTile> {
                         if (user.isSuperadmin)
                           const Padding(
                             padding: EdgeInsets.only(right: 6),
-                            child:
-                                Icon(Icons.shield_outlined, size: 16, color: AppColors.primary),
+                            child: Icon(
+                              Icons.shield_outlined,
+                              size: 16,
+                              color: AppColors.primary,
+                            ),
                           ),
                       ],
                     ),
                     Text(
                       user.email,
-                      style: textTheme.bodySmall?.copyWith(color: AppColors.mutedForeground),
+                      style: textTheme.bodySmall?.copyWith(
+                        color: AppColors.mutedForeground,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -167,13 +178,21 @@ class _AdminUserTileState extends ConsumerState<_AdminUserTile> {
                       children: [
                         _Tag(label: planName, color: AppColors.primary),
                         _Tag(
-                          label: user.subscriptionStatus?.label ?? 'Sem assinatura',
+                          label:
+                              user.subscriptionStatus?.label ??
+                              'Sem assinatura',
                           color: user.subscriptionStatus?.name == 'ativa'
                               ? AppColors.success
                               : AppColors.mutedForeground,
                         ),
-                        _Tag(label: '${user.clients} clientes', color: AppColors.info),
-                        _Tag(label: '${user.whatsappSent} WhatsApp', color: AppColors.warning),
+                        _Tag(
+                          label: '${user.clients} clientes',
+                          color: AppColors.info,
+                        ),
+                        _Tag(
+                          label: '${user.whatsappSent} WhatsApp',
+                          color: AppColors.warning,
+                        ),
                       ],
                     ),
                   ],
@@ -210,9 +229,7 @@ class _Tag extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: Theme.of(context)
-            .textTheme
-            .labelSmall
+        style: Theme.of(context).textTheme.labelSmall
             ?.copyWith(color: color, fontWeight: FontWeight.w700),
       ),
     );

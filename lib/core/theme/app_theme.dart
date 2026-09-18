@@ -10,17 +10,18 @@ class AppTheme {
     final base = ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.primary,
-        brightness: Brightness.light,
-      ).copyWith(
-        primary: AppColors.primary,
-        onPrimary: AppColors.primaryForeground,
-        surface: AppColors.surface,
-        onSurface: AppColors.foreground,
-        error: AppColors.danger,
-        outline: AppColors.border,
-      ),
+      colorScheme:
+          ColorScheme.fromSeed(
+            seedColor: AppColors.primary,
+            brightness: Brightness.light,
+          ).copyWith(
+            primary: AppColors.primary,
+            onPrimary: AppColors.primaryForeground,
+            surface: AppColors.surface,
+            onSurface: AppColors.foreground,
+            error: AppColors.danger,
+            outline: AppColors.border,
+          ),
       scaffoldBackgroundColor: AppColors.background,
     );
 
@@ -45,7 +46,10 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surface,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 14,
+        ),
         border: _inputBorder(AppColors.border),
         enabledBorder: _inputBorder(AppColors.border),
         focusedBorder: _inputBorder(AppColors.primary),
@@ -57,8 +61,13 @@ class AppTheme {
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.primaryForeground,
           minimumSize: const Size.fromHeight(50),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          textStyle: GoogleFonts.manrope(fontWeight: FontWeight.w600, fontSize: 15),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          textStyle: GoogleFonts.manrope(
+            fontWeight: FontWeight.w600,
+            fontSize: 15,
+          ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -66,8 +75,13 @@ class AppTheme {
           foregroundColor: AppColors.foreground,
           minimumSize: const Size.fromHeight(48),
           side: const BorderSide(color: AppColors.border),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          textStyle: GoogleFonts.manrope(fontWeight: FontWeight.w600, fontSize: 15),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          textStyle: GoogleFonts.manrope(
+            fontWeight: FontWeight.w600,
+            fontSize: 15,
+          ),
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
@@ -79,7 +93,11 @@ class AppTheme {
           GoogleFonts.manrope(fontSize: 11, fontWeight: FontWeight.w600),
         ),
       ),
-      dividerTheme: const DividerThemeData(color: AppColors.border, thickness: 1, space: 1),
+      dividerTheme: const DividerThemeData(
+        color: AppColors.border,
+        thickness: 1,
+        space: 1,
+      ),
       chipTheme: base.chipTheme.copyWith(
         backgroundColor: AppColors.muted,
         side: BorderSide.none,

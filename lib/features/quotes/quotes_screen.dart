@@ -43,7 +43,8 @@ class QuotesScreen extends ConsumerWidget {
             return const EmptyState(
               icon: Icons.description_outlined,
               title: 'Nenhum orçamento',
-              description: 'Crie o primeiro orçamento e envie em PDF para o cliente.',
+              description:
+                  'Crie o primeiro orçamento e envie em PDF para o cliente.',
             );
           }
           return RefreshIndicator(
@@ -124,17 +125,25 @@ class _QuoteTile extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     '${quote.number} · ${quote.title}',
-                    style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                    style: textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Text(
                   brl(quote.total),
-                  style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
+                  style: textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert, size: 20, color: AppColors.mutedForeground),
+                  icon: const Icon(
+                    Icons.more_vert,
+                    size: 20,
+                    color: AppColors.mutedForeground,
+                  ),
                   onSelected: (value) async {
                     final repository = ref.read(quotesRepositoryProvider);
                     if (value.startsWith('status:')) {
@@ -164,12 +173,20 @@ class _QuoteTile extends ConsumerWidget {
                     for (final status in QuoteStatus.values)
                       PopupMenuItem(
                         value: 'status:${status.wire}',
-                        child: Text('Marcar como ${status.label.toLowerCase()}'),
+                        child: Text(
+                          'Marcar como ${status.label.toLowerCase()}',
+                        ),
                       ),
                     const PopupMenuDivider(),
                     const PopupMenuItem(value: 'pdf', child: Text('Gerar PDF')),
-                    const PopupMenuItem(value: 'duplicate', child: Text('Duplicar')),
-                    const PopupMenuItem(value: 'delete', child: Text('Excluir')),
+                    const PopupMenuItem(
+                      value: 'duplicate',
+                      child: Text('Duplicar'),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Text('Excluir'),
+                    ),
                   ],
                 ),
               ],
@@ -177,27 +194,36 @@ class _QuoteTile extends ConsumerWidget {
             const SizedBox(height: 3),
             Text(
               clientName,
-              style: textTheme.bodySmall?.copyWith(color: AppColors.mutedForeground),
+              style: textTheme.bodySmall?.copyWith(
+                color: AppColors.mutedForeground,
+              ),
             ),
             const SizedBox(height: 10),
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: _statusColor().withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
                     quote.status.label,
-                    style: textTheme.labelSmall
-                        ?.copyWith(color: _statusColor(), fontWeight: FontWeight.w700),
+                    style: textTheme.labelSmall?.copyWith(
+                      color: _statusColor(),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 const Spacer(),
                 Text(
                   formatDate(quote.issuedOn),
-                  style: textTheme.bodySmall?.copyWith(color: AppColors.mutedForeground),
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.mutedForeground,
+                  ),
                 ),
               ],
             ),

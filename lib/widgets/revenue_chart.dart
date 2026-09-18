@@ -14,7 +14,10 @@ class RevenueChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (series.isEmpty) {
-      return const SizedBox(height: 200, child: Center(child: Text('Sem dados no período')));
+      return const SizedBox(
+        height: 200,
+        child: Center(child: Text('Sem dados no período')),
+      );
     }
 
     final maxValue = series
@@ -32,15 +35,17 @@ class RevenueChart extends StatelessWidget {
             show: true,
             drawVerticalLine: false,
             horizontalInterval: maxY / 4,
-            getDrawingHorizontalLine: (value) => const FlLine(
-              color: AppColors.border,
-              strokeWidth: 1,
-            ),
+            getDrawingHorizontalLine: (value) =>
+                const FlLine(color: AppColors.border, strokeWidth: 1),
           ),
           borderData: FlBorderData(show: false),
           titlesData: FlTitlesData(
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
@@ -48,7 +53,10 @@ class RevenueChart extends StatelessWidget {
                 interval: maxY / 4,
                 getTitlesWidget: (value, meta) => Text(
                   brlCompact(value),
-                  style: const TextStyle(fontSize: 10, color: AppColors.mutedForeground),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: AppColors.mutedForeground,
+                  ),
                 ),
               ),
             ),
@@ -57,12 +65,17 @@ class RevenueChart extends StatelessWidget {
                 showTitles: true,
                 getTitlesWidget: (value, meta) {
                   final index = value.toInt();
-                  if (index < 0 || index >= series.length) return const SizedBox.shrink();
+                  if (index < 0 || index >= series.length) {
+                    return const SizedBox.shrink();
+                  }
                   return Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
                       monthLabel(series[index].key),
-                      style: const TextStyle(fontSize: 11, color: AppColors.mutedForeground),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.mutedForeground,
+                      ),
                     ),
                   );
                 },
@@ -75,7 +88,9 @@ class RevenueChart extends StatelessWidget {
                 : (event, response) {
                     if (event is! FlTapUpEvent) return;
                     final index = response?.spot?.touchedBarGroupIndex;
-                    if (index == null || index < 0 || index >= series.length) return;
+                    if (index == null || index < 0 || index >= series.length) {
+                      return;
+                    }
                     onMonthTap!(series[index].key);
                   },
             touchTooltipData: BarTouchTooltipData(
@@ -144,14 +159,15 @@ class _LegendDot extends StatelessWidget {
         Container(
           width: 10,
           height: 10,
-          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3)),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(3),
+          ),
         ),
         const SizedBox(width: 6),
         Text(
           label,
-          style: Theme.of(context)
-              .textTheme
-              .bodySmall
+          style: Theme.of(context).textTheme.bodySmall
               ?.copyWith(color: AppColors.mutedForeground),
         ),
       ],

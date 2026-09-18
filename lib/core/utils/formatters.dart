@@ -41,7 +41,11 @@ String monthLongLabel(String key) {
 }
 
 String initials(String value) {
-  final words = value.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+  final words = value
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((w) => w.isNotEmpty)
+      .toList();
   if (words.isEmpty) return '?';
   final first = words.first.substring(0, 1);
   final second = words.length > 1 ? words[1].substring(0, 1) : '';

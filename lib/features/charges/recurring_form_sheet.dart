@@ -95,7 +95,9 @@ class _RecurringFormSheetState extends ConsumerState<RecurringFormSheet> {
     if (userId == null || _clientId == null) return;
     setState(() => _busy = true);
     try {
-      await ref.read(chargesRepositoryProvider).saveRecurring(
+      await ref
+          .read(chargesRepositoryProvider)
+          .saveRecurring(
             id: widget.recurring?.id,
             userId: userId,
             clientId: _clientId!,
@@ -132,7 +134,9 @@ class _RecurringFormSheetState extends ConsumerState<RecurringFormSheet> {
         .toList();
 
     return AppFormSheet(
-      title: widget.recurring == null ? 'Nova recorrência' : 'Editar recorrência',
+      title: widget.recurring == null
+          ? 'Nova recorrência'
+          : 'Editar recorrência',
       formKey: _formKey,
       busy: _busy,
       onSave: _save,
@@ -155,7 +159,10 @@ class _RecurringFormSheetState extends ConsumerState<RecurringFormSheet> {
           initialValue: _serviceId,
           decoration: const InputDecoration(labelText: 'Serviço (opcional)'),
           items: [
-            const DropdownMenuItem(value: null, child: Text('Sem serviço vinculado')),
+            const DropdownMenuItem(
+              value: null,
+              child: Text('Sem serviço vinculado'),
+            ),
             for (final service in services)
               DropdownMenuItem(value: service.id, child: Text(service.name)),
           ],
@@ -166,8 +173,9 @@ class _RecurringFormSheetState extends ConsumerState<RecurringFormSheet> {
           controller: _description,
           textInputAction: TextInputAction.next,
           decoration: const InputDecoration(labelText: 'Descrição'),
-          validator: (value) =>
-              (value == null || value.trim().isEmpty) ? 'Informe a descrição' : null,
+          validator: (value) => (value == null || value.trim().isEmpty)
+              ? 'Informe a descrição'
+              : null,
         ),
         const SizedBox(height: 14),
         MoneyField(controller: _amount),
@@ -179,16 +187,21 @@ class _RecurringFormSheetState extends ConsumerState<RecurringFormSheet> {
             for (final frequency in Recurrence.values)
               DropdownMenuItem(value: frequency, child: Text(frequency.label)),
           ],
-          onChanged: (value) => setState(() => _frequency = value ?? _frequency),
+          onChanged: (value) =>
+              setState(() => _frequency = value ?? _frequency),
         ),
         const SizedBox(height: 14),
         TextFormField(
           controller: _dueDay,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(labelText: 'Dia do vencimento (1 a 28)'),
+          decoration: const InputDecoration(
+            labelText: 'Dia do vencimento (1 a 28)',
+          ),
           validator: (value) {
             final day = int.tryParse(value ?? '');
-            if (day == null || day < 1 || day > 28) return 'Informe um dia entre 1 e 28';
+            if (day == null || day < 1 || day > 28) {
+              return 'Informe um dia entre 1 e 28';
+            }
             return null;
           },
         ),
@@ -196,7 +209,8 @@ class _RecurringFormSheetState extends ConsumerState<RecurringFormSheet> {
         DateField(
           label: 'Início',
           value: _startDate,
-          onChanged: (value) => setState(() => _startDate = value ?? _startDate),
+          onChanged: (value) =>
+              setState(() => _startDate = value ?? _startDate),
         ),
         const SizedBox(height: 14),
         DateField(
@@ -217,17 +231,22 @@ class _RecurringFormSheetState extends ConsumerState<RecurringFormSheet> {
           value: _autoAsaas,
           onChanged: (value) => setState(() => _autoAsaas = value),
           title: const Text('Emitir no Asaas automaticamente'),
-          subtitle: const Text('Executado pelo sistema web quando configurado.'),
+          subtitle: const Text(
+            'Executado pelo sistema web quando configurado.',
+          ),
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<BillingType>(
           initialValue: _billingType,
-          decoration: const InputDecoration(labelText: 'Forma de pagamento no Asaas'),
+          decoration: const InputDecoration(
+            labelText: 'Forma de pagamento no Asaas',
+          ),
           items: [
             for (final type in BillingType.values)
               DropdownMenuItem(value: type, child: Text(type.label)),
           ],
-          onChanged: (value) => setState(() => _billingType = value ?? _billingType),
+          onChanged: (value) =>
+              setState(() => _billingType = value ?? _billingType),
         ),
       ],
     );

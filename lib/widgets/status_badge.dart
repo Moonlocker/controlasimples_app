@@ -11,9 +11,18 @@ class StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (color, background) = switch (status) {
-      ChargeStatus.pago => (AppColors.success, AppColors.success.withValues(alpha: 0.12)),
-      ChargeStatus.pendente => (AppColors.info, AppColors.info.withValues(alpha: 0.12)),
-      ChargeStatus.atrasado => (AppColors.danger, AppColors.danger.withValues(alpha: 0.12)),
+      ChargeStatus.pago => (
+        AppColors.success,
+        AppColors.success.withValues(alpha: 0.12),
+      ),
+      ChargeStatus.pendente => (
+        AppColors.info,
+        AppColors.info.withValues(alpha: 0.12),
+      ),
+      ChargeStatus.atrasado => (
+        AppColors.danger,
+        AppColors.danger.withValues(alpha: 0.12),
+      ),
       ChargeStatus.cancelado => (AppColors.mutedForeground, AppColors.muted),
     };
 
@@ -25,10 +34,8 @@ class StatusBadge extends StatelessWidget {
       ),
       child: Text(
         status.label,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w700,
-            ),
+        style: Theme.of(context).textTheme.labelSmall
+            ?.copyWith(color: color, fontWeight: FontWeight.w700),
       ),
     );
   }

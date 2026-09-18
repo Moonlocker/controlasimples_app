@@ -29,24 +29,33 @@ class AdminAsaasScreen extends ConsumerWidget {
             SectionCard(
               title: 'Configuração',
               action: TextButton(
-                onPressed: () =>
-                    showAppFormSheet(context, _AsaasAdminFormSheet(config: config)),
+                onPressed: () => showAppFormSheet(
+                  context,
+                  _AsaasAdminFormSheet(config: config),
+                ),
                 child: const Text('Editar'),
               ),
               child: Column(
                 children: [
-                  _InfoRow(label: 'Situação', value: config.enabled ? 'Ativado' : 'Desativado'),
+                  _InfoRow(
+                    label: 'Situação',
+                    value: config.enabled ? 'Ativado' : 'Desativado',
+                  ),
                   _InfoRow(
                     label: 'Ambiente',
                     value: config.isProduction ? 'Produção' : 'Sandbox',
                   ),
                   _InfoRow(
                     label: 'Chave',
-                    value: config.maskedKey ?? (config.hasKey ? 'Configurada' : 'Não configurada'),
+                    value:
+                        config.maskedKey ??
+                        (config.hasKey ? 'Configurada' : 'Não configurada'),
                   ),
                   _InfoRow(
                     label: 'Webhook',
-                    value: config.hasWebhookToken ? 'Configurado' : 'Não configurado',
+                    value: config.hasWebhookToken
+                        ? 'Configurado'
+                        : 'Não configurado',
                   ),
                 ],
               ),
@@ -79,9 +88,15 @@ class _AsaasTestButtonState extends ConsumerState<_AsaasTestButton> {
               final messenger = ScaffoldMessenger.of(context);
               setState(() => _busy = true);
               try {
-                final result = await ref.read(adminRepositoryProvider).testAsaasAdmin();
+                final result = await ref
+                    .read(adminRepositoryProvider)
+                    .testAsaasAdmin();
                 messenger.showSnackBar(
-                  SnackBar(content: Text(result.message.isEmpty ? 'Testado.' : result.message)),
+                  SnackBar(
+                    content: Text(
+                      result.message.isEmpty ? 'Testado.' : result.message,
+                    ),
+                  ),
                 );
               } catch (error) {
                 messenger.showSnackBar(SnackBar(content: Text('$error')));
@@ -101,7 +116,8 @@ class _AsaasAdminFormSheet extends ConsumerStatefulWidget {
   final AsaasConfig config;
 
   @override
-  ConsumerState<_AsaasAdminFormSheet> createState() => _AsaasAdminFormSheetState();
+  ConsumerState<_AsaasAdminFormSheet> createState() =>
+      _AsaasAdminFormSheetState();
 }
 
 class _AsaasAdminFormSheetState extends ConsumerState<_AsaasAdminFormSheet> {
@@ -129,17 +145,22 @@ class _AsaasAdminFormSheetState extends ConsumerState<_AsaasAdminFormSheet> {
   Future<void> _save() async {
     setState(() => _busy = true);
     try {
-      await ref.read(adminRepositoryProvider).saveAsaasAdminConfig(
+      await ref
+          .read(adminRepositoryProvider)
+          .saveAsaasAdminConfig(
             enabled: _enabled,
             environment: _environment,
             apiKey: _apiKey.text.trim().isEmpty ? null : _apiKey.text.trim(),
-            webhookToken: _webhookToken.text.trim().isEmpty ? null : _webhookToken.text.trim(),
+            webhookToken: _webhookToken.text.trim().isEmpty
+                ? null
+                : _webhookToken.text.trim(),
           );
       ref.invalidate(adminAsaasConfigProvider);
       if (mounted) Navigator.of(context).pop();
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$error')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$error')));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -169,7 +190,8 @@ class _AsaasAdminFormSheetState extends ConsumerState<_AsaasAdminFormSheet> {
             DropdownMenuItem(value: 'sandbox', child: Text('Sandbox (testes)')),
             DropdownMenuItem(value: 'production', child: Text('Produção')),
           ],
-          onChanged: (value) => setState(() => _environment = value ?? _environment),
+          onChanged: (value) =>
+              setState(() => _environment = value ?? _environment),
         ),
         const SizedBox(height: 14),
         TextFormField(
@@ -177,7 +199,9 @@ class _AsaasAdminFormSheetState extends ConsumerState<_AsaasAdminFormSheet> {
           obscureText: true,
           decoration: InputDecoration(
             labelText: 'Chave de API',
-            hintText: widget.config.hasKey ? 'Deixe vazio para manter' : 'Sua chave Asaas',
+            hintText: widget.config.hasKey
+                ? 'Deixe vazio para manter'
+                : 'Sua chave Asaas',
           ),
         ),
         const SizedBox(height: 14),
@@ -208,18 +232,14 @@ class _InfoRow extends StatelessWidget {
             width: 110,
             child: Text(
               label,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
+              style: Theme.of(context).textTheme.bodyMedium
                   ?.copyWith(color: AppColors.mutedForeground),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
+              style: Theme.of(context).textTheme.bodyMedium
                   ?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),

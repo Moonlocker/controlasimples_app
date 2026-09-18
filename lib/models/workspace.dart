@@ -33,6 +33,12 @@ class Workspace {
 
   bool get isSuperadmin => roles.contains(AppRole.superadmin);
 
+  bool get onboardingCompleted => profile?.onboardingCompleted ?? false;
+
+  bool get canUseAsaas => plan?.allowAsaasIntegration ?? true;
+
+  bool get canUseWhatsapp => plan?.allowWhatsappNotifications ?? true;
+
   Plan? get plan {
     final planId = subscription?.planId;
     if (planId == null) return null;
