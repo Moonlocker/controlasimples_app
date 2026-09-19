@@ -12,6 +12,7 @@ import '../../repositories/workspace_providers.dart';
 import '../../widgets/async_error_view.dart';
 import '../../widgets/brand_logo.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/plan_access.dart';
 import '../../widgets/screen_header.dart';
 import 'client_form_sheet.dart';
 
@@ -35,12 +36,22 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
   @override
   Widget build(BuildContext context) {
     final workspaceAsync = ref.watch(workspaceProvider);
+    final workspace = workspaceAsync.value;
+    final clientsLocked = workspace?.clientsLimitReached ?? false;
 
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => showClientForm(context),
-        icon: const Icon(Icons.add),
-        label: const Text('Novo cliente'),
+        onPressed: clientsLocked
+            ? () => showPlanLockedDialog(
+                context,
+                feature: 'Novo cliente',
+                description:
+                    'Seu plano permite até ${workspace?.plan?.maxClients} '
+                    'clientes. Faça upgrade para cadastrar mais.',
+              )
+            : () => showClientForm(context),
+        icon: Icon(clientsLocked ? Icons.lock_outline_rounded : Icons.add),
+        label: Text(clientsLocked ? 'Limite do plano' : 'Novo cliente'),
       ),
       body: SafeArea(
         child: workspaceAsync.when(

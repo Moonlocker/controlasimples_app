@@ -28,7 +28,7 @@ class MoreScreen extends ConsumerWidget {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
             children: [
-              const BrandLogo(surface: BrandSurface.light, width: 82),
+              const BrandLogo(surface: BrandSurface.light, width: 64),
               const SizedBox(height: 4),
               Text(
                 'Gerencie sua conta, serviços e preferências.',

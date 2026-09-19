@@ -11,6 +11,7 @@ import '../../repositories/workspace_providers.dart';
 import '../../widgets/async_error_view.dart';
 import '../../widgets/confirm_dialog.dart';
 import '../../widgets/empty_state.dart';
+import 'business_form_sheet.dart';
 import 'quote_pdf.dart';
 import 'quotes_providers.dart';
 
@@ -27,6 +28,12 @@ class QuotesScreen extends ConsumerWidget {
         title: const Text('Orçamentos'),
         actions: [
           IconButton(
+            tooltip: 'Personalizar (logo/empresa)',
+            icon: const Icon(Icons.storefront_outlined),
+            onPressed: () => showBusinessFormSheet(context, ref),
+          ),
+          IconButton(
+            tooltip: 'Novo orçamento',
             icon: const Icon(Icons.add),
             onPressed: () => context.push('/more/quotes/new'),
           ),

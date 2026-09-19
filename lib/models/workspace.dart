@@ -39,6 +39,23 @@ class Workspace {
 
   bool get canUseWhatsapp => plan?.allowWhatsappNotifications ?? true;
 
+  /// Cobranças criadas no mês corrente (mesma regra do limite no banco).
+  int get chargesThisMonth {
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month);
+    return charges.where((charge) => !charge.createdAt.isBefore(start)).length;
+  }
+
+  bool get clientsLimitReached {
+    final limit = plan?.maxClients;
+    return limit != null && clients.length >= limit;
+  }
+
+  bool get chargesLimitReached {
+    final limit = plan?.maxChargesMonth;
+    return limit != null && chargesThisMonth >= limit;
+  }
+
   Plan? get plan {
     final planId = subscription?.planId;
     if (planId == null) return null;

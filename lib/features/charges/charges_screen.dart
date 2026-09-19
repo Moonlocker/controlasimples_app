@@ -17,6 +17,7 @@ import '../../widgets/count_badge.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/filter_combobox.dart';
 import '../../widgets/period_filter.dart';
+import '../../widgets/plan_access.dart';
 import '../auth/auth_providers.dart';
 import 'charge_card.dart';
 import 'charge_config_sheets.dart';
@@ -202,6 +203,10 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
   @override
   Widget build(BuildContext context) {
     final workspaceAsync = ref.watch(workspaceProvider);
+    final workspace = workspaceAsync.value;
+    final canUseAsaas = workspace?.canUseAsaas ?? true;
+    final canUseWhatsapp = workspace?.canUseWhatsapp ?? true;
+    final chargesLocked = workspace?.chargesLimitReached ?? false;
 
     return Scaffold(
       appBar: AppBar(
@@ -212,14 +217,18 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
         ),
         actions: _selected.isEmpty
             ? [
-                IconButton(
+                PlanGatedIconButton(
                   tooltip: 'Configurar Asaas',
-                  icon: const Icon(Icons.account_balance_outlined),
+                  icon: Icons.account_balance_outlined,
+                  allowed: canUseAsaas,
+                  feature: 'Integração Asaas',
                   onPressed: () => showAsaasConfigSheet(context),
                 ),
-                IconButton(
+                PlanGatedIconButton(
                   tooltip: 'Notificações do cliente',
-                  icon: const Icon(Icons.notifications_active_outlined),
+                  icon: Icons.notifications_active_outlined,
+                  allowed: canUseWhatsapp,
+                  feature: 'Notificações por WhatsApp',
                   onPressed: () => showNotificationPreferencesSheet(context),
                 ),
               ]
@@ -248,9 +257,17 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
               ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => showChargeForm(context),
-        icon: const Icon(Icons.add),
-        label: const Text('Nova cobrança'),
+        onPressed: chargesLocked
+            ? () => showPlanLockedDialog(
+                context,
+                feature: 'Nova cobrança',
+                description:
+                    'Seu plano permite até ${workspace?.plan?.maxChargesMonth} '
+                    'cobranças por mês. Faça upgrade para criar mais.',
+              )
+            : () => showChargeForm(context),
+        icon: Icon(chargesLocked ? Icons.lock_outline_rounded : Icons.add),
+        label: Text(chargesLocked ? 'Limite do plano' : 'Nova cobrança'),
       ),
       body: SafeArea(
         top: false,

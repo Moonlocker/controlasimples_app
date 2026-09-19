@@ -13,6 +13,7 @@ import '../../repositories/charges_repository.dart';
 import '../../repositories/workspace_providers.dart';
 import '../../repositories/whatsapp_repository.dart';
 import '../../widgets/confirm_dialog.dart';
+import '../../widgets/plan_access.dart';
 import '../../widgets/status_badge.dart';
 import 'charge_form_sheet.dart';
 import 'payment_files_sheet.dart';
@@ -59,6 +60,26 @@ Future<T> _withProgress<T>(
 void _showError(BuildContext context, Object error) {
   ScaffoldMessenger.of(context)
       .showSnackBar(SnackBar(content: Text(friendlyError(error))));
+}
+
+class _MenuLabel extends StatelessWidget {
+  const _MenuLabel(this.label, {required this.locked});
+
+  final String label;
+  final bool locked;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Flexible(child: Text(label)),
+        if (locked) ...[
+          const SizedBox(width: 8),
+          const PlanLockBadge(size: 12),
+        ],
+      ],
+    );
+  }
 }
 
 class ChargeCard extends StatelessWidget {
@@ -192,6 +213,9 @@ class ChargeActionsButton extends ConsumerWidget {
         charge.status == ChargeStatus.atrasado;
     final isPaid = charge.status == ChargeStatus.pago;
     final emitted = charge.asaasPaymentId != null;
+    final workspace = ref.watch(workspaceProvider).value;
+    final canUseAsaas = workspace?.canUseAsaas ?? true;
+    final canUseWhatsapp = workspace?.canUseWhatsapp ?? true;
 
     return PopupMenuButton<String>(
       icon: const Icon(
@@ -202,21 +226,30 @@ class ChargeActionsButton extends ConsumerWidget {
       onSelected: (value) => _handle(context, ref, value),
       itemBuilder: (context) => [
         if (isOpen && !emitted)
-          const PopupMenuItem(value: 'emit', child: Text('Emitir no Asaas')),
+          PopupMenuItem(
+            value: 'emit',
+            child: _MenuLabel('Emitir no Asaas', locked: !canUseAsaas),
+          ),
         if (emitted)
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'files',
-            child: Text('Ver pagamento (Pix/boleto)'),
+            child: _MenuLabel(
+              'Ver pagamento (Pix/boleto)',
+              locked: !canUseAsaas,
+            ),
           ),
         if (emitted && isOpen)
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'sync',
-            child: Text('Atualizar status no Asaas'),
+            child: _MenuLabel(
+              'Atualizar status no Asaas',
+              locked: !canUseAsaas,
+            ),
           ),
         if (isOpen)
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'whatsapp',
-            child: Text('Enviar WhatsApp'),
+            child: _MenuLabel('Enviar WhatsApp', locked: !canUseWhatsapp),
           ),
         if (isOpen) const PopupMenuDivider(),
         if (isOpen)
@@ -242,6 +275,23 @@ class ChargeActionsButton extends ConsumerWidget {
     WidgetRef ref,
     String action,
   ) async {
+    final workspace = ref.read(workspaceProvider).value;
+    if ((action == 'emit' || action == 'files' || action == 'sync') &&
+        workspace?.canUseAsaas == false) {
+      if (context.mounted) {
+        await showPlanLockedDialog(context, feature: 'Integração Asaas');
+      }
+      return;
+    }
+    if (action == 'whatsapp' && workspace?.canUseWhatsapp == false) {
+      if (context.mounted) {
+        await showPlanLockedDialog(
+          context,
+          feature: 'Notificações por WhatsApp',
+        );
+      }
+      return;
+    }
     final repository = ref.read(chargesRepositoryProvider);
     try {
       switch (action) {

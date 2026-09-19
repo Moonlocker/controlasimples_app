@@ -32,14 +32,11 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
     final workspaceAsync = ref.watch(workspaceProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Serviços'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => showServiceForm(context),
-          ),
-        ],
+      appBar: AppBar(title: const Text('Serviços')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => showServiceForm(context),
+        icon: const Icon(Icons.add),
+        label: const Text('Novo serviço'),
       ),
       body: workspaceAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -120,7 +117,7 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
                           } catch (_) {}
                         },
                         child: ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
                           itemCount: services.length,
                           separatorBuilder: (_, _) =>
                               const SizedBox(height: 10),

@@ -10,6 +10,7 @@ import '../../repositories/workspace_providers.dart';
 import '../../widgets/app_form_sheet.dart';
 import '../../widgets/date_field.dart';
 import '../../widgets/money_field.dart';
+import '../../widgets/plan_access.dart';
 import '../auth/auth_providers.dart';
 
 Future<void> showChargeForm(
@@ -148,6 +149,7 @@ class _ChargeFormSheetState extends ConsumerState<ChargeFormSheet> {
   Widget build(BuildContext context) {
     final workspace = ref.watch(workspaceProvider).value;
     final clients = workspace?.clients ?? const [];
+    final canUseAsaas = workspace?.canUseAsaas ?? true;
     final services = (workspace?.services ?? const [])
         .where((service) => _clientId == null || service.clientId == _clientId)
         .toList();
@@ -222,7 +224,7 @@ class _ChargeFormSheetState extends ConsumerState<ChargeFormSheet> {
         MoneyField(controller: _amount),
         const SizedBox(height: 14),
         if (_isRecurring)
-          ..._recurringFields()
+          ..._recurringFields(canUseAsaas)
         else
           DateField(
             label: 'Vencimento',
@@ -233,7 +235,7 @@ class _ChargeFormSheetState extends ConsumerState<ChargeFormSheet> {
     );
   }
 
-  List<Widget> _recurringFields() {
+  List<Widget> _recurringFields(bool canUseAsaas) {
     return [
       DropdownButtonFormField<Recurrence>(
         initialValue: _frequency,
@@ -279,26 +281,40 @@ class _ChargeFormSheetState extends ConsumerState<ChargeFormSheet> {
         onChanged: (value) => setState(() => _active = value),
         title: const Text('Recorrência ativa'),
       ),
-      SwitchListTile(
-        contentPadding: EdgeInsets.zero,
-        value: _autoAsaas,
-        onChanged: (value) => setState(() => _autoAsaas = value),
-        title: const Text('Emitir no Asaas automaticamente'),
-        subtitle: const Text('Executado pelo sistema quando configurado.'),
-      ),
-      const SizedBox(height: 8),
-      DropdownButtonFormField<BillingType>(
-        initialValue: _billingType,
-        decoration: const InputDecoration(
-          labelText: 'Forma de pagamento no Asaas',
+      if (canUseAsaas) ...[
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          value: _autoAsaas,
+          onChanged: (value) => setState(() => _autoAsaas = value),
+          title: const Text('Emitir no Asaas automaticamente'),
+          subtitle: const Text('Executado pelo sistema quando configurado.'),
         ),
-        items: [
-          for (final type in BillingType.values)
-            DropdownMenuItem(value: type, child: Text(type.label)),
-        ],
-        onChanged: (value) =>
-            setState(() => _billingType = value ?? _billingType),
-      ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<BillingType>(
+          initialValue: _billingType,
+          decoration: const InputDecoration(
+            labelText: 'Forma de pagamento no Asaas',
+          ),
+          items: [
+            for (final type in BillingType.values)
+              DropdownMenuItem(value: type, child: Text(type.label)),
+          ],
+          onChanged: (value) =>
+              setState(() => _billingType = value ?? _billingType),
+        ),
+      ] else
+        const Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            PlanLockBadge(size: 14),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'A emissão automática no Asaas não está disponível no seu plano.',
+              ),
+            ),
+          ],
+        ),
     ];
   }
 }
