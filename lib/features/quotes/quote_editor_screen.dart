@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:printing/printing.dart';
 
 import '../../core/constants/enums.dart';
 import '../../core/theme/app_colors.dart';
@@ -24,11 +25,13 @@ class QuoteEditorScreen extends ConsumerStatefulWidget {
   ConsumerState<QuoteEditorScreen> createState() => _QuoteEditorScreenState();
 }
 
-class _QuoteEditorScreenState extends ConsumerState<QuoteEditorScreen> {
+class _QuoteEditorScreenState extends ConsumerState<QuoteEditorScreen>
+    with SingleTickerProviderStateMixin {
   final _title = TextEditingController();
   final _number = TextEditingController();
   final _note = TextEditingController();
   final _discount = TextEditingController();
+  late final TabController _tabController;
 
   final List<_ItemDraft> _items = [];
   String? _clientId;
@@ -40,7 +43,17 @@ class _QuoteEditorScreenState extends ConsumerState<QuoteEditorScreen> {
   bool _busy = false;
 
   @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging && mounted) setState(() {});
+    });
+  }
+
+  @override
   void dispose() {
+    _tabController.dispose();
     _title.dispose();
     _number.dispose();
     _note.dispose();
@@ -237,8 +250,12 @@ class _QuoteEditorScreenState extends ConsumerState<QuoteEditorScreen> {
   }
 
   Widget _form(BuildContext context) {
-    final clients = ref.watch(workspaceProvider).value?.clients ?? const [];
+    final workspace = ref.watch(workspaceProvider).value;
+    final clients = workspace?.clients ?? const [];
     final textTheme = Theme.of(context).textTheme;
+    final clientName = _clientId == null
+        ? 'Cliente'
+        : workspace?.clientName(_clientId!) ?? 'Cliente';
 
     return Scaffold(
       appBar: AppBar(
@@ -252,166 +269,186 @@ class _QuoteEditorScreenState extends ConsumerState<QuoteEditorScreen> {
             onPressed: () => previewQuotePdf(context, ref, _buildQuote()),
           ),
         ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
-        children: [
-          DropdownButtonFormField<String>(
-            initialValue: _clientId,
-            decoration: const InputDecoration(labelText: 'Cliente'),
-            items: [
-              for (final client in clients)
-                DropdownMenuItem(value: client.id, child: Text(client.name)),
-            ],
-            onChanged: (value) => setState(() => _clientId = value),
-          ),
-          const SizedBox(height: 14),
-          TextField(
-            controller: _title,
-            decoration: const InputDecoration(labelText: 'Título'),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _number,
-                  decoration: const InputDecoration(labelText: 'Número'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: DropdownButtonFormField<QuoteStatus>(
-                  initialValue: _status,
-                  decoration: const InputDecoration(labelText: 'Situação'),
-                  items: [
-                    for (final status in QuoteStatus.values)
-                      DropdownMenuItem(
-                        value: status,
-                        child: Text(status.label),
-                      ),
-                  ],
-                  onChanged: (value) =>
-                      setState(() => _status = value ?? _status),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: DateField(
-                  label: 'Emissão',
-                  value: _issuedOn,
-                  onChanged: (value) =>
-                      setState(() => _issuedOn = value ?? _issuedOn),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: DateField(
-                  label: 'Validade',
-                  value: _validUntil,
-                  clearable: true,
-                  onChanged: (value) => setState(() => _validUntil = value),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Text(
-                'Modelo do PDF',
-                style: textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const Spacer(),
-              SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'moderno', label: Text('Moderno')),
-                  ButtonSegment(value: 'classico', label: Text('Clássico')),
-                ],
-                selected: {_layout},
-                showSelectedIcon: false,
-                onSelectionChanged: (value) =>
-                    setState(() => _layout = value.first),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Text(
-                'Itens',
-                style: textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const Spacer(),
-              TextButton.icon(
-                onPressed: () => setState(() => _items.add(_ItemDraft())),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Adicionar'),
-              ),
-            ],
-          ),
-          for (var i = 0; i < _items.length; i++)
-            _ItemEditor(
-              key: ValueKey(_items[i]),
-              draft: _items[i],
-              canRemove: _items.length > 1,
-              onChanged: () => setState(() {}),
-              onRemove: () => setState(() => _items.removeAt(i).dispose()),
-            ),
-          const SizedBox(height: 16),
-          MoneyField(
-            controller: _discount,
-            label: 'Desconto',
-            onChanged: (_) => setState(() {}),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Column(
-              children: [
-                _totalRow(context, 'Subtotal', _subtotal),
-                _totalRow(context, 'Desconto', -_discountValue),
-                const Divider(height: 20),
-                _totalRow(context, 'Total', _total, bold: true),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-          TextField(
-            controller: _note,
-            maxLines: 3,
-            decoration: const InputDecoration(labelText: 'Observações'),
-          ),
-        ],
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          child: FilledButton(
-            onPressed: _busy ? null : _save,
-            child: _busy
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Salvar orçamento'),
-          ),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Editar'),
+            Tab(text: 'Prévia'),
+          ],
         ),
       ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          ListView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+            children: [
+              DropdownButtonFormField<String>(
+                initialValue: _clientId,
+                decoration: const InputDecoration(labelText: 'Cliente'),
+                items: [
+                  for (final client in clients)
+                    DropdownMenuItem(
+                      value: client.id,
+                      child: Text(client.name),
+                    ),
+                ],
+                onChanged: (value) => setState(() => _clientId = value),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: _title,
+                decoration: const InputDecoration(labelText: 'Título'),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _number,
+                      decoration: const InputDecoration(labelText: 'Número'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<QuoteStatus>(
+                      initialValue: _status,
+                      decoration: const InputDecoration(labelText: 'Situação'),
+                      items: [
+                        for (final status in QuoteStatus.values)
+                          DropdownMenuItem(
+                            value: status,
+                            child: Text(status.label),
+                          ),
+                      ],
+                      onChanged: (value) =>
+                          setState(() => _status = value ?? _status),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: DateField(
+                      label: 'Emissão',
+                      value: _issuedOn,
+                      onChanged: (value) =>
+                          setState(() => _issuedOn = value ?? _issuedOn),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DateField(
+                      label: 'Validade',
+                      value: _validUntil,
+                      clearable: true,
+                      onChanged: (value) => setState(() => _validUntil = value),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Text(
+                    'Modelo do PDF',
+                    style: textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const Spacer(),
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(value: 'moderno', label: Text('Moderno')),
+                      ButtonSegment(value: 'classico', label: Text('Clássico')),
+                    ],
+                    selected: {_layout},
+                    showSelectedIcon: false,
+                    onSelectionChanged: (value) =>
+                        setState(() => _layout = value.first),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Text(
+                    'Itens',
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: () => setState(() => _items.add(_ItemDraft())),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Adicionar'),
+                  ),
+                ],
+              ),
+              for (var i = 0; i < _items.length; i++)
+                _ItemEditor(
+                  key: ValueKey(_items[i]),
+                  draft: _items[i],
+                  canRemove: _items.length > 1,
+                  onChanged: () => setState(() {}),
+                  onRemove: () => setState(() => _items.removeAt(i).dispose()),
+                ),
+              const SizedBox(height: 16),
+              MoneyField(
+                controller: _discount,
+                label: 'Desconto',
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Column(
+                  children: [
+                    _totalRow(context, 'Subtotal', _subtotal),
+                    _totalRow(context, 'Desconto', -_discountValue),
+                    const Divider(height: 20),
+                    _totalRow(context, 'Total', _total, bold: true),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: _note,
+                maxLines: 3,
+                decoration: const InputDecoration(labelText: 'Observações'),
+              ),
+            ],
+          ),
+          _tabController.index == 1
+              ? _QuotePreviewTab(quote: _buildQuote(), clientName: clientName)
+              : const SizedBox.shrink(),
+        ],
+      ),
+      bottomNavigationBar: _tabController.index == 0
+          ? SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: FilledButton(
+                  onPressed: _busy ? null : _save,
+                  child: _busy
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Salvar orçamento'),
+                ),
+              ),
+            )
+          : null,
     );
   }
 
@@ -436,6 +473,39 @@ class _QuoteEditorScreenState extends ConsumerState<QuoteEditorScreen> {
           Text(display, style: style),
         ],
       ),
+    );
+  }
+}
+
+/// Prévia fiel ao PDF: renderiza o próprio documento gerado, já com o logotipo
+/// e as informações do usuário (identidade do prestador).
+class _QuotePreviewTab extends ConsumerWidget {
+  const _QuotePreviewTab({required this.quote, required this.clientName});
+
+  final Quote quote;
+  final String clientName;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final business = ref.watch(businessProvider).value;
+    final profile = ref.watch(workspaceProvider).value?.profile;
+    return PdfPreview(
+      build: (format) => buildQuotePdf(
+        quote: quote,
+        clientName: clientName,
+        business: business,
+        fallbackCompany: profile?.company,
+        fallbackPhone: profile?.phone,
+        fallbackEmail: profile?.email,
+        fallbackDocument: profile?.document,
+      ),
+      canChangePageFormat: false,
+      canChangeOrientation: false,
+      canDebug: false,
+      allowSharing: true,
+      allowPrinting: true,
+      pdfFileName: '${quote.number}.pdf',
+      padding: const EdgeInsets.all(8),
     );
   }
 }

@@ -1195,7 +1195,17 @@ class _NotificationsSectionState extends ConsumerState<_NotificationsSection> {
   }
 
   void _update(NotificationPreferences value) {
-    setState(() => _form = value);
+    setState(() => _form = _syncEnabled(value));
+  }
+
+  /// O envio automático fica ativo quando ao menos uma ocasião é escolhida.
+  NotificationPreferences _syncEnabled(NotificationPreferences value) {
+    return value.copyWith(
+      whatsappEnabled:
+          value.reminderBeforeEnabled ||
+          value.onDueEnabled ||
+          value.overdueEnabled,
+    );
   }
 
   Future<void> _save() async {
@@ -1203,7 +1213,9 @@ class _NotificationsSectionState extends ConsumerState<_NotificationsSection> {
     if (form == null) return;
     setState(() => _busy = true);
     try {
-      await ref.read(notificationsRepositoryProvider).savePreferences(form);
+      await ref
+          .read(notificationsRepositoryProvider)
+          .savePreferences(_syncEnabled(form));
       ref.invalidate(notificationSettingsProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1248,7 +1260,6 @@ class _NotificationsSectionState extends ConsumerState<_NotificationsSection> {
       data: (settings) {
         final form = _form ?? settings.preferences;
         final limits = settings.limits;
-        final enabled = form.whatsappEnabled;
         return _Section(
           title: 'Notificações automáticas',
           children: [
@@ -1268,64 +1279,43 @@ class _NotificationsSectionState extends ConsumerState<_NotificationsSection> {
               ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              value: enabled,
+              value: form.reminderBeforeEnabled,
               onChanged: (value) =>
-                  _update(form.copyWith(whatsappEnabled: value)),
-              title: const Text('Ativar notificações automáticas'),
-              subtitle: const Text('Usa a cota mensal da sua conta.'),
+                  _update(form.copyWith(reminderBeforeEnabled: value)),
+              title: const Text('Antes do vencimento'),
             ),
-            Opacity(
-              opacity: enabled ? 1 : 0.5,
-              child: IgnorePointer(
-                ignoring: !enabled,
-                child: Column(
-                  children: [
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      value: form.reminderBeforeEnabled,
-                      onChanged: (value) =>
-                          _update(form.copyWith(reminderBeforeEnabled: value)),
-                      title: const Text('Antes do vencimento'),
-                    ),
-                    _CounterRow(
-                      label:
-                          'Dias antes (máx. ${limits.maxReminderDaysBefore})',
-                      value: form.reminderBeforeDays.clamp(
-                        1,
-                        limits.maxReminderDaysBefore,
-                      ),
-                      min: 1,
-                      max: limits.maxReminderDaysBefore,
-                      onChanged: (value) =>
-                          _update(form.copyWith(reminderBeforeDays: value)),
-                    ),
-                    const Divider(height: 8),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      value: form.onDueEnabled,
-                      onChanged: (value) =>
-                          _update(form.copyWith(onDueEnabled: value)),
-                      title: const Text('No dia do vencimento'),
-                    ),
-                    const Divider(height: 8),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      value: form.overdueEnabled,
-                      onChanged: (value) =>
-                          _update(form.copyWith(overdueEnabled: value)),
-                      title: const Text('Após o vencimento'),
-                    ),
-                    _CounterRow(
-                      label: 'Dias após (máx. ${limits.maxOverdueDays})',
-                      value: form.overdueDays.clamp(1, limits.maxOverdueDays),
-                      min: 1,
-                      max: limits.maxOverdueDays,
-                      onChanged: (value) =>
-                          _update(form.copyWith(overdueDays: value)),
-                    ),
-                  ],
-                ),
+            _CounterRow(
+              label: 'Dias antes (máx. ${limits.maxReminderDaysBefore})',
+              value: form.reminderBeforeDays.clamp(
+                1,
+                limits.maxReminderDaysBefore,
               ),
+              min: 1,
+              max: limits.maxReminderDaysBefore,
+              onChanged: (value) =>
+                  _update(form.copyWith(reminderBeforeDays: value)),
+            ),
+            const Divider(height: 8),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: form.onDueEnabled,
+              onChanged: (value) => _update(form.copyWith(onDueEnabled: value)),
+              title: const Text('No dia do vencimento'),
+            ),
+            const Divider(height: 8),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: form.overdueEnabled,
+              onChanged: (value) =>
+                  _update(form.copyWith(overdueEnabled: value)),
+              title: const Text('Após o vencimento'),
+            ),
+            _CounterRow(
+              label: 'Dias após (máx. ${limits.maxOverdueDays})',
+              value: form.overdueDays.clamp(1, limits.maxOverdueDays),
+              min: 1,
+              max: limits.maxOverdueDays,
+              onChanged: (value) => _update(form.copyWith(overdueDays: value)),
             ),
             const SizedBox(height: 8),
             SizedBox(

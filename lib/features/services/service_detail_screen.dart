@@ -59,185 +59,311 @@ class ServiceDetailScreen extends ConsumerWidget {
             .where((item) => item.serviceId == service.id)
             .toList();
 
-        final chargeIds = views.map((view) => view.id).toSet();
-        final payments = workspace.payments
-            .where((p) => chargeIds.contains(p.chargeId))
-            .toList();
-        final received = payments.fold<double>(
-          0,
-          (total, p) => total + p.amount,
-        );
-        final open = views
-            .where((v) => v.status == ChargeStatus.pendente)
-            .fold<double>(0, (total, v) => total + v.amount);
-        final overdue = views
-            .where((v) => v.status == ChargeStatus.atrasado)
-            .fold<double>(0, (total, v) => total + v.amount);
-
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(service.name, overflow: TextOverflow.ellipsis),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.edit_outlined),
-                onPressed: () => showServiceForm(context, service: service),
-              ),
-              _ServiceMenu(service: service),
-            ],
-          ),
-          floatingActionButton: FloatingActionButton.extended(
-            onPressed: () => showChargeForm(
-              context,
-              initialClientId: service.clientId,
-              initialServiceId: service.id,
+        return DefaultTabController(
+          length: 3,
+          child: Scaffold(
+            appBar: AppBar(
+              title: Text(service.name, overflow: TextOverflow.ellipsis),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: () => showServiceForm(context, service: service),
+                ),
+                _ServiceMenu(service: service),
+              ],
             ),
-            icon: const Icon(Icons.add),
-            label: const Text('Nova cobrança'),
-          ),
-          body: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-            children: [
-              SectionCard(
-                title: 'Informações',
-                child: Column(
-                  children: [
-                    _InfoLine(
-                      label: 'Cliente',
-                      value: workspace.clientName(service.clientId),
-                    ),
-                    _InfoLine(
-                      label: 'Cobrança',
-                      value: service.billingType.label,
-                    ),
-                    _InfoLine(label: 'Situação', value: service.status.label),
-                    _InfoLine(label: 'Valor', value: brl(service.amount)),
-                    if (recurring.any((item) => item.active))
-                      _InfoLine(
-                        label: 'Mensalidade',
-                        value: brl(
-                          recurring
-                              .where((item) => item.active)
-                              .fold<double>(
-                                0,
-                                (sum, item) => sum + item.amount,
-                              ),
-                        ),
-                      ),
-                    _InfoLine(
-                      label: 'Início',
-                      value: formatDate(service.startDate),
-                    ),
-                    _InfoLine(
-                      label: 'Término',
-                      value: service.endDate == null
-                          ? 'Contínuo'
-                          : formatDate(service.endDate!),
-                    ),
+            floatingActionButton: FloatingActionButton.extended(
+              onPressed: () => showChargeForm(
+                context,
+                initialClientId: service.clientId,
+                initialServiceId: service.id,
+              ),
+              icon: const Icon(Icons.add),
+              label: const Text('Nova cobrança'),
+            ),
+            body: Column(
+              children: [
+                _ServiceHeader(
+                  service: service,
+                  clientName: workspace.clientName(service.clientId),
+                ),
+                const TabBar(
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
+                  tabs: [
+                    Tab(text: 'Cobranças'),
+                    Tab(text: 'Recorrências'),
+                    Tab(text: 'Informações'),
                   ],
                 ),
-              ),
-              if (service.description != null &&
-                  service.description!.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                SectionCard(
-                  title: 'Descrição',
-                  child: Text(service.description!),
-                ),
-              ],
-              if (service.link != null && service.link!.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: () => launchUrl(Uri.parse(service.link!)),
-                  icon: const Icon(Icons.link),
-                  label: const Text('Abrir link do serviço'),
-                ),
-              ],
-              const SizedBox(height: 16),
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1.5,
-                children: [
-                  StatCard(
-                    label: 'Recebido',
-                    value: brl(received),
-                    tone: AppColors.success,
-                    icon: Icons.account_balance_wallet_outlined,
-                  ),
-                  StatCard(
-                    label: 'Em aberto',
-                    value: brl(open),
-                    tone: AppColors.info,
-                    icon: Icons.schedule_outlined,
-                  ),
-                  StatCard(
-                    label: 'Atrasado',
-                    value: brl(overdue),
-                    tone: AppColors.danger,
-                    icon: Icons.warning_amber_outlined,
-                  ),
-                  StatCard(
-                    label: 'Cobranças',
-                    value: '${views.length}',
-                    tone: AppColors.primary,
-                    icon: Icons.receipt_outlined,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => showRecurringForm(
-                        context,
-                        initialClientId: service.clientId,
-                        initialServiceId: service.id,
+                Expanded(
+                  child: TabBarView(
+                    children: [
+                      _ChargesTab(service: service, views: views),
+                      _RecurringTab(service: service, recurring: recurring),
+                      _InfoTab(
+                        service: service,
+                        clientName: workspace.clientName(service.clientId),
+                        recurring: recurring,
                       ),
-                      icon: const Icon(Icons.repeat, size: 18),
-                      label: const Text('Nova recorrência'),
-                    ),
+                    ],
                   ),
-                ],
-              ),
-              if (recurring.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Text(
-                  'Recorrências',
-                  style: Theme.of(context).textTheme.titleSmall
-                      ?.copyWith(fontWeight: FontWeight.w700),
                 ),
-                const SizedBox(height: 8),
-                for (final item in recurring) ...[
-                  _RecurringRow(item: item),
-                  const SizedBox(height: 10),
-                ],
               ],
-              const SizedBox(height: 20),
-              Text(
-                'Cobranças',
-                style: Theme.of(context).textTheme.titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 8),
-              if (views.isEmpty)
-                const EmptyState(
-                  icon: Icons.receipt_long_outlined,
-                  title: 'Nenhuma cobrança',
-                  description: 'Crie a primeira cobrança deste serviço.',
-                )
-              else
-                for (final view in views) ...[
-                  ChargeCard(view: view, showClient: false),
-                  const SizedBox(height: 10),
-                ],
-            ],
+            ),
           ),
         );
       },
+    );
+  }
+}
+
+class _ServiceHeader extends StatelessWidget {
+  const _ServiceHeader({required this.service, required this.clientName});
+
+  final Service service;
+  final String clientName;
+
+  Color _statusColor() {
+    switch (service.status) {
+      case ServiceStatus.negociacao:
+        return AppColors.warning;
+      case ServiceStatus.andamento:
+        return AppColors.info;
+      case ServiceStatus.concluido:
+        return AppColors.success;
+      case ServiceStatus.cancelado:
+        return AppColors.mutedForeground;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final color = _statusColor();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 22,
+            backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+            child: const Icon(
+              Icons.work_outline,
+              color: AppColors.primary,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  clientName,
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  '${service.billingType.label} · ${brl(service.amount)}',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.mutedForeground,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              service.status.label,
+              style: textTheme.labelSmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChargesTab extends StatelessWidget {
+  const _ChargesTab({required this.service, required this.views});
+
+  final Service service;
+  final List<ChargeView> views;
+
+  @override
+  Widget build(BuildContext context) {
+    final chargeIds = views.map((view) => view.id).toSet();
+    final received = views
+        .where((v) => v.status == ChargeStatus.pago)
+        .fold<double>(0, (total, v) => total + v.amount);
+    final open = views
+        .where((v) => v.status == ChargeStatus.pendente)
+        .fold<double>(0, (total, v) => total + v.amount);
+    final overdue = views
+        .where((v) => v.status == ChargeStatus.atrasado)
+        .fold<double>(0, (total, v) => total + v.amount);
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+      children: [
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 1.5,
+          children: [
+            StatCard(
+              label: 'Recebido',
+              value: brl(received),
+              tone: AppColors.success,
+              icon: Icons.account_balance_wallet_outlined,
+            ),
+            StatCard(
+              label: 'Em aberto',
+              value: brl(open),
+              tone: AppColors.info,
+              icon: Icons.schedule_outlined,
+            ),
+            StatCard(
+              label: 'Atrasado',
+              value: brl(overdue),
+              tone: AppColors.danger,
+              icon: Icons.warning_amber_outlined,
+            ),
+            StatCard(
+              label: 'Cobranças',
+              value: '${chargeIds.length}',
+              tone: AppColors.primary,
+              icon: Icons.receipt_outlined,
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (views.isEmpty)
+          const EmptyState(
+            icon: Icons.receipt_long_outlined,
+            title: 'Nenhuma cobrança',
+            description: 'Crie a primeira cobrança deste serviço.',
+          )
+        else
+          for (final view in views) ...[
+            ChargeCard(view: view, showClient: false),
+            const SizedBox(height: 10),
+          ],
+      ],
+    );
+  }
+}
+
+class _RecurringTab extends StatelessWidget {
+  const _RecurringTab({required this.service, required this.recurring});
+
+  final Service service;
+  final List<RecurringCharge> recurring;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+      children: [
+        OutlinedButton.icon(
+          onPressed: () => showRecurringForm(
+            context,
+            initialClientId: service.clientId,
+            initialServiceId: service.id,
+          ),
+          icon: const Icon(Icons.repeat, size: 18),
+          label: const Text('Nova recorrência'),
+        ),
+        const SizedBox(height: 16),
+        if (recurring.isEmpty)
+          const EmptyState(
+            icon: Icons.autorenew,
+            title: 'Nenhuma recorrência',
+            description: 'Crie uma cobrança recorrente para este serviço.',
+          )
+        else
+          for (final item in recurring) ...[
+            _RecurringRow(item: item),
+            const SizedBox(height: 10),
+          ],
+      ],
+    );
+  }
+}
+
+class _InfoTab extends StatelessWidget {
+  const _InfoTab({
+    required this.service,
+    required this.clientName,
+    required this.recurring,
+  });
+
+  final Service service;
+  final String clientName;
+  final List<RecurringCharge> recurring;
+
+  @override
+  Widget build(BuildContext context) {
+    final activeRecurring = recurring.where((item) => item.active);
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+      children: [
+        SectionCard(
+          title: 'Informações',
+          child: Column(
+            children: [
+              _InfoLine(label: 'Cliente', value: clientName),
+              _InfoLine(label: 'Cobrança', value: service.billingType.label),
+              _InfoLine(label: 'Situação', value: service.status.label),
+              _InfoLine(label: 'Valor', value: brl(service.amount)),
+              if (activeRecurring.isNotEmpty)
+                _InfoLine(
+                  label: 'Mensalidade',
+                  value: brl(
+                    activeRecurring.fold<double>(
+                      0,
+                      (sum, item) => sum + item.amount,
+                    ),
+                  ),
+                ),
+              _InfoLine(label: 'Início', value: formatDate(service.startDate)),
+              _InfoLine(
+                label: 'Término',
+                value: service.endDate == null
+                    ? 'Contínuo'
+                    : formatDate(service.endDate!),
+              ),
+            ],
+          ),
+        ),
+        if (service.description != null && service.description!.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          SectionCard(title: 'Descrição', child: Text(service.description!)),
+        ],
+        if (service.link != null && service.link!.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => launchUrl(Uri.parse(service.link!)),
+            icon: const Icon(Icons.link),
+            label: const Text('Abrir link do serviço'),
+          ),
+        ],
+      ],
     );
   }
 }

@@ -38,10 +38,48 @@ class ReadNotificationIds extends AsyncNotifier<Set<String>> {
   }
 }
 
+/// Notificações dispensadas (excluídas) pelo usuário, persistidas localmente.
+final dismissedNotificationIdsProvider =
+    AsyncNotifierProvider<DismissedNotificationIds, Set<String>>(
+      DismissedNotificationIds.new,
+    );
+
+class DismissedNotificationIds extends AsyncNotifier<Set<String>> {
+  String get _key {
+    final userId = ref.watch(currentUserIdProvider) ?? 'anon';
+    return 'controla_simples.notif.dismissed.$userId';
+  }
+
+  @override
+  Future<Set<String>> build() async {
+    final prefs = await SharedPreferences.getInstance();
+    return (prefs.getStringList(_key) ?? const []).toSet();
+  }
+
+  Future<void> dismiss(Iterable<String> ids) async {
+    if (ids.isEmpty) return;
+    final current = state.value ?? <String>{};
+    final next = {...current, ...ids};
+    state = AsyncData(next);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_key, next.toList());
+  }
+
+  Future<void> restoreAll() async {
+    state = const AsyncData(<String>{});
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_key);
+  }
+}
+
 final appNotificationsProvider = Provider<List<AppNotification>>((ref) {
   final workspace = ref.watch(workspaceProvider).value;
   if (workspace == null) return const [];
-  return buildNotifications(workspace);
+  final dismissed =
+      ref.watch(dismissedNotificationIdsProvider).value ?? const <String>{};
+  return buildNotifications(workspace)
+      .where((notification) => !dismissed.contains(notification.id))
+      .toList();
 });
 
 final unreadNotificationCountProvider = Provider<int>((ref) {

@@ -37,10 +37,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         actions: [
           if (notifications.isNotEmpty)
             IconButton(
-              tooltip: 'Limpar',
+              tooltip: 'Excluir todas',
               icon: const Icon(Icons.delete_sweep_outlined),
-              onPressed: () =>
-                  ref.read(readNotificationIdsProvider.notifier).clear(),
+              onPressed: () {
+                final ids = notifications.map((item) => item.id).toList();
+                ref
+                    .read(dismissedNotificationIdsProvider.notifier)
+                    .dismiss(ids);
+              },
             ),
         ],
       ),

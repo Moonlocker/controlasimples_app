@@ -4,24 +4,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/enums.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/derive.dart';
+import '../../core/utils/error_messages.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/period.dart';
-import '../../core/utils/error_messages.dart';
 import '../../models/asaas.dart';
 import '../../repositories/asaas_repository.dart';
 import '../../repositories/charges_repository.dart';
 import '../../repositories/workspace_providers.dart';
 import '../../widgets/async_error_view.dart';
-import '../../widgets/brand_logo.dart';
 import '../../widgets/confirm_dialog.dart';
+import '../../widgets/count_badge.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/filter_combobox.dart';
 import '../../widgets/period_filter.dart';
-import '../../widgets/screen_header.dart';
 import '../auth/auth_providers.dart';
 import 'charge_card.dart';
+import 'charge_config_sheets.dart';
 import 'charge_form_sheet.dart';
-import 'recurring_list_sheet.dart';
 
 class ChargesScreen extends ConsumerStatefulWidget {
   const ChargesScreen({super.key});
@@ -35,10 +34,13 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
   ChargeStatus? _status;
   String? _clientId;
   String _query = '';
+  bool _showFilters = false;
   bool _generating = false;
   bool _autoRan = false;
   final Set<String> _selected = {};
   bool _bulkBusy = false;
+
+  bool get _hasFilters => _status != null || _clientId != null;
 
   void _toggleSelect(String id) {
     setState(() {
@@ -202,12 +204,56 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
     final workspaceAsync = ref.watch(workspaceProvider);
 
     return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          _selected.isEmpty
+              ? 'Cobranças'
+              : '${_selected.length} selecionada(s)',
+        ),
+        actions: _selected.isEmpty
+            ? [
+                IconButton(
+                  tooltip: 'Configurar Asaas',
+                  icon: const Icon(Icons.account_balance_outlined),
+                  onPressed: () => showAsaasConfigSheet(context),
+                ),
+                IconButton(
+                  tooltip: 'Notificações do cliente',
+                  icon: const Icon(Icons.notifications_active_outlined),
+                  onPressed: () => showNotificationPreferencesSheet(context),
+                ),
+              ]
+            : [
+                IconButton(
+                  tooltip: 'Selecionar todas',
+                  icon: const Icon(Icons.done_all),
+                  onPressed: () {
+                    final workspace = workspaceAsync.value;
+                    if (workspace == null) return;
+                    final views = chargeViews(workspace)
+                        .where(
+                          (view) =>
+                              _range == null || _range!.contains(view.dueDate),
+                        )
+                        .where(_matches)
+                        .toList();
+                    _selectAll(views);
+                  },
+                ),
+                IconButton(
+                  tooltip: 'Limpar seleção',
+                  icon: const Icon(Icons.close),
+                  onPressed: _clearSelection,
+                ),
+              ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => showChargeForm(context),
         icon: const Icon(Icons.add),
         label: const Text('Nova cobrança'),
       ),
       body: SafeArea(
+        top: false,
         child: workspaceAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, _) => AsyncErrorView(
@@ -259,109 +305,139 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
                     )
                     .toList();
 
+            // Contagem por status considerando período, cliente e busca, para
+            // o usuário ver a quantidade antes de filtrar.
+            final baseForCounts = inRange.where((view) {
+              if (_clientId != null && view.clientId != _clientId) {
+                return false;
+              }
+              final query = _query.trim().toLowerCase();
+              if (query.isEmpty) return true;
+              final normalizedAmount = query
+                  .replaceAll('.', '')
+                  .replaceAll(',', '.');
+              return view.clientName.toLowerCase().contains(query) ||
+                  view.description.toLowerCase().contains(query) ||
+                  (view.serviceName?.toLowerCase().contains(query) ?? false) ||
+                  brl(view.amount).toLowerCase().contains(query) ||
+                  view.amount.toStringAsFixed(2).contains(normalizedAmount);
+            }).toList();
+            final statusCounts = <ChargeStatus, int>{};
+            for (final view in baseForCounts) {
+              statusCounts.update(
+                view.status,
+                (count) => count + 1,
+                ifAbsent: () => 1,
+              );
+            }
+            final totalCount = baseForCounts.length + pending.length;
+
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-                  child: ScreenHeader(
-                    title: 'Cobranças',
-                    description: _selected.isEmpty
-                        ? 'Vencimentos, recebimentos e pendências.'
-                        : '${_selected.length} selecionada(s).',
-                    leading: const BrandBadge(),
-                    action: _selected.isEmpty
-                        ? IconButton(
-                            tooltip: 'Recorrências',
-                            icon: const Icon(Icons.autorenew),
-                            onPressed: () => showRecurringListSheet(context),
-                          )
-                        : Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                tooltip: 'Selecionar todas',
-                                icon: const Icon(Icons.done_all),
-                                onPressed: () => _selectAll(views),
-                              ),
-                              IconButton(
-                                tooltip: 'Limpar seleção',
-                                icon: const Icon(Icons.close),
-                                onPressed: _clearSelection,
-                              ),
-                            ],
-                          ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                   child: PeriodBar(
                     range: _range,
                     onChanged: (value) => setState(() => _range = value),
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: TextField(
-                    onChanged: (value) => setState(() => _query = value),
-                    decoration: const InputDecoration(
-                      hintText:
-                          'Buscar por cliente, serviço, descrição ou valor',
-                      prefixIcon: Icon(Icons.search),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
                     children: [
-                      _Pill(
-                        label: 'Todas',
-                        selected: _status == null,
-                        onTap: () => setState(() => _status = null),
-                      ),
-                      for (final status in [
-                        ChargeStatus.pendente,
-                        ChargeStatus.atrasado,
-                        ChargeStatus.pago,
-                        ChargeStatus.cancelado,
-                      ])
-                        _Pill(
-                          label: status.label,
-                          selected: _status == status,
-                          onTap: () => setState(() => _status = status),
+                      Expanded(
+                        child: TextField(
+                          onChanged: (value) => setState(() => _query = value),
+                          decoration: const InputDecoration(
+                            hintText: 'Buscar cobranças',
+                            prefixIcon: Icon(Icons.search),
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
+                          ),
                         ),
+                      ),
+                      const SizedBox(width: 8),
+                      _FilterButton(
+                        active: _hasFilters,
+                        expanded: _showFilters,
+                        onTap: () =>
+                            setState(() => _showFilters = !_showFilters),
+                      ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 10),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: FilterCombobox<String?>(
-                    options: [
-                      const FilterOption<String?>(
-                        value: null,
-                        label: 'Todos os clientes',
-                      ),
-                      for (final client in workspace.clients)
-                        FilterOption<String?>(
-                          value: client.id,
-                          label: client.name,
+                AnimatedCrossFade(
+                  duration: const Duration(milliseconds: 180),
+                  crossFadeState: _showFilters
+                      ? CrossFadeState.showFirst
+                      : CrossFadeState.showSecond,
+                  firstChild: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              _Pill(
+                                label: 'Todas',
+                                selected: _status == null,
+                                count: totalCount,
+                                onTap: () => setState(() => _status = null),
+                              ),
+                              for (final status in [
+                                ChargeStatus.pendente,
+                                ChargeStatus.atrasado,
+                                ChargeStatus.pago,
+                                ChargeStatus.cancelado,
+                              ])
+                                _Pill(
+                                  label: status.label,
+                                  selected: _status == status,
+                                  count:
+                                      (statusCounts[status] ?? 0) +
+                                      (status == ChargeStatus.pendente
+                                          ? pending.length
+                                          : 0),
+                                  onTap: () => setState(() => _status = status),
+                                ),
+                            ],
+                          ),
                         ),
-                    ],
-                    value: _clientId,
-                    hint: 'Todos os clientes',
-                    allLabel: 'Todos os clientes',
-                    icon: Icons.person_outline,
-                    onChanged: (value) => setState(() => _clientId = value),
+                        const SizedBox(height: 8),
+                        FilterCombobox<String?>(
+                          options: [
+                            const FilterOption<String?>(
+                              value: null,
+                              label: 'Todos os clientes',
+                            ),
+                            for (final client in workspace.clients)
+                              FilterOption<String?>(
+                                value: client.id,
+                                label: client.name,
+                              ),
+                          ],
+                          value: _clientId,
+                          hint: 'Todos os clientes',
+                          allLabel: 'Todos os clientes',
+                          icon: Icons.person_outline,
+                          onChanged: (value) =>
+                              setState(() => _clientId = value),
+                        ),
+                      ],
+                    ),
                   ),
+                  secondChild: const SizedBox(width: double.infinity),
                 ),
                 if (pending.isNotEmpty)
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -395,7 +471,7 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
                       ),
                     ),
                   ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 Expanded(
                   child: views.isEmpty && pending.isEmpty
                       ? const EmptyState(
@@ -446,6 +522,48 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
               ],
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterButton extends StatelessWidget {
+  const _FilterButton({
+    required this.active,
+    required this.expanded,
+    required this.onTap,
+  });
+
+  final bool active;
+  final bool expanded;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final highlighted = active || expanded;
+    return Tooltip(
+      message: 'Filtros',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          height: 48,
+          width: 48,
+          decoration: BoxDecoration(
+            color: highlighted
+                ? AppColors.primary.withValues(alpha: 0.12)
+                : AppColors.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: highlighted ? AppColors.primary : AppColors.border,
+            ),
+          ),
+          child: Icon(
+            Icons.tune,
+            size: 20,
+            color: highlighted ? AppColors.primary : AppColors.mutedForeground,
+          ),
         ),
       ),
     );
@@ -563,7 +681,7 @@ class _PendingCard extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.event_outlined,
                 size: 14,
                 color: AppColors.mutedForeground,
@@ -603,21 +721,30 @@ class _Pill extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
+    this.count = 0,
   });
 
   final String label;
   final bool selected;
   final VoidCallback onTap;
+  final int count;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: ChoiceChip(
-        label: Text(label),
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(label),
+            CountBadge(count: count, selected: selected),
+          ],
+        ),
         selected: selected,
         onSelected: (_) => onTap(),
         showCheckmark: false,
+        visualDensity: VisualDensity.compact,
         labelStyle: Theme.of(context).textTheme.labelMedium?.copyWith(
           color: selected ? AppColors.primary : AppColors.mutedForeground,
           fontWeight: FontWeight.w600,

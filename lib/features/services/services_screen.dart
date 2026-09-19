@@ -12,6 +12,7 @@ import '../../repositories/services_repository.dart';
 import '../../repositories/workspace_providers.dart';
 import '../../widgets/async_error_view.dart';
 import '../../widgets/confirm_dialog.dart';
+import '../../widgets/count_badge.dart';
 import '../../widgets/empty_state.dart';
 import 'service_form_sheet.dart';
 
@@ -48,8 +49,7 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
         ),
         data: (workspace) {
           final query = _query.trim().toLowerCase();
-          final services = workspace.services.where((service) {
-            if (_status != null && service.status != _status) return false;
+          final baseServices = workspace.services.where((service) {
             if (query.isEmpty) return true;
             return service.name.toLowerCase().contains(query) ||
                 workspace
@@ -57,6 +57,17 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
                     .toLowerCase()
                     .contains(query);
           }).toList();
+          final statusCounts = <ServiceStatus, int>{};
+          for (final service in baseServices) {
+            statusCounts.update(
+              service.status,
+              (count) => count + 1,
+              ifAbsent: () => 1,
+            );
+          }
+          final services = baseServices
+              .where((service) => _status == null || service.status == _status)
+              .toList();
           final stats = _stats(workspace);
 
           return Column(
@@ -80,12 +91,14 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
                     _Pill(
                       label: 'Todos',
                       selected: _status == null,
+                      count: baseServices.length,
                       onTap: () => setState(() => _status = null),
                     ),
                     for (final status in ServiceStatus.values)
                       _Pill(
                         label: status.label,
                         selected: _status == status,
+                        count: statusCounts[status] ?? 0,
                         onTap: () => setState(() => _status = status),
                       ),
                   ],
@@ -366,18 +379,26 @@ class _Pill extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
+    this.count = 0,
   });
 
   final String label;
   final bool selected;
   final VoidCallback onTap;
+  final int count;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: ChoiceChip(
-        label: Text(label),
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(label),
+            CountBadge(count: count, selected: selected),
+          ],
+        ),
         selected: selected,
         onSelected: (_) => onTap(),
         showCheckmark: false,

@@ -13,10 +13,9 @@ class AppShell extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
 
   void _onDestinationSelected(int index) {
-    navigationShell.goBranch(
-      index,
-      initialLocation: index == navigationShell.currentIndex,
-    );
+    // Ao trocar (ou repetir) a aba, volta sempre para a página principal do
+    // menu, evitando reabrir a última subpágina visitada.
+    navigationShell.goBranch(index, initialLocation: true);
   }
 
   @override
