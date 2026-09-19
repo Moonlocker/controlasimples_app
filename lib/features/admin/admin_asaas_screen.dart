@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/error_messages.dart';
 import '../../models/asaas.dart';
 import '../../repositories/admin_repository.dart';
 import '../../widgets/app_form_sheet.dart';
@@ -99,7 +100,9 @@ class _AsaasTestButtonState extends ConsumerState<_AsaasTestButton> {
                   ),
                 );
               } catch (error) {
-                messenger.showSnackBar(SnackBar(content: Text('$error')));
+                messenger.showSnackBar(
+                  SnackBar(content: Text(friendlyError(error))),
+                );
               } finally {
                 if (mounted) setState(() => _busy = false);
               }
@@ -160,7 +163,7 @@ class _AsaasAdminFormSheetState extends ConsumerState<_AsaasAdminFormSheet> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$error')));
+            .showSnackBar(SnackBar(content: Text(friendlyError(error))));
       }
     } finally {
       if (mounted) setState(() => _busy = false);

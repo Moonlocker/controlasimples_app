@@ -11,6 +11,7 @@ import '../../core/constants/enums.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/mask_formatter.dart';
+import '../../core/utils/error_messages.dart';
 import '../../models/asaas.dart';
 import '../../models/notification_preferences.dart';
 import '../../models/plan.dart';
@@ -178,7 +179,7 @@ class _DataSectionState extends ConsumerState<_DataSection> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$error')));
+            .showSnackBar(SnackBar(content: Text(friendlyError(error))));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -333,7 +334,9 @@ class _ProfileFormSheetState extends ConsumerState<_ProfileFormSheet> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Não foi possível salvar: $error')),
+          SnackBar(
+            content: Text('Não foi possível salvar: ${friendlyError(error)}'),
+          ),
         );
       }
     } finally {
@@ -438,7 +441,11 @@ class _BusinessFormSheetState extends ConsumerState<_BusinessFormSheet> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Não foi possível carregar a imagem: $error')),
+          SnackBar(
+            content: Text(
+              'Não foi possível carregar a imagem: ${friendlyError(error)}',
+            ),
+          ),
         );
       }
     }
@@ -479,7 +486,9 @@ class _BusinessFormSheetState extends ConsumerState<_BusinessFormSheet> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Não foi possível salvar: $error')),
+          SnackBar(
+            content: Text('Não foi possível salvar: ${friendlyError(error)}'),
+          ),
         );
       }
     } finally {
@@ -624,7 +633,7 @@ class _SubscriptionSection extends ConsumerWidget {
     } catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$error')));
+            .showSnackBar(SnackBar(content: Text(friendlyError(error))));
       }
     }
   }
@@ -824,7 +833,7 @@ class _AsaasSection extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Text(
-              'Não foi possível carregar: $error',
+              'Não foi possível carregar: ${friendlyError(error)}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
@@ -903,7 +912,9 @@ class _AsaasConfigSheetState extends ConsumerState<_AsaasConfigSheet> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Não foi possível salvar: $error')),
+          SnackBar(
+            content: Text('Não foi possível salvar: ${friendlyError(error)}'),
+          ),
         );
       }
     } finally {
@@ -925,7 +936,7 @@ class _AsaasConfigSheetState extends ConsumerState<_AsaasConfigSheet> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$error')));
+            .showSnackBar(SnackBar(content: Text(friendlyError(error))));
       }
     } finally {
       if (mounted) setState(() => _testing = false);
@@ -1024,7 +1035,7 @@ class _WhatsappSection extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Text(
-              'Não foi possível carregar: $error',
+              'Não foi possível carregar: ${friendlyError(error)}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
@@ -1101,7 +1112,7 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
     } on AuthException catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(error.message)));
+          .showSnackBar(SnackBar(content: Text(friendlyError(error))));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1202,7 +1213,7 @@ class _NotificationsSectionState extends ConsumerState<_NotificationsSection> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$error')));
+            .showSnackBar(SnackBar(content: Text(friendlyError(error))));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -1228,7 +1239,7 @@ class _NotificationsSectionState extends ConsumerState<_NotificationsSection> {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Text(
-              'Não foi possível carregar: $error',
+              'Não foi possível carregar: ${friendlyError(error)}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),

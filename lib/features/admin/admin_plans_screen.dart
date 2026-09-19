@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/formatters.dart';
+import '../../core/utils/error_messages.dart';
 import '../../models/plan.dart';
 import '../../repositories/admin_repository.dart';
 import '../../widgets/app_form_sheet.dart';
@@ -100,7 +101,9 @@ class AdminPlansScreen extends ConsumerWidget {
                               } catch (error) {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('$error')),
+                                    SnackBar(
+                                      content: Text(friendlyError(error)),
+                                    ),
                                   );
                                 }
                               }
@@ -161,7 +164,9 @@ class AdminPlansScreen extends ConsumerWidget {
                               } catch (error) {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('$error')),
+                                    SnackBar(
+                                      content: Text(friendlyError(error)),
+                                    ),
                                   );
                                 }
                               }
@@ -286,7 +291,7 @@ class _PlanFormSheetState extends ConsumerState<_PlanFormSheet> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$error')));
+            .showSnackBar(SnackBar(content: Text(friendlyError(error))));
       }
     } finally {
       if (mounted) setState(() => _busy = false);

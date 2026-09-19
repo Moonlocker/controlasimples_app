@@ -258,7 +258,7 @@ class _DashboardBody extends StatelessWidget {
               ),
             ),
             _TappableStat(
-              onTap: () => context.push('/reports'),
+              onTap: () => context.go('/more/reports'),
               child: StatCard(
                 label: 'Previsão 30 dias',
                 value: brl(metrics.forecast30),

@@ -5,6 +5,7 @@ import '../../core/constants/enums.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/derive.dart';
 import '../../core/utils/formatters.dart';
+import '../../core/utils/error_messages.dart';
 import '../../models/asaas.dart';
 import '../../models/charge.dart';
 import '../../repositories/asaas_repository.dart';
@@ -56,7 +57,8 @@ Future<T> _withProgress<T>(
 }
 
 void _showError(BuildContext context, Object error) {
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$error')));
+  ScaffoldMessenger.of(context)
+      .showSnackBar(SnackBar(content: Text(friendlyError(error))));
 }
 
 class ChargeCard extends StatelessWidget {

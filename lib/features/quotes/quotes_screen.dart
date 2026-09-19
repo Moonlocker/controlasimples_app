@@ -28,7 +28,7 @@ class QuotesScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () => context.push('/quotes/new'),
+            onPressed: () => context.push('/more/quotes/new'),
           ),
         ],
       ),
@@ -63,7 +63,7 @@ class QuotesScreen extends ConsumerWidget {
                 return _QuoteTile(
                   quote: quote,
                   clientName: workspace?.clientName(quote.clientId) ?? '—',
-                  onTap: () => context.push('/quotes/${quote.id}'),
+                  onTap: () => context.push('/more/quotes/${quote.id}'),
                   onPdf: () => previewQuotePdf(context, ref, quote),
                   onChanged: () => ref.invalidate(quotesProvider),
                 );
@@ -155,7 +155,7 @@ class _QuoteTile extends ConsumerWidget {
                     } else if (value == 'pdf') {
                       onPdf();
                     } else if (value == 'duplicate') {
-                      context.push('/quotes/new', extra: quote);
+                      context.push('/more/quotes/new', extra: quote);
                     } else if (value == 'delete') {
                       final confirmed = await showConfirmDialog(
                         context,

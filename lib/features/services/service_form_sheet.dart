@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/enums.dart';
+import '../../core/utils/error_messages.dart';
 import '../../models/service.dart';
 import '../../repositories/charges_repository.dart';
 import '../../repositories/services_repository.dart';
@@ -187,7 +188,9 @@ class _ServiceFormSheetState extends ConsumerState<ServiceFormSheet> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Não foi possível salvar: $error')),
+          SnackBar(
+            content: Text('Não foi possível salvar: ${friendlyError(error)}'),
+          ),
         );
       }
     } finally {

@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/mask_formatter.dart';
+import '../../core/utils/error_messages.dart';
 import '../../models/plan.dart';
 import '../../models/user_business.dart';
 import '../../repositories/auth_repository.dart';
@@ -197,7 +198,10 @@ class _OnboardingWizardScreenState
       if (_step == 2) await _saveBrand();
       _goTo(_step + 1);
     } catch (error) {
-      _showMessage('Não foi possível salvar: $error', error: true);
+      _showMessage(
+        'Não foi possível salvar: ${friendlyError(error)}',
+        error: true,
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -229,7 +233,10 @@ class _OnboardingWizardScreenState
       final mime = picked.mimeType ?? 'image/png';
       setState(() => _logo = 'data:$mime;base64,${base64Encode(bytes)}');
     } catch (error) {
-      _showMessage('Não foi possível carregar a imagem: $error', error: true);
+      _showMessage(
+        'Não foi possível carregar a imagem: ${friendlyError(error)}',
+        error: true,
+      );
     }
   }
 
@@ -244,7 +251,10 @@ class _OnboardingWizardScreenState
         _showMessage('Tudo pronto! Bem-vindo ao Controla Simples.');
       }
     } catch (error) {
-      _showMessage('Não foi possível concluir: $error', error: true);
+      _showMessage(
+        'Não foi possível concluir: ${friendlyError(error)}',
+        error: true,
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }

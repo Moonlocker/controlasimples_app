@@ -27,12 +27,39 @@ class AppTheme {
 
     return base.copyWith(
       textTheme: _textTheme(base.textTheme),
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: AppColors.background,
         foregroundColor: AppColors.foreground,
         elevation: 0,
         centerTitle: false,
         scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle: GoogleFonts.sora(
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+          color: AppColors.foreground,
+        ),
+      ),
+      iconTheme: const IconThemeData(color: AppColors.foreground),
+      listTileTheme: const ListTileThemeData(
+        iconColor: AppColors.mutedForeground,
+        textColor: AppColors.foreground,
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.foreground,
+        contentTextStyle: GoogleFonts.manrope(
+          color: Colors.white,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.primaryForeground,
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       cardTheme: CardThemeData(
         color: AppColors.surface,
@@ -86,12 +113,25 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: AppColors.surface,
-        indicatorColor: AppColors.primary.withValues(alpha: 0.12),
+        indicatorColor: AppColors.primary.withValues(alpha: 0.14),
         elevation: 0,
-        height: 66,
-        labelTextStyle: WidgetStateProperty.all(
-          GoogleFonts.manrope(fontSize: 11, fontWeight: FontWeight.w600),
-        ),
+        height: 70,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return IconThemeData(
+            size: 24,
+            color: selected ? AppColors.primary : AppColors.mutedForeground,
+          );
+        }),
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return GoogleFonts.manrope(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: selected ? AppColors.primary : AppColors.mutedForeground,
+          );
+        }),
       ),
       dividerTheme: const DividerThemeData(
         color: AppColors.border,

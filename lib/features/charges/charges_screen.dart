@@ -6,6 +6,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/utils/derive.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/period.dart';
+import '../../core/utils/error_messages.dart';
 import '../../models/asaas.dart';
 import '../../repositories/asaas_repository.dart';
 import '../../repositories/charges_repository.dart';
@@ -143,7 +144,7 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$error')));
+            .showSnackBar(SnackBar(content: Text(friendlyError(error))));
       }
     } finally {
       if (mounted) {
@@ -173,7 +174,9 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Não foi possível gerar: $error')),
+          SnackBar(
+            content: Text('Não foi possível gerar: ${friendlyError(error)}'),
+          ),
         );
       }
     } finally {

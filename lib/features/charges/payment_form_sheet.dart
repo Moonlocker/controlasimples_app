@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/enums.dart';
+import '../../core/utils/error_messages.dart';
 import '../../models/charge.dart';
 import '../../repositories/charges_repository.dart';
 import '../../repositories/workspace_providers.dart';
@@ -65,7 +66,11 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Não foi possível registrar: $error')),
+          SnackBar(
+            content: Text(
+              'Não foi possível registrar: ${friendlyError(error)}',
+            ),
+          ),
         );
       }
     } finally {

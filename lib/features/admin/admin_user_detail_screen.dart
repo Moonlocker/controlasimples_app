@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/enums.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/formatters.dart';
+import '../../core/utils/error_messages.dart';
 import '../../models/admin.dart';
 import '../../repositories/admin_repository.dart';
 import '../../widgets/async_error_view.dart';
@@ -105,7 +106,7 @@ class _UserDetailState extends ConsumerState<_UserDetail> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$error')));
+            .showSnackBar(SnackBar(content: Text(friendlyError(error))));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -137,7 +138,7 @@ class _UserDetailState extends ConsumerState<_UserDetail> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$error')));
+            .showSnackBar(SnackBar(content: Text(friendlyError(error))));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -440,7 +441,7 @@ class _UserDetailState extends ConsumerState<_UserDetail> {
               child: CircularProgressIndicator(),
             ),
           ),
-          error: (error, _) => Text('$error'),
+          error: (error, _) => Text(friendlyError(error)),
           data: (messages) => messages.isEmpty
               ? const EmptyState(
                   icon: Icons.chat_outlined,

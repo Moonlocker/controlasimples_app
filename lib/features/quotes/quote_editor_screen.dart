@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/enums.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/error_messages.dart';
 import '../../models/quote.dart';
 import '../../repositories/quotes_repository.dart';
 import '../../repositories/workspace_providers.dart';
@@ -184,7 +185,9 @@ class _QuoteEditorScreenState extends ConsumerState<QuoteEditorScreen> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Não foi possível salvar: $error')),
+          SnackBar(
+            content: Text('Não foi possível salvar: ${friendlyError(error)}'),
+          ),
         );
       }
     } finally {

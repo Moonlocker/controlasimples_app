@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/utils/formatters.dart';
 import '../../core/utils/mask_formatter.dart';
+import '../../core/utils/error_messages.dart';
 import '../../models/client.dart';
 import '../../repositories/clients_repository.dart';
 import '../../repositories/workspace_providers.dart';
@@ -79,7 +80,9 @@ class _ClientFormSheetState extends ConsumerState<ClientFormSheet> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Não foi possível salvar: $error')),
+          SnackBar(
+            content: Text('Não foi possível salvar: ${friendlyError(error)}'),
+          ),
         );
       }
     } finally {

@@ -52,15 +52,33 @@ class MobileApiService {
     final error = data['error'];
     if (response.statusCode >= 400 || error != null) {
       throw MobileApiException(
-        error?.toString() ?? 'Erro ${response.statusCode}',
+        error?.toString() ?? _statusMessage(response.statusCode),
       );
     }
     if (decoded == null && body.isNotEmpty) {
       throw MobileApiException(
-        'Resposta inválida do servidor (${response.statusCode}). Tente novamente.',
+        'Não foi possível concluir a solicitação. Tente novamente.',
       );
     }
     return data;
+  }
+
+  /// Mensagem amigável (sem códigos) para falhas sem corpo de erro do servidor.
+  String _statusMessage(int status) {
+    if (status == 401) {
+      return 'Sua sessão expirou. Entre novamente para continuar.';
+    }
+    if (status == 403) {
+      return 'Você não tem permissão para fazer isso.';
+    }
+    if (status == 404) {
+      return 'Não encontramos essas informações.';
+    }
+    if (status >= 500) {
+      return 'Nosso serviço está temporariamente indisponível. '
+          'Tente novamente em alguns instantes.';
+    }
+    return 'Não foi possível concluir a solicitação. Tente novamente.';
   }
 
   Future<Map<String, dynamic>> get(

@@ -39,7 +39,7 @@ class PortalScreen extends ConsumerWidget {
                 description:
                     'Usuários, planos, WhatsApp e Asaas da plataforma.',
                 tone: AppColors.primary,
-                onTap: () => context.push('/admin'),
+                onTap: () => context.push('/more/admin'),
               ),
               const SizedBox(height: 12),
               _PortalCard(

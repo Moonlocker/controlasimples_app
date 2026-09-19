@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/error_messages.dart';
 import '../../models/admin.dart';
 import '../../repositories/admin_repository.dart';
 import '../../widgets/async_error_view.dart';
@@ -111,7 +112,7 @@ class _AdminUserTileState extends ConsumerState<_AdminUserTile> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$error')));
+            .showSnackBar(SnackBar(content: Text(friendlyError(error))));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -133,7 +134,7 @@ class _AdminUserTileState extends ConsumerState<_AdminUserTile> {
         children: [
           Expanded(
             child: InkWell(
-              onTap: () => context.push('/admin/users/${user.id}'),
+              onTap: () => context.push('/more/admin/users/${user.id}'),
               borderRadius: BorderRadius.circular(16),
               child: Padding(
                 padding: const EdgeInsets.all(14),

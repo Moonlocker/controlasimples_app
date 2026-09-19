@@ -9,6 +9,7 @@ import '../../core/utils/derive.dart';
 import '../../core/utils/dates.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/period.dart';
+import '../../core/utils/error_messages.dart';
 import '../../models/client.dart';
 import '../../models/client_notification.dart';
 import '../../models/recurring_charge.dart';
@@ -28,6 +29,7 @@ import '../../widgets/records_sheet.dart';
 import '../../widgets/revenue_chart.dart';
 import '../../widgets/section_card.dart';
 import '../../widgets/stat_card.dart';
+import '../../widgets/whatsapp_icon.dart';
 import '../charges/charge_card.dart';
 import '../charges/charge_form_sheet.dart';
 import '../charges/recurring_form_sheet.dart';
@@ -228,17 +230,21 @@ class _ClientHeader extends ConsumerWidget {
           if (client.phone != null) ...[
             IconButton(
               tooltip: 'Verificar WhatsApp',
-              icon: const Icon(Icons.verified_outlined, color: AppColors.info),
+              icon: const Icon(Icons.verified_rounded, color: AppColors.info),
               onPressed: () => _checkWhatsapp(context, ref),
             ),
             IconButton(
-              tooltip: 'Abrir conversa',
-              icon: const Icon(Icons.chat_outlined, color: AppColors.success),
+              tooltip: 'Abrir no WhatsApp',
               onPressed: () {
                 final digits = client.phone!.replaceAll(RegExp(r'[^0-9]'), '');
                 final number = digits.length <= 11 ? '55$digits' : digits;
                 launchUrl(Uri.parse('https://wa.me/$number'));
               },
+              icon: const WhatsAppIcon(size: 22),
+              style: IconButton.styleFrom(
+                backgroundColor: const Color(0xFF25D366)
+                    .withValues(alpha: 0.12),
+              ),
             ),
           ],
         ],
@@ -261,7 +267,7 @@ class _ClientHeader extends ConsumerWidget {
       };
       messenger.showSnackBar(SnackBar(content: Text(label)));
     } catch (error) {
-      messenger.showSnackBar(SnackBar(content: Text('$error')));
+      messenger.showSnackBar(SnackBar(content: Text(friendlyError(error))));
     }
   }
 }

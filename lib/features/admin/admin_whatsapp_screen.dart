@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/formatters.dart';
+import '../../core/utils/error_messages.dart';
 import '../../models/admin.dart';
 import '../../models/whatsapp_template.dart';
 import '../../repositories/admin_repository.dart';
@@ -128,7 +129,7 @@ class _SendWhatsappSheetState extends ConsumerState<_SendWhatsappSheet> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$error')));
+            .showSnackBar(SnackBar(content: Text(friendlyError(error))));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -517,7 +518,7 @@ class _HistoryTab extends ConsumerWidget {
               child: CircularProgressIndicator(),
             ),
           ),
-          error: (error, _) => Text('$error'),
+          error: (error, _) => Text(friendlyError(error)),
           data: (overview) => GridView.count(
             crossAxisCount: 2,
             shrinkWrap: true,
@@ -576,7 +577,7 @@ class _HistoryTab extends ConsumerWidget {
               child: CircularProgressIndicator(),
             ),
           ),
-          error: (error, _) => Text('$error'),
+          error: (error, _) => Text(friendlyError(error)),
           data: (messages) => messages.isEmpty
               ? const EmptyState(
                   icon: Icons.chat_outlined,
@@ -627,7 +628,7 @@ class _HistoryTab extends ConsumerWidget {
     } catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$error')));
+            .showSnackBar(SnackBar(content: Text(friendlyError(error))));
       }
     }
   }
@@ -834,7 +835,7 @@ class _UsageTile extends ConsumerWidget {
     } catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$error')));
+            .showSnackBar(SnackBar(content: Text(friendlyError(error))));
       }
     }
   }
@@ -981,8 +982,9 @@ class _TemplateCard extends ConsumerWidget {
                     ref.invalidate(adminWhatsappTemplatesProvider);
                   } catch (error) {
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context)
-                          .showSnackBar(SnackBar(content: Text('$error')));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(friendlyError(error))),
+                      );
                     }
                   }
                 },
@@ -1117,7 +1119,7 @@ class _TemplateFormSheetState extends ConsumerState<_TemplateFormSheet> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$error')));
+            .showSnackBar(SnackBar(content: Text(friendlyError(error))));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -1334,7 +1336,9 @@ class _WhatsappTestButtonState extends ConsumerState<_WhatsappTestButton> {
                   ),
                 );
               } catch (error) {
-                messenger.showSnackBar(SnackBar(content: Text('$error')));
+                messenger.showSnackBar(
+                  SnackBar(content: Text(friendlyError(error))),
+                );
               } finally {
                 if (mounted) setState(() => _busy = false);
               }
@@ -1441,7 +1445,7 @@ class _WhatsappConfigFormSheetState
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$error')));
+            .showSnackBar(SnackBar(content: Text(friendlyError(error))));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -1788,7 +1792,7 @@ class _MetaLinkSheetState extends ConsumerState<_MetaLinkSheet> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$error')));
+            .showSnackBar(SnackBar(content: Text(friendlyError(error))));
       }
     } finally {
       if (mounted) setState(() => _busy = false);

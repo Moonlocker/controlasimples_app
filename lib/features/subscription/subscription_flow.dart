@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/utils/formatters.dart';
+import '../../core/utils/error_messages.dart';
 import '../../models/asaas.dart';
 import '../../models/plan.dart';
 import '../../repositories/subscription_repository.dart';
@@ -88,7 +89,7 @@ Future<bool> subscribeToPlanFlow(
   } catch (error) {
     if (context.mounted) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('$error')));
+          .showSnackBar(SnackBar(content: Text(friendlyError(error))));
     }
     return false;
   }

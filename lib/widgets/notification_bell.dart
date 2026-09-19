@@ -16,8 +16,8 @@ class NotificationBell extends ConsumerWidget {
       children: [
         IconButton(
           tooltip: 'Notificações',
-          icon: const Icon(Icons.notifications_none),
-          onPressed: () => context.push('/notifications'),
+          icon: const Icon(Icons.notifications_none_rounded),
+          onPressed: () => context.go('/more/notifications'),
         ),
         if (unread > 0)
           Positioned(
