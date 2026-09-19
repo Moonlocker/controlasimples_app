@@ -7,6 +7,7 @@ import '../../models/recurring_charge.dart';
 import '../../repositories/charges_repository.dart';
 import '../../repositories/workspace_providers.dart';
 import '../../widgets/confirm_dialog.dart';
+import '../../widgets/status_badge.dart';
 import 'recurring_form_sheet.dart';
 
 Future<void> showRecurringListSheet(BuildContext context) {
@@ -204,49 +205,34 @@ class _RecurringTile extends ConsumerWidget {
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 8),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
             children: [
-              _Tag(
+              StatusPill(
                 label: item.active ? 'Ativa' : 'Pausada',
-                color: item.active
+                tone: item.active
                     ? AppColors.success
                     : AppColors.mutedForeground,
+                icon: item.active ? Icons.autorenew : Icons.pause,
+                compact: true,
               ),
-              const SizedBox(width: 8),
-              _Tag(
+              StatusPill(
                 label: '${item.frequency.label} · dia ${item.dueDay}',
-                color: AppColors.info,
+                tone: AppColors.info,
+                icon: Icons.event_repeat,
+                compact: true,
               ),
-              if (item.autoAsaas) ...[
-                const SizedBox(width: 8),
-                const _Tag(label: 'Asaas', color: AppColors.primary),
-              ],
+              if (item.autoAsaas)
+                const StatusPill(
+                  label: 'Asaas',
+                  tone: AppColors.primary,
+                  icon: Icons.receipt_outlined,
+                  compact: true,
+                ),
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _Tag extends StatelessWidget {
-  const _Tag({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelSmall
-            ?.copyWith(color: color, fontWeight: FontWeight.w700),
       ),
     );
   }

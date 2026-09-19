@@ -17,6 +17,7 @@ import '../../widgets/confirm_dialog.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/section_card.dart';
 import '../../widgets/stat_card.dart';
+import '../../widgets/status_badge.dart';
 import '../charges/charge_card.dart';
 import '../charges/charge_form_sheet.dart';
 import '../charges/recurring_form_sheet.dart';
@@ -124,29 +125,15 @@ class _ServiceHeader extends StatelessWidget {
   final Service service;
   final String clientName;
 
-  Color _statusColor() {
-    switch (service.status) {
-      case ServiceStatus.negociacao:
-        return AppColors.warning;
-      case ServiceStatus.andamento:
-        return AppColors.info;
-      case ServiceStatus.concluido:
-        return AppColors.success;
-      case ServiceStatus.cancelado:
-        return AppColors.mutedForeground;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final color = _statusColor();
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       child: Row(
         children: [
           CircleAvatar(
-            radius: 22,
+            radius: 24,
             backgroundColor: AppColors.primary.withValues(alpha: 0.12),
             child: const Icon(
               Icons.work_outline,
@@ -161,7 +148,7 @@ class _ServiceHeader extends StatelessWidget {
               children: [
                 Text(
                   clientName,
-                  style: textTheme.bodyMedium?.copyWith(
+                  style: textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
                   maxLines: 1,
@@ -176,19 +163,11 @@ class _ServiceHeader extends StatelessWidget {
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              service.status.label,
-              style: textTheme.labelSmall?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+          StatusPill(
+            label: service.status.label,
+            tone: serviceStatusTone(service.status),
+            icon: serviceStatusIcon(service.status),
+            compact: true,
           ),
         ],
       ),

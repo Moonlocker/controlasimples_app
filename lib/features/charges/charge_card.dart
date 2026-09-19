@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/enums.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/dates.dart';
 import '../../core/utils/derive.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/error_messages.dart';
@@ -63,16 +64,25 @@ void _showError(BuildContext context, Object error) {
 }
 
 class _MenuLabel extends StatelessWidget {
-  const _MenuLabel(this.label, {required this.locked});
+  const _MenuLabel(this.label, {required this.locked, this.icon, this.tone});
 
   final String label;
   final bool locked;
+  final IconData? icon;
+  final Color? tone;
 
   @override
   Widget build(BuildContext context) {
+    final color = tone ?? AppColors.foreground;
     return Row(
       children: [
-        Flexible(child: Text(label)),
+        if (icon != null) ...[
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 12),
+        ],
+        Flexible(
+          child: Text(label, style: TextStyle(color: color)),
+        ),
         if (locked) ...[
           const SizedBox(width: 8),
           const PlanLockBadge(size: 12),
@@ -100,101 +110,174 @@ class ChargeCard extends StatelessWidget {
   final VoidCallback? onToggle;
   final VoidCallback? onLongPress;
 
+  Color get _accent => switch (view.status) {
+    ChargeStatus.pago => AppColors.success,
+    ChargeStatus.pendente => AppColors.info,
+    ChargeStatus.atrasado => AppColors.danger,
+    ChargeStatus.cancelado => AppColors.mutedForeground,
+  };
+
+  (String, Color) _dueInfo() {
+    final days = daysBetween(today(), view.dueDate);
+    switch (view.status) {
+      case ChargeStatus.atrasado:
+        final late = -days;
+        return (
+          late <= 1 ? 'Atrasado há 1 dia' : 'Atrasado há $late dias',
+          AppColors.danger,
+        );
+      case ChargeStatus.pendente:
+        if (days == 0) return ('Vence hoje', AppColors.warning);
+        if (days == 1) return ('Vence amanhã', AppColors.warning);
+        return ('Vence ${formatDate(view.dueDate)}', AppColors.mutedForeground);
+      case ChargeStatus.pago:
+        return (
+          'Venceu ${formatDate(view.dueDate)}',
+          AppColors.mutedForeground,
+        );
+      case ChargeStatus.cancelado:
+        return (
+          'Vencia ${formatDate(view.dueDate)}',
+          AppColors.mutedForeground,
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final title = showClient
+        ? view.clientName
+        : (view.charge.recurringId != null
+              ? '${view.description} · recorrente'
+              : view.description);
+    final isRecurring = view.charge.recurringId != null;
+    final emitted = view.charge.asaasPaymentId != null;
+    final (dueText, dueColor) = _dueInfo();
+
     return GestureDetector(
       onLongPress: onLongPress,
       onTap: selectionMode ? onToggle : null,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: selected
-              ? AppColors.primary.withValues(alpha: 0.06)
-              : AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: selected ? AppColors.primary : AppColors.border,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          decoration: BoxDecoration(
+            color: selected
+                ? AppColors.primary.withValues(alpha: 0.06)
+                : AppColors.surface,
+            border: Border.all(
+              color: selected ? AppColors.primary : AppColors.border,
+            ),
           ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (selectionMode) ...[
-                  Checkbox(
-                    value: selected,
-                    onChanged: (_) => onToggle?.call(),
-                    visualDensity: VisualDensity.compact,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  const SizedBox(width: 6),
-                ],
+                Container(width: 4, color: _accent),
                 Expanded(
-                  child: Text(
-                    showClient
-                        ? view.clientName
-                        : (view.charge.recurringId != null
-                              ? '${view.description} · recorrente'
-                              : view.description),
-                    style: textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 12, 10, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (selectionMode) ...[
+                              Checkbox(
+                                value: selected,
+                                onChanged: (_) => onToggle?.call(),
+                                visualDensity: VisualDensity.compact,
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              const SizedBox(width: 4),
+                            ],
+                            Expanded(
+                              child: Text(
+                                title,
+                                style: textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              brl(view.amount),
+                              style: textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            if (!selectionMode)
+                              ChargeActionsButton(charge: view.charge),
+                          ],
+                        ),
+                        if (showClient) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            view.description,
+                            style: textTheme.bodySmall?.copyWith(
+                              color: AppColors.mutedForeground,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                        if (isRecurring || emitted) ...[
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              if (isRecurring)
+                                const StatusPill(
+                                  label: 'Recorrente',
+                                  tone: AppColors.primary,
+                                  icon: Icons.autorenew,
+                                  compact: true,
+                                ),
+                              if (emitted)
+                                const StatusPill(
+                                  label: 'Asaas',
+                                  tone: AppColors.info,
+                                  icon: Icons.receipt_outlined,
+                                  compact: true,
+                                ),
+                            ],
+                          ),
+                        ],
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            StatusBadge(status: view.status, compact: true),
+                            const Spacer(),
+                            Icon(
+                              Icons.event_outlined,
+                              size: 14,
+                              color: dueColor,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              dueText,
+                              style: textTheme.bodySmall?.copyWith(
+                                color: dueColor,
+                                fontWeight:
+                                    dueColor == AppColors.mutedForeground
+                                    ? FontWeight.w500
+                                    : FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                Text(
-                  brl(view.amount),
-                  style: textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                if (!selectionMode) ChargeActionsButton(charge: view.charge),
               ],
             ),
-            if (showClient) ...[
-              const SizedBox(height: 3),
-              Text(
-                view.charge.recurringId != null
-                    ? '${view.description} · recorrente'
-                    : view.description,
-                style: textTheme.bodySmall?.copyWith(
-                  color: AppColors.mutedForeground,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Icon(
-                  Icons.event_outlined,
-                  size: 14,
-                  color: AppColors.mutedForeground,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  'Vence ${formatDate(view.dueDate)}',
-                  style: textTheme.bodySmall?.copyWith(
-                    color: AppColors.mutedForeground,
-                  ),
-                ),
-                if (view.charge.asaasPaymentId != null) ...[
-                  const SizedBox(width: 8),
-                  const Icon(
-                    Icons.receipt_outlined,
-                    size: 14,
-                    color: AppColors.info,
-                  ),
-                ],
-                const Spacer(),
-                StatusBadge(status: view.status),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -223,18 +306,24 @@ class ChargeActionsButton extends ConsumerWidget {
         size: 20,
         color: AppColors.mutedForeground,
       ),
+      tooltip: 'Ações da cobrança',
       onSelected: (value) => _handle(context, ref, value),
       itemBuilder: (context) => [
         if (isOpen && !emitted)
           PopupMenuItem(
             value: 'emit',
-            child: _MenuLabel('Emitir no Asaas', locked: !canUseAsaas),
+            child: _MenuLabel(
+              'Emitir no Asaas',
+              icon: Icons.bolt_outlined,
+              locked: !canUseAsaas,
+            ),
           ),
         if (emitted)
           PopupMenuItem(
             value: 'files',
             child: _MenuLabel(
-              'Ver pagamento (Pix/boleto)',
+              'Ver Pix/boleto',
+              icon: Icons.qr_code_2_outlined,
               locked: !canUseAsaas,
             ),
           ),
@@ -242,30 +331,68 @@ class ChargeActionsButton extends ConsumerWidget {
           PopupMenuItem(
             value: 'sync',
             child: _MenuLabel(
-              'Atualizar status no Asaas',
+              'Atualizar status',
+              icon: Icons.sync,
               locked: !canUseAsaas,
             ),
           ),
         if (isOpen)
           PopupMenuItem(
             value: 'whatsapp',
-            child: _MenuLabel('Enviar WhatsApp', locked: !canUseWhatsapp),
+            child: _MenuLabel(
+              'Enviar WhatsApp',
+              icon: Icons.chat_outlined,
+              locked: !canUseWhatsapp,
+            ),
           ),
-        if (isOpen) const PopupMenuDivider(),
+        if (isOpen || emitted) const PopupMenuDivider(),
         if (isOpen)
           const PopupMenuItem(
             value: 'pay',
-            child: Text('Registrar recebimento'),
+            child: _MenuLabel(
+              'Registrar recebimento',
+              icon: Icons.check_circle_outline,
+              locked: false,
+            ),
           ),
-        if (isOpen) const PopupMenuItem(value: 'edit', child: Text('Editar')),
-        if (isPaid)
-          const PopupMenuItem(value: 'reopen', child: Text('Reabrir cobrança')),
         if (isOpen)
           const PopupMenuItem(
-            value: 'cancel',
-            child: Text('Cancelar cobrança'),
+            value: 'edit',
+            child: _MenuLabel(
+              'Editar',
+              icon: Icons.edit_outlined,
+              locked: false,
+            ),
           ),
-        const PopupMenuItem(value: 'delete', child: Text('Excluir')),
+        if (isPaid)
+          const PopupMenuItem(
+            value: 'reopen',
+            child: _MenuLabel(
+              'Reabrir cobrança',
+              icon: Icons.undo,
+              locked: false,
+            ),
+          ),
+        const PopupMenuDivider(),
+        if (isOpen)
+          PopupMenuItem(
+            value: 'cancel',
+            child: _MenuLabel(
+              'Cancelar cobrança',
+              icon: Icons.block,
+              locked: false,
+              tone: AppColors.danger,
+            ),
+          ),
+        PopupMenuItem(
+          value: 'delete',
+          child: _MenuLabel(
+            'Excluir',
+            icon: Icons.delete_outline,
+            locked: false,
+            tone: AppColors.danger,
+          ),
+        ),
       ],
     );
   }

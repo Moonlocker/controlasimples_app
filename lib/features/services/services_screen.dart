@@ -11,9 +11,12 @@ import '../../models/workspace.dart';
 import '../../repositories/services_repository.dart';
 import '../../repositories/workspace_providers.dart';
 import '../../widgets/async_error_view.dart';
+import '../../widgets/brand_logo.dart';
 import '../../widgets/confirm_dialog.dart';
-import '../../widgets/count_badge.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/filter_pill.dart';
+import '../../widgets/screen_header.dart';
+import '../../widgets/status_badge.dart';
 import 'service_form_sheet.dart';
 
 class ServicesScreen extends ConsumerStatefulWidget {
@@ -32,117 +35,131 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
     final workspaceAsync = ref.watch(workspaceProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Serviços')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => showServiceForm(context),
         icon: const Icon(Icons.add),
         label: const Text('Novo serviço'),
       ),
-      body: workspaceAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => AsyncErrorView(
-          error: error,
-          onRetry: () => ref.invalidate(workspaceProvider),
-        ),
-        data: (workspace) {
-          final query = _query.trim().toLowerCase();
-          final baseServices = workspace.services.where((service) {
-            if (query.isEmpty) return true;
-            return service.name.toLowerCase().contains(query) ||
-                workspace
-                    .clientName(service.clientId)
-                    .toLowerCase()
-                    .contains(query);
-          }).toList();
-          final statusCounts = <ServiceStatus, int>{};
-          for (final service in baseServices) {
-            statusCounts.update(
-              service.status,
-              (count) => count + 1,
-              ifAbsent: () => 1,
-            );
-          }
-          final services = baseServices
-              .where((service) => _status == null || service.status == _status)
-              .toList();
-          final stats = _stats(workspace);
+      body: SafeArea(
+        child: workspaceAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) => AsyncErrorView(
+            error: error,
+            onRetry: () => ref.invalidate(workspaceProvider),
+          ),
+          data: (workspace) {
+            final query = _query.trim().toLowerCase();
+            final baseServices = workspace.services.where((service) {
+              if (query.isEmpty) return true;
+              return service.name.toLowerCase().contains(query) ||
+                  workspace
+                      .clientName(service.clientId)
+                      .toLowerCase()
+                      .contains(query);
+            }).toList();
+            final statusCounts = <ServiceStatus, int>{};
+            for (final service in baseServices) {
+              statusCounts.update(
+                service.status,
+                (count) => count + 1,
+                ifAbsent: () => 1,
+              );
+            }
+            final services = baseServices
+                .where(
+                  (service) => _status == null || service.status == _status,
+                )
+                .toList();
+            final stats = _stats(workspace);
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                child: TextField(
-                  onChanged: (value) => setState(() => _query = value),
-                  decoration: const InputDecoration(
-                    hintText: 'Buscar por serviço ou cliente',
-                    prefixIcon: Icon(Icons.search),
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: ScreenHeader(
+                    title: 'Serviços',
+                    description: 'Projetos e contratos que geram cobranças.',
+                    leading: BrandBadge(),
                   ),
                 ),
-              ),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    _Pill(
-                      label: 'Todos',
-                      selected: _status == null,
-                      count: baseServices.length,
-                      onTap: () => setState(() => _status = null),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: TextField(
+                    onChanged: (value) => setState(() => _query = value),
+                    decoration: const InputDecoration(
+                      hintText: 'Buscar por serviço ou cliente',
+                      prefixIcon: Icon(Icons.search),
                     ),
-                    for (final status in ServiceStatus.values)
-                      _Pill(
-                        label: status.label,
-                        selected: _status == status,
-                        count: statusCounts[status] ?? 0,
-                        onTap: () => setState(() => _status = status),
-                      ),
-                  ],
+                  ),
                 ),
-              ),
-              Expanded(
-                child: services.isEmpty
-                    ? const EmptyState(
-                        icon: Icons.work_outline,
-                        title: 'Nenhum serviço encontrado',
-                        description:
-                            'Ajuste os filtros ou cadastre um novo serviço.',
-                      )
-                    : RefreshIndicator(
-                        onRefresh: () async {
-                          ref.invalidate(workspaceProvider);
-                          try {
-                            await ref.read(workspaceProvider.future);
-                          } catch (_) {}
-                        },
-                        child: ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
-                          itemCount: services.length,
-                          separatorBuilder: (_, _) =>
-                              const SizedBox(height: 10),
-                          itemBuilder: (context, index) {
-                            final service = services[index];
-                            return _ServiceTile(
-                              service: service,
-                              clientName: workspace.clientName(
-                                service.clientId,
-                              ),
-                              stats: stats[service.id] ?? _ServiceStats(),
-                              onTap: () =>
-                                  context.push('/services/${service.id}'),
-                              onDuplicate: () => showServiceForm(
-                                context,
-                                duplicateFrom: service,
-                              ),
-                            );
-                          },
-                        ),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      FilterPill(
+                        label: 'Todos',
+                        selected: _status == null,
+                        count: baseServices.length,
+                        icon: Icons.all_inclusive,
+                        onTap: () => setState(() => _status = null),
                       ),
-              ),
-            ],
-          );
-        },
+                      for (final status in ServiceStatus.values)
+                        FilterPill(
+                          label: status.label,
+                          selected: _status == status,
+                          tone: serviceStatusTone(status),
+                          icon: serviceStatusIcon(status),
+                          count: statusCounts[status] ?? 0,
+                          onTap: () => setState(() => _status = status),
+                        ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: services.isEmpty
+                      ? const EmptyState(
+                          icon: Icons.work_outline,
+                          title: 'Nenhum serviço encontrado',
+                          description:
+                              'Ajuste os filtros ou cadastre um novo serviço.',
+                        )
+                      : RefreshIndicator(
+                          onRefresh: () async {
+                            ref.invalidate(workspaceProvider);
+                            try {
+                              await ref.read(workspaceProvider.future);
+                            } catch (_) {}
+                          },
+                          child: ListView.separated(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+                            itemCount: services.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 10),
+                            itemBuilder: (context, index) {
+                              final service = services[index];
+                              return _ServiceTile(
+                                service: service,
+                                clientName: workspace.clientName(
+                                  service.clientId,
+                                ),
+                                stats: stats[service.id] ?? _ServiceStats(),
+                                onTap: () =>
+                                    context.push('/services/${service.id}'),
+                                onDuplicate: () => showServiceForm(
+                                  context,
+                                  duplicateFrom: service,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -196,23 +213,11 @@ class _ServiceTile extends ConsumerWidget {
   final VoidCallback onTap;
   final VoidCallback onDuplicate;
 
-  Color _statusColor() {
-    switch (service.status) {
-      case ServiceStatus.negociacao:
-        return AppColors.warning;
-      case ServiceStatus.andamento:
-        return AppColors.info;
-      case ServiceStatus.concluido:
-        return AppColors.success;
-      case ServiceStatus.cancelado:
-        return AppColors.mutedForeground;
-    }
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
     final isRecurring = service.billingType != ServiceBilling.unico;
+    final statusTone = serviceStatusTone(service.status);
     final progress = !isRecurring && service.amount > 0
         ? (stats.received / service.amount).clamp(0.0, 1.0)
         : 0.0;
@@ -309,22 +314,11 @@ class _ServiceTile extends ConsumerWidget {
             const SizedBox(height: 10),
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _statusColor().withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    service.status.label,
-                    style: textTheme.labelSmall?.copyWith(
-                      color: _statusColor(),
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                StatusPill(
+                  label: service.status.label,
+                  tone: statusTone,
+                  icon: serviceStatusIcon(service.status),
+                  compact: true,
                 ),
                 const Spacer(),
                 Text(
@@ -366,45 +360,6 @@ class _ServiceTile extends ConsumerWidget {
             ],
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _Pill extends StatelessWidget {
-  const _Pill({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    this.count = 0,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: ChoiceChip(
-        label: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(label),
-            CountBadge(count: count, selected: selected),
-          ],
-        ),
-        selected: selected,
-        onSelected: (_) => onTap(),
-        showCheckmark: false,
-        labelStyle: Theme.of(context).textTheme.labelMedium?.copyWith(
-          color: selected ? AppColors.primary : AppColors.mutedForeground,
-          fontWeight: FontWeight.w600,
-        ),
-        selectedColor: AppColors.primary.withValues(alpha: 0.12),
-        backgroundColor: AppColors.muted,
       ),
     );
   }

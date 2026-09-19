@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/constants/enums.dart';
 import '../core/theme/app_colors.dart';
 import '../core/utils/formatters.dart';
+import 'status_badge.dart';
 
 class RecordRow {
   const RecordRow({
@@ -194,6 +195,9 @@ class _RecordTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final badgeTone = row.status == null
+        ? AppColors.mutedForeground
+        : StatusBadge.styleFor(row.status!).$1;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -268,15 +272,11 @@ class _RecordTile extends StatelessWidget {
                 ),
               ),
               if (row.badgeLabel != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  row.badgeLabel!,
-                  style: textTheme.labelSmall?.copyWith(
-                    color: row.status == ChargeStatus.atrasado
-                        ? AppColors.danger
-                        : AppColors.mutedForeground,
-                    fontWeight: FontWeight.w700,
-                  ),
+                const SizedBox(height: 6),
+                StatusPill(
+                  label: row.badgeLabel!,
+                  tone: badgeTone,
+                  compact: true,
                 ),
               ],
             ],

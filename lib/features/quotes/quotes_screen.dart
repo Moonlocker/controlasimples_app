@@ -11,6 +11,7 @@ import '../../repositories/workspace_providers.dart';
 import '../../widgets/async_error_view.dart';
 import '../../widgets/confirm_dialog.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/status_badge.dart';
 import 'business_form_sheet.dart';
 import 'quote_pdf.dart';
 import 'quotes_providers.dart';
@@ -97,19 +98,6 @@ class _QuoteTile extends ConsumerWidget {
   final VoidCallback onTap;
   final VoidCallback onPdf;
   final VoidCallback onChanged;
-
-  Color _statusColor() {
-    switch (quote.status) {
-      case QuoteStatus.rascunho:
-        return AppColors.mutedForeground;
-      case QuoteStatus.enviado:
-        return AppColors.info;
-      case QuoteStatus.aprovado:
-        return AppColors.success;
-      case QuoteStatus.recusado:
-        return AppColors.danger;
-    }
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -208,22 +196,11 @@ class _QuoteTile extends ConsumerWidget {
             const SizedBox(height: 10),
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _statusColor().withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    quote.status.label,
-                    style: textTheme.labelSmall?.copyWith(
-                      color: _statusColor(),
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                StatusPill(
+                  label: quote.status.label,
+                  tone: quoteStatusTone(quote.status),
+                  icon: quoteStatusIcon(quote.status),
+                  compact: true,
                 ),
                 const Spacer(),
                 Text(

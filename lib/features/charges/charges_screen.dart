@@ -12,12 +12,16 @@ import '../../repositories/asaas_repository.dart';
 import '../../repositories/charges_repository.dart';
 import '../../repositories/workspace_providers.dart';
 import '../../widgets/async_error_view.dart';
+import '../../widgets/brand_logo.dart';
 import '../../widgets/confirm_dialog.dart';
-import '../../widgets/count_badge.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/filter_combobox.dart';
+import '../../widgets/filter_pill.dart';
+import '../../widgets/metric_strip.dart';
 import '../../widgets/period_filter.dart';
 import '../../widgets/plan_access.dart';
+import '../../widgets/screen_header.dart';
+import '../../widgets/status_badge.dart';
 import '../auth/auth_providers.dart';
 import 'charge_card.dart';
 import 'charge_config_sheets.dart';
@@ -204,58 +208,9 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
   Widget build(BuildContext context) {
     final workspaceAsync = ref.watch(workspaceProvider);
     final workspace = workspaceAsync.value;
-    final canUseAsaas = workspace?.canUseAsaas ?? true;
-    final canUseWhatsapp = workspace?.canUseWhatsapp ?? true;
     final chargesLocked = workspace?.chargesLimitReached ?? false;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          _selected.isEmpty
-              ? 'Cobranças'
-              : '${_selected.length} selecionada(s)',
-        ),
-        actions: _selected.isEmpty
-            ? [
-                PlanGatedIconButton(
-                  tooltip: 'Configurar Asaas',
-                  icon: Icons.account_balance_outlined,
-                  allowed: canUseAsaas,
-                  feature: 'Integração Asaas',
-                  onPressed: () => showAsaasConfigSheet(context),
-                ),
-                PlanGatedIconButton(
-                  tooltip: 'Notificações do cliente',
-                  icon: Icons.notifications_active_outlined,
-                  allowed: canUseWhatsapp,
-                  feature: 'Notificações por WhatsApp',
-                  onPressed: () => showNotificationPreferencesSheet(context),
-                ),
-              ]
-            : [
-                IconButton(
-                  tooltip: 'Selecionar todas',
-                  icon: const Icon(Icons.done_all),
-                  onPressed: () {
-                    final workspace = workspaceAsync.value;
-                    if (workspace == null) return;
-                    final views = chargeViews(workspace)
-                        .where(
-                          (view) =>
-                              _range == null || _range!.contains(view.dueDate),
-                        )
-                        .where(_matches)
-                        .toList();
-                    _selectAll(views);
-                  },
-                ),
-                IconButton(
-                  tooltip: 'Limpar seleção',
-                  icon: const Icon(Icons.close),
-                  onPressed: _clearSelection,
-                ),
-              ],
-      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: chargesLocked
             ? () => showPlanLockedDialog(
@@ -270,7 +225,6 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
         label: Text(chargesLocked ? 'Limite do plano' : 'Nova cobrança'),
       ),
       body: SafeArea(
-        top: false,
         child: workspaceAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, _) => AsyncErrorView(
@@ -349,9 +303,74 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
             }
             final totalCount = baseForCounts.length + pending.length;
 
+            final openTotal = views
+                .where(
+                  (view) =>
+                      view.status == ChargeStatus.pendente ||
+                      view.status == ChargeStatus.atrasado,
+                )
+                .fold<double>(0, (sum, view) => sum + view.amount);
+            final overdueTotal = views
+                .where((view) => view.status == ChargeStatus.atrasado)
+                .fold<double>(0, (sum, view) => sum + view.amount);
+            final receivedTotal = workspace.payments
+                .where((p) => _range == null || _range!.contains(p.paidAt))
+                .fold<double>(0, (sum, p) => sum + p.amount);
+
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: _selected.isEmpty
+                      ? ScreenHeader(
+                          title: 'Cobranças',
+                          description:
+                              'Acompanhe, cobre e receba em um só lugar.',
+                          leading: const BrandBadge(),
+                          action: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              PlanGatedIconButton(
+                                tooltip: 'Configurar Asaas',
+                                icon: Icons.account_balance_outlined,
+                                allowed: workspace.canUseAsaas,
+                                feature: 'Integração Asaas',
+                                onPressed: () => showAsaasConfigSheet(context),
+                              ),
+                              PlanGatedIconButton(
+                                tooltip: 'Notificações do cliente',
+                                icon: Icons.notifications_active_outlined,
+                                allowed: workspace.canUseWhatsapp,
+                                feature: 'Notificações por WhatsApp',
+                                onPressed: () =>
+                                    showNotificationPreferencesSheet(context),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${_selected.length} selecionada(s)',
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: 'Selecionar todas',
+                              icon: const Icon(Icons.done_all),
+                              onPressed: () => _selectAll(views),
+                            ),
+                            IconButton(
+                              tooltip: 'Limpar seleção',
+                              icon: const Icon(Icons.close),
+                              onPressed: _clearSelection,
+                            ),
+                          ],
+                        ),
+                ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                   child: PeriodBar(
@@ -359,7 +378,34 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
                     onChanged: (value) => setState(() => _range = value),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: MetricStrip(
+                    items: [
+                      MetricItem(
+                        label: 'Em aberto',
+                        value: brl(openTotal),
+                        tone: AppColors.info,
+                        icon: Icons.schedule_outlined,
+                        hint: '${views.length} cobranças',
+                      ),
+                      MetricItem(
+                        label: 'Atrasado',
+                        value: brl(overdueTotal),
+                        tone: AppColors.danger,
+                        icon: Icons.warning_amber_outlined,
+                      ),
+                      MetricItem(
+                        label: 'Recebido',
+                        value: brl(receivedTotal),
+                        tone: AppColors.success,
+                        icon: Icons.account_balance_wallet_outlined,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
@@ -402,10 +448,11 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
                           scrollDirection: Axis.horizontal,
                           child: Row(
                             children: [
-                              _Pill(
+                              FilterPill(
                                 label: 'Todas',
                                 selected: _status == null,
                                 count: totalCount,
+                                icon: Icons.all_inclusive,
                                 onTap: () => setState(() => _status = null),
                               ),
                               for (final status in [
@@ -414,9 +461,11 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
                                 ChargeStatus.pago,
                                 ChargeStatus.cancelado,
                               ])
-                                _Pill(
+                                FilterPill(
                                   label: status.label,
                                   selected: _status == status,
+                                  tone: StatusBadge.styleFor(status).$1,
+                                  icon: StatusBadge.styleFor(status).$2,
                                   count:
                                       (statusCounts[status] ?? 0) +
                                       (status == ChargeStatus.pendente
@@ -656,118 +705,89 @@ class _PendingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.info.withValues(alpha: 0.4)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          border: Border.all(color: AppColors.info.withValues(alpha: 0.4)),
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Container(width: 4, color: AppColors.info),
               Expanded(
-                child: Text(
-                  occurrence.clientName,
-                  style: textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 10, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              occurrence.clientName,
+                              style: textTheme.bodyLarge?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            brl(occurrence.amount),
+                            style: textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        occurrence.description,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: AppColors.mutedForeground,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          const StatusPill(
+                            label: 'Não gerada',
+                            tone: AppColors.mutedForeground,
+                            icon: Icons.autorenew,
+                            compact: true,
+                          ),
+                          const Spacer(),
+                          const Icon(
+                            Icons.event_outlined,
+                            size: 14,
+                            color: AppColors.mutedForeground,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Vence ${formatDate(occurrence.dueDate)}',
+                            style: textTheme.bodySmall?.copyWith(
+                              color: AppColors.mutedForeground,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: onGenerate,
+                            child: const Text('Gerar'),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Text(
-                brl(occurrence.amount),
-                style: textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 3),
-          Text(
-            occurrence.description,
-            style: textTheme.bodySmall?.copyWith(
-              color: AppColors.mutedForeground,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Icon(
-                Icons.event_outlined,
-                size: 14,
-                color: AppColors.mutedForeground,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                'Vence ${formatDate(occurrence.dueDate)}',
-                style: textTheme.bodySmall?.copyWith(
-                  color: AppColors.mutedForeground,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.muted,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  'Não gerada',
-                  style: textTheme.labelSmall?.copyWith(
-                    color: AppColors.mutedForeground,
-                  ),
-                ),
-              ),
-              TextButton(onPressed: onGenerate, child: const Text('Gerar')),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Pill extends StatelessWidget {
-  const _Pill({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    this.count = 0,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: ChoiceChip(
-        label: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(label),
-            CountBadge(count: count, selected: selected),
-          ],
         ),
-        selected: selected,
-        onSelected: (_) => onTap(),
-        showCheckmark: false,
-        visualDensity: VisualDensity.compact,
-        labelStyle: Theme.of(context).textTheme.labelMedium?.copyWith(
-          color: selected ? AppColors.primary : AppColors.mutedForeground,
-          fontWeight: FontWeight.w600,
-        ),
-        selectedColor: AppColors.primary.withValues(alpha: 0.12),
-        backgroundColor: AppColors.muted,
       ),
     );
   }

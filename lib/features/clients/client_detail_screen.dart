@@ -24,11 +24,13 @@ import '../../widgets/breakdown_charts.dart';
 import '../../widgets/confirm_dialog.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/filter_combobox.dart';
+import '../../widgets/metric_strip.dart';
 import '../../widgets/period_filter.dart';
 import '../../widgets/records_sheet.dart';
 import '../../widgets/revenue_chart.dart';
 import '../../widgets/section_card.dart';
 import '../../widgets/stat_card.dart';
+import '../../widgets/status_badge.dart';
 import '../../widgets/whatsapp_icon.dart';
 import '../charges/charge_card.dart';
 import '../charges/charge_form_sheet.dart';
@@ -76,6 +78,21 @@ class ClientDetailScreen extends ConsumerWidget {
             .where((item) => item.clientId == client.id)
             .toList();
 
+        final clientChargeIds = views.map((view) => view.id).toSet();
+        final openTotal = views
+            .where(
+              (view) =>
+                  view.status == ChargeStatus.pendente ||
+                  view.status == ChargeStatus.atrasado,
+            )
+            .fold<double>(0, (sum, view) => sum + view.amount);
+        final overdueTotal = views
+            .where((view) => view.status == ChargeStatus.atrasado)
+            .fold<double>(0, (sum, view) => sum + view.amount);
+        final receivedTotal = workspace.payments
+            .where((payment) => clientChargeIds.contains(payment.chargeId))
+            .fold<double>(0, (sum, payment) => sum + payment.amount);
+
         return DefaultTabController(
           length: 4,
           child: Scaffold(
@@ -97,7 +114,13 @@ class ClientDetailScreen extends ConsumerWidget {
             ),
             body: Column(
               children: [
-                _ClientHeader(client: client),
+                _ClientHeader(
+                  client: client,
+                  openTotal: openTotal,
+                  overdueTotal: overdueTotal,
+                  receivedTotal: receivedTotal,
+                  chargesCount: views.length,
+                ),
                 const TabBar(
                   isScrollable: true,
                   tabAlignment: TabAlignment.start,
@@ -170,83 +193,167 @@ class _ClientMenu extends ConsumerWidget {
 }
 
 class _ClientHeader extends ConsumerWidget {
-  const _ClientHeader({required this.client});
+  const _ClientHeader({
+    required this.client,
+    required this.openTotal,
+    required this.overdueTotal,
+    required this.receivedTotal,
+    required this.chargesCount,
+  });
 
   final Client client;
+  final double openTotal;
+  final double overdueTotal;
+  final double receivedTotal;
+  final int chargesCount;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
+    final hasPhone = client.phone != null && client.phone!.isNotEmpty;
+    final hasEmail = client.email != null && client.email!.isNotEmpty;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: AppColors.primary.withValues(alpha: 0.12),
-            child: Text(
-              initials(client.name),
-              style: textTheme.labelLarge?.copyWith(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w700,
-              ),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  client.phone ?? client.email ?? 'Sem contato',
-                  style: textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 24,
+                      backgroundColor: AppColors.primary.withValues(
+                        alpha: 0.12,
+                      ),
+                      child: Text(
+                        initials(client.name),
+                        style: textTheme.titleMedium?.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            hasPhone
+                                ? client.phone!
+                                : (hasEmail ? client.email! : 'Sem contato'),
+                            style: textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (hasPhone && hasEmail)
+                            Text(
+                              client.email!,
+                              style: textTheme.bodySmall?.copyWith(
+                                color: AppColors.mutedForeground,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                        ],
+                      ),
+                    ),
+                    if (hasPhone)
+                      IconButton(
+                        tooltip: 'Verificar WhatsApp',
+                        icon: const Icon(
+                          Icons.verified_rounded,
+                          color: AppColors.info,
+                        ),
+                        onPressed: () => _checkWhatsapp(context, ref),
+                      ),
+                    if (hasPhone)
+                      IconButton(
+                        tooltip: 'Abrir no WhatsApp',
+                        onPressed: () {
+                          final digits = client.phone!.replaceAll(
+                            RegExp(r'[^0-9]'),
+                            '',
+                          );
+                          final number = digits.length <= 11
+                              ? '55$digits'
+                              : digits;
+                          launchUrl(Uri.parse('https://wa.me/$number'));
+                        },
+                        icon: const WhatsAppIcon(size: 22),
+                        style: IconButton.styleFrom(
+                          backgroundColor: const Color(0xFF25D366)
+                              .withValues(alpha: 0.12),
+                        ),
+                      ),
+                  ],
                 ),
-                if (client.phone != null && client.email != null)
-                  Text(
-                    client.email!,
-                    style: textTheme.bodySmall?.copyWith(
-                      color: AppColors.mutedForeground,
-                    ),
-                  ),
-                if (!client.active)
-                  Text(
-                    'Cliente inativo',
-                    style: textTheme.bodySmall?.copyWith(
-                      color: AppColors.danger,
-                    ),
-                  ),
-                if (client.whatsappValid == true)
-                  Text(
-                    'WhatsApp confirmado',
-                    style: textTheme.bodySmall?.copyWith(
-                      color: AppColors.success,
-                    ),
-                  ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    if (client.active)
+                      const StatusPill(
+                        label: 'Ativo',
+                        tone: AppColors.success,
+                        icon: Icons.check_circle_outline,
+                        compact: true,
+                      )
+                    else
+                      const StatusPill(
+                        label: 'Inativo',
+                        tone: AppColors.danger,
+                        icon: Icons.block,
+                        compact: true,
+                      ),
+                    if (client.whatsappValid == true)
+                      const StatusPill(
+                        label: 'WhatsApp confirmado',
+                        tone: AppColors.success,
+                        icon: Icons.verified_outlined,
+                        compact: true,
+                      ),
+                  ],
+                ),
               ],
             ),
           ),
-          if (client.phone != null) ...[
-            IconButton(
-              tooltip: 'Verificar WhatsApp',
-              icon: const Icon(Icons.verified_rounded, color: AppColors.info),
-              onPressed: () => _checkWhatsapp(context, ref),
-            ),
-            IconButton(
-              tooltip: 'Abrir no WhatsApp',
-              onPressed: () {
-                final digits = client.phone!.replaceAll(RegExp(r'[^0-9]'), '');
-                final number = digits.length <= 11 ? '55$digits' : digits;
-                launchUrl(Uri.parse('https://wa.me/$number'));
-              },
-              icon: const WhatsAppIcon(size: 22),
-              style: IconButton.styleFrom(
-                backgroundColor: const Color(0xFF25D366)
-                    .withValues(alpha: 0.12),
+          const SizedBox(height: 12),
+          MetricStrip(
+            items: [
+              MetricItem(
+                label: 'Em aberto',
+                value: brl(openTotal),
+                tone: AppColors.info,
+                icon: Icons.schedule_outlined,
+                hint: '$chargesCount cobranças',
               ),
-            ),
-          ],
+              MetricItem(
+                label: 'Atrasado',
+                value: brl(overdueTotal),
+                tone: AppColors.danger,
+                icon: Icons.warning_amber_outlined,
+              ),
+              MetricItem(
+                label: 'Recebido',
+                value: brl(receivedTotal),
+                tone: AppColors.success,
+                icon: Icons.account_balance_wallet_outlined,
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -347,7 +454,8 @@ class _ServicesTab extends StatelessWidget {
             name: service.name,
             subtitle: service.billingType.label,
             amount: service.amount,
-            status: service.status.label,
+            statusLabel: service.status.label,
+            statusTone: serviceStatusTone(service.status),
             onTap: () => context.push('/services/${service.id}'),
           ),
           const SizedBox(height: 10),
@@ -357,7 +465,10 @@ class _ServicesTab extends StatelessWidget {
             name: item.description,
             subtitle: 'Recorrente · ${item.frequency.label}',
             amount: item.amount,
-            status: item.active ? 'Ativa' : 'Pausada',
+            statusLabel: item.active ? 'Ativa' : 'Pausada',
+            statusTone: item.active
+                ? AppColors.success
+                : AppColors.mutedForeground,
             onTap: () => showRecurringForm(context, recurring: item),
           ),
           const SizedBox(height: 10),
@@ -372,14 +483,16 @@ class _ServiceRow extends StatelessWidget {
     required this.name,
     required this.subtitle,
     required this.amount,
-    required this.status,
+    required this.statusLabel,
+    required this.statusTone,
     required this.onTap,
   });
 
   final String name;
   final String subtitle;
   final double amount;
-  final String status;
+  final String statusLabel;
+  final Color statusTone;
   final VoidCallback onTap;
 
   @override
@@ -389,7 +502,7 @@ class _ServiceRow extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(16),
@@ -411,19 +524,33 @@ class _ServiceRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '$subtitle · $status',
+                    subtitle,
                     style: textTheme.bodySmall?.copyWith(
                       color: AppColors.mutedForeground,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-            Text(
-              brl(amount),
-              style: textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  brl(amount),
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                StatusPill(label: statusLabel, tone: statusTone, compact: true),
+              ],
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.mutedForeground,
             ),
           ],
         ),
@@ -831,7 +958,7 @@ class _NotificationTile extends StatelessWidget {
                   ),
                 ),
               ),
-              _Pill(
+              StatusPill(
                 label: notification.deliveryLabel,
                 tone: failed
                     ? AppColors.danger
@@ -839,6 +966,7 @@ class _NotificationTile extends StatelessWidget {
                           notification.readAt != null
                     ? AppColors.success
                     : AppColors.warning,
+                compact: true,
               ),
             ],
           ),
@@ -866,29 +994,6 @@ class _NotificationTile extends StatelessWidget {
               style: textTheme.labelSmall?.copyWith(color: AppColors.danger),
             ),
         ],
-      ),
-    );
-  }
-}
-
-class _Pill extends StatelessWidget {
-  const _Pill({required this.label, required this.tone});
-
-  final String label;
-  final Color tone;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: tone.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelSmall
-            ?.copyWith(color: tone, fontWeight: FontWeight.w700),
       ),
     );
   }
