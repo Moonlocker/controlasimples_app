@@ -19,6 +19,9 @@ class LocalNotifications {
   static const String _channelDescription =
       'Pagamentos recebidos, cobranças atrasadas e vencimentos próximos.';
 
+  /// Ícone monocromático (marca do Controla Simples) usado na barra de status.
+  static const String _icon = '@drawable/ic_stat_notification';
+
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
   final StreamController<String?> _taps = StreamController<String?>.broadcast();
@@ -31,7 +34,7 @@ class LocalNotifications {
 
   Future<void> init() async {
     if (_initialized) return;
-    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const android = AndroidInitializationSettings(_icon);
     const darwin = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
@@ -107,6 +110,7 @@ class LocalNotifications {
         _channelId,
         _channelName,
         channelDescription: _channelDescription,
+        icon: _icon,
         importance: Importance.high,
         priority: Priority.high,
         styleInformation: body == null ? null : BigTextStyleInformation(body),
