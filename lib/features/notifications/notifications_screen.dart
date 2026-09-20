@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/derive.dart';
 import '../../models/notification.dart';
+import '../../services/local_notifications.dart';
 import '../../widgets/empty_state.dart';
 import 'notifications_providers.dart';
 
@@ -24,6 +25,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       if (ids.isNotEmpty) {
         ref.read(readNotificationIdsProvider.notifier).markAllRead(ids);
       }
+      // Ao abrir a central, some com os avisos do sistema já vistos.
+      LocalNotifications.instance.cancelAll();
     });
   }
 
@@ -44,6 +47,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 ref
                     .read(dismissedNotificationIdsProvider.notifier)
                     .dismiss(ids);
+                LocalNotifications.instance.cancelAll();
               },
             ),
         ],

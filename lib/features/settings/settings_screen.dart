@@ -21,11 +21,13 @@ import '../../repositories/profile_repository.dart';
 import '../../repositories/subscription_repository.dart';
 import '../../repositories/whatsapp_repository.dart';
 import '../../repositories/workspace_providers.dart';
+import '../../services/local_notifications.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/app_form_sheet.dart';
 import '../../widgets/async_error_view.dart';
 import '../../widgets/plan_access.dart';
 import '../auth/auth_providers.dart';
+import '../notifications/notification_delivery.dart';
 import '../quotes/business_form_sheet.dart';
 import '../quotes/quotes_providers.dart';
 import '../subscription/subscription_flow.dart';
@@ -74,6 +76,8 @@ class SettingsScreen extends ConsumerWidget {
               const _WhatsappSection(),
               const SizedBox(height: 16),
               const _NotificationsSection(),
+              const SizedBox(height: 16),
+              const _DeviceNotificationsSection(),
               const SizedBox(height: 16),
               const _BusinessSection(),
               const SizedBox(height: 16),
@@ -1166,6 +1170,88 @@ class _NotificationsSectionState extends ConsumerState<_NotificationsSection> {
                     : const Text('Salvar preferências'),
               ),
             ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _DeviceNotificationsSection extends ConsumerWidget {
+  const _DeviceNotificationsSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(localNotificationPreferencesProvider);
+    return async.when(
+      loading: () => const _Section(
+        title: 'Avisos no celular',
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        ],
+      ),
+      error: (error, _) => _Section(
+        title: 'Avisos no celular',
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Text(
+              'Não foi possível carregar: ${friendlyError(error)}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+        ],
+      ),
+      data: (preferences) {
+        final notifier = ref.read(
+          localNotificationPreferencesProvider.notifier,
+        );
+        return _Section(
+          title: 'Avisos no celular',
+          children: [
+            Text(
+              'Receba no aparelho quando um pagamento entrar (inclusive pelo '
+              'Asaas), quando uma cobrança atrasar ou estiver perto de vencer.',
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(color: AppColors.mutedForeground),
+            ),
+            const SizedBox(height: 4),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: preferences.enabled,
+              onChanged: (value) {
+                notifier.save(preferences.copyWith(enabled: value));
+                if (value) LocalNotifications.instance.ensurePermission();
+              },
+              title: const Text('Ativar avisos no celular'),
+            ),
+            if (preferences.enabled) ...[
+              const Divider(height: 8),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: preferences.payments,
+                onChanged: (value) =>
+                    notifier.save(preferences.copyWith(payments: value)),
+                title: const Text('Pagamentos recebidos'),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: preferences.overdue,
+                onChanged: (value) =>
+                    notifier.save(preferences.copyWith(overdue: value)),
+                title: const Text('Cobranças atrasadas'),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: preferences.upcoming,
+                onChanged: (value) =>
+                    notifier.save(preferences.copyWith(upcoming: value)),
+                title: const Text('Vencimentos próximos'),
+              ),
+            ],
           ],
         );
       },
