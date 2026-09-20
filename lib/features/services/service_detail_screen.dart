@@ -89,8 +89,6 @@ class ServiceDetailScreen extends ConsumerWidget {
                   clientName: workspace.clientName(service.clientId),
                 ),
                 const TabBar(
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.start,
                   tabs: [
                     Tab(text: 'Cobranças'),
                     Tab(text: 'Recorrências'),

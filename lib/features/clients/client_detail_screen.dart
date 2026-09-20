@@ -38,14 +38,46 @@ import '../charges/recurring_form_sheet.dart';
 import '../services/service_form_sheet.dart';
 import 'client_form_sheet.dart';
 
-class ClientDetailScreen extends ConsumerWidget {
+class ClientDetailScreen extends ConsumerStatefulWidget {
   const ClientDetailScreen({super.key, required this.clientId});
 
   final String clientId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ClientDetailScreen> createState() => _ClientDetailScreenState();
+}
+
+class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+  int _lastIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(_onTabChanged);
+  }
+
+  void _onTabChanged() {
+    // Troca o botão fixo conforme a aba (cobranças/serviços).
+    if (_tabController.index != _lastIndex) {
+      _lastIndex = _tabController.index;
+      setState(() {});
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController.removeListener(_onTabChanged);
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final workspaceAsync = ref.watch(workspaceProvider);
+    final clientId = widget.clientId;
 
     return workspaceAsync.when(
       loading: () =>
@@ -93,64 +125,78 @@ class ClientDetailScreen extends ConsumerWidget {
             .where((payment) => clientChargeIds.contains(payment.chargeId))
             .fold<double>(0, (sum, payment) => sum + payment.amount);
 
-        return DefaultTabController(
-          length: 4,
-          child: Scaffold(
-            appBar: AppBar(
-              title: Text(client.name, overflow: TextOverflow.ellipsis),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined),
-                  onPressed: () => showClientForm(context, client: client),
-                ),
-                _ClientMenu(client: client),
-              ],
-            ),
-            floatingActionButton: FloatingActionButton.extended(
-              onPressed: () =>
-                  showChargeForm(context, initialClientId: client.id),
-              icon: const Icon(Icons.add),
-              label: const Text('Nova cobrança'),
-            ),
-            body: Column(
-              children: [
-                _ClientHeader(
-                  client: client,
-                  openTotal: openTotal,
-                  overdueTotal: overdueTotal,
-                  receivedTotal: receivedTotal,
-                  chargesCount: views.length,
-                ),
-                const TabBar(
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.start,
-                  tabs: [
-                    Tab(text: 'Cobranças'),
-                    Tab(text: 'Serviços'),
-                    Tab(text: 'Notificações'),
-                    Tab(text: 'Relatório'),
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(client.name, overflow: TextOverflow.ellipsis),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.edit_outlined),
+                onPressed: () => showClientForm(context, client: client),
+              ),
+              _ClientMenu(client: client),
+            ],
+          ),
+          floatingActionButton: _buildFab(client),
+          body: Column(
+            children: [
+              _ClientHeader(
+                client: client,
+                openTotal: openTotal,
+                overdueTotal: overdueTotal,
+                receivedTotal: receivedTotal,
+                chargesCount: views.length,
+              ),
+              TabBar(
+                controller: _tabController,
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                tabs: const [
+                  Tab(text: 'Cobranças'),
+                  Tab(text: 'Serviços'),
+                  Tab(text: 'Notificações'),
+                  Tab(text: 'Relatório'),
+                ],
+              ),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _ChargesTab(views: views),
+                    _ServicesTab(
+                      services: services,
+                      recurring: recurring,
+                      clientId: client.id,
+                    ),
+                    _NotificationsTab(clientId: client.id),
+                    _ReportTab(client: client, workspace: workspace),
                   ],
                 ),
-                Expanded(
-                  child: TabBarView(
-                    children: [
-                      _ChargesTab(views: views),
-                      _ServicesTab(
-                        services: services,
-                        recurring: recurring,
-                        clientId: client.id,
-                      ),
-                      _NotificationsTab(clientId: client.id),
-                      _ReportTab(client: client, workspace: workspace),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },
     );
+  }
+
+  /// Botão fixo conforme a aba: nova cobrança, novo serviço ou nenhum.
+  Widget? _buildFab(Client client) {
+    switch (_tabController.index) {
+      case 0:
+        return FloatingActionButton.extended(
+          onPressed: () => showChargeForm(context, initialClientId: client.id),
+          icon: const Icon(Icons.add),
+          label: const Text('Nova cobrança'),
+        );
+      case 1:
+        return FloatingActionButton.extended(
+          onPressed: () => showServiceForm(context, initialClientId: client.id),
+          icon: const Icon(Icons.add),
+          label: const Text('Novo serviço'),
+        );
+      default:
+        return null;
+    }
   }
 }
 
