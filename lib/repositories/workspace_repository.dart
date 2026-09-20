@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -33,60 +35,52 @@ class WorkspaceRepository {
   }
 
   Future<Workspace> fetchWorkspace(String userId) async {
-    final clientsFuture = _client
-        .from(Client.table)
-        .select()
-        .eq('user_id', userId)
-        .order('name');
-    final servicesFuture = _client
-        .from(Service.table)
-        .select()
-        .eq('user_id', userId)
-        .order('created_at');
-    final chargesFuture = _client
-        .from(Charge.table)
-        .select()
-        .eq('user_id', userId)
-        .order('due_date');
-    final recurringFuture = _client
-        .from(RecurringCharge.table)
-        .select()
-        .eq('user_id', userId)
-        .order('created_at');
-    final paymentsFuture = _client
-        .from(Payment.table)
-        .select()
-        .eq('user_id', userId)
-        .order('paid_at', ascending: false);
-    final profileFuture = _client
-        .from(Profile.table)
-        .select()
-        .eq('id', userId)
-        .maybeSingle();
-    final subscriptionFuture = _client
-        .from(Subscription.table)
-        .select()
-        .eq('user_id', userId)
-        .maybeSingle();
-    final rolesFuture = _client
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId);
-    final plansFuture = _client
-        .from(Plan.table)
-        .select()
-        .eq('active', true)
-        .order('sort_order');
+    // Dispara todas as consultas em paralelo (o builder do Supabase é lazy e
+    // só executa ao ser aguardado). Antes, cada await era uma ida ao servidor
+    // em sequência — agora tudo acontece ao mesmo tempo.
+    final results = await (
+      _client.from(Client.table).select().eq('user_id', userId).order('name'),
+      _client
+          .from(Service.table)
+          .select()
+          .eq('user_id', userId)
+          .order('created_at'),
+      _client
+          .from(Charge.table)
+          .select()
+          .eq('user_id', userId)
+          .order('due_date'),
+      _client
+          .from(RecurringCharge.table)
+          .select()
+          .eq('user_id', userId)
+          .order('created_at'),
+      _client
+          .from(Payment.table)
+          .select()
+          .eq('user_id', userId)
+          .order('paid_at', ascending: false),
+      _client.from(Profile.table).select().eq('id', userId).maybeSingle(),
+      _client
+          .from(Subscription.table)
+          .select()
+          .eq('user_id', userId)
+          .maybeSingle(),
+      _client.from('user_roles').select('role').eq('user_id', userId),
+      _client.from(Plan.table).select().eq('active', true).order('sort_order'),
+    ).wait;
 
-    final clients = await clientsFuture;
-    final services = await servicesFuture;
-    final charges = await chargesFuture;
-    final recurring = await recurringFuture;
-    final payments = await paymentsFuture;
-    final profile = await profileFuture;
-    final subscription = await subscriptionFuture;
-    final roles = await rolesFuture;
-    final plans = await plansFuture;
+    final (
+      clients,
+      services,
+      charges,
+      recurring,
+      payments,
+      profile,
+      subscription,
+      roles,
+      plans,
+    ) = results;
 
     return Workspace(
       clients: _rows(clients).map(Client.fromMap).toList(),
