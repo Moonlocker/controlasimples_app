@@ -49,8 +49,11 @@ class RecurringCharge {
       startDate: parseDate(map['start_date']),
       endDate: tryParseDate(map['end_date']),
       active: map['active'] == true,
-      autoAsaas: map['auto_asaas'] == true,
-      asaasBillingType: (map['asaas_billing_type'] as String?) ?? 'BOLETO',
+      autoAsaas: map['auto_emit'] == true || map['auto_asaas'] == true,
+      asaasBillingType:
+          (map['provider_billing_type'] as String?) ??
+          (map['asaas_billing_type'] as String?) ??
+          'BOLETO',
       createdAt: parseDate(map['created_at']),
     );
   }

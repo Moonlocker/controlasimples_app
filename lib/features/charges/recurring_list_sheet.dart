@@ -225,7 +225,7 @@ class _RecurringTile extends ConsumerWidget {
               ),
               if (item.autoAsaas)
                 const StatusPill(
-                  label: 'Asaas',
+                  label: 'Automática',
                   tone: AppColors.primary,
                   icon: Icons.receipt_outlined,
                   compact: true,

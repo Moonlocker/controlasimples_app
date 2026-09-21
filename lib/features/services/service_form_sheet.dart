@@ -294,7 +294,7 @@ class _ServiceFormSheetState extends ConsumerState<ServiceFormSheet> {
             contentPadding: EdgeInsets.zero,
             value: _autoAsaas,
             onChanged: (value) => setState(() => _autoAsaas = value),
-            title: const Text('Emitir no Asaas automaticamente'),
+            title: const Text('Emitir cobranças automaticamente'),
           ),
         ],
         const SizedBox(height: 14),

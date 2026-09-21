@@ -8,7 +8,7 @@ import '../../core/utils/error_messages.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/period.dart';
 import '../../models/asaas.dart';
-import '../../repositories/asaas_repository.dart';
+import '../../repositories/payments_repository.dart';
 import '../../repositories/charges_repository.dart';
 import '../../repositories/workspace_providers.dart';
 import '../../widgets/async_error_view.dart';
@@ -67,7 +67,7 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
     return showDialog<BillingType>(
       context: context,
       builder: (context) => SimpleDialog(
-        title: const Text('Forma de pagamento no Asaas'),
+        title: const Text('Forma de pagamento'),
         children: [
           for (final type in BillingType.values)
             SimpleDialogOption(
@@ -87,7 +87,7 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
         .where(
           (view) =>
               _selected.contains(view.charge.id) &&
-              view.charge.asaasPaymentId == null &&
+              view.charge.providerPaymentId == null &&
               (view.status == ChargeStatus.pendente ||
                   view.status == ChargeStatus.atrasado),
         )
@@ -108,7 +108,7 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
     for (final view in targets) {
       try {
         await ref
-            .read(asaasRepositoryProvider)
+            .read(paymentsRepositoryProvider)
             .emit(view.charge.id, billingType);
         ok++;
       } catch (_) {
@@ -238,7 +238,7 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
               WidgetsBinding.instance.addPostFrameCallback((_) async {
                 try {
                   final created = await ref
-                      .read(asaasRepositoryProvider)
+                      .read(paymentsRepositoryProvider)
                       .runAuto();
                   if (created > 0) ref.invalidate(workspaceProvider);
                 } catch (_) {
@@ -332,10 +332,10 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               PlanGatedIconButton(
-                                tooltip: 'Configurar Asaas',
+                                tooltip: 'Configurar pagamentos',
                                 icon: Icons.account_balance_outlined,
                                 allowed: workspace.canUseAsaas,
-                                feature: 'Integração Asaas',
+                                feature: 'Integração de pagamentos',
                                 onPressed: () => showAsaasConfigSheet(context),
                               ),
                               PlanGatedIconButton(
@@ -673,7 +673,7 @@ class _BulkBar extends StatelessWidget {
             TextButton.icon(
               onPressed: busy ? null : onEmit,
               icon: const Icon(Icons.receipt_outlined, size: 18),
-              label: const Text('Asaas'),
+              label: const Text('Gerar cobrança'),
             ),
             TextButton.icon(
               onPressed: busy ? null : onDelete,

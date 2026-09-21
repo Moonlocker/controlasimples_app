@@ -11,10 +11,8 @@ import '../../core/theme/app_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/mask_formatter.dart';
 import '../../core/utils/error_messages.dart';
-import '../../models/asaas.dart';
 import '../../models/notification_preferences.dart';
 import '../../models/plan.dart';
-import '../../repositories/asaas_repository.dart';
 import '../../repositories/auth_repository.dart';
 import '../../repositories/notifications_repository.dart';
 import '../../repositories/profile_repository.dart';
@@ -24,7 +22,6 @@ import '../../repositories/workspace_providers.dart';
 import '../../services/local_notifications.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/app_form_sheet.dart';
-import '../../widgets/asaas_setup_guide.dart';
 import '../../widgets/async_error_view.dart';
 import '../../widgets/plan_access.dart';
 import '../auth/auth_providers.dart';
@@ -32,6 +29,7 @@ import '../notifications/notification_delivery.dart';
 import '../quotes/business_form_sheet.dart';
 import '../quotes/quotes_providers.dart';
 import '../subscription/subscription_flow.dart';
+import 'payment_providers_section.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -72,7 +70,7 @@ class SettingsScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               const _SubscriptionSection(),
               const SizedBox(height: 16),
-              const _AsaasSection(),
+              const PaymentProvidersSection(),
               const SizedBox(height: 16),
               const _WhatsappSection(),
               const SizedBox(height: 16),
@@ -592,218 +590,6 @@ class _PlanCard extends StatelessWidget {
   }
 }
 
-class _AsaasSection extends ConsumerWidget {
-  const _AsaasSection();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final canUse = ref.watch(workspaceProvider).value?.canUseAsaas ?? true;
-    if (!canUse) {
-      return _Section(
-        title: 'Asaas',
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const PlanLockBadge(size: 14),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'A integração Asaas não está disponível no seu plano atual. Faça upgrade para emitir cobranças.',
-                    style: Theme.of(context).textTheme.bodySmall
-                        ?.copyWith(color: AppColors.mutedForeground),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      );
-    }
-    final configAsync = ref.watch(asaasConfigProvider);
-    return configAsync.when(
-      loading: () => const _Section(
-        title: 'Asaas',
-        children: [
-          Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Center(child: CircularProgressIndicator()),
-          ),
-        ],
-      ),
-      error: (error, _) => _Section(
-        title: 'Asaas',
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Text(
-              'Não foi possível carregar: ${friendlyError(error)}',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ),
-        ],
-      ),
-      data: (config) => _Section(
-        title: 'Asaas',
-        action: TextButton(
-          onPressed: () =>
-              showAppFormSheet(context, _AsaasConfigSheet(config: config)),
-          child: const Text('Configurar'),
-        ),
-        children: [
-          _InfoRow(
-            label: 'Situação',
-            value: config.enabled ? 'Ativado' : 'Desativado',
-          ),
-          _InfoRow(
-            label: 'Ambiente',
-            value: config.isProduction ? 'Produção' : 'Sandbox',
-          ),
-          _InfoRow(
-            label: 'Chave',
-            value:
-                config.maskedKey ??
-                (config.hasKey ? 'Configurada' : 'Não configurada'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AsaasConfigSheet extends ConsumerStatefulWidget {
-  const _AsaasConfigSheet({required this.config});
-
-  final AsaasConfig config;
-
-  @override
-  ConsumerState<_AsaasConfigSheet> createState() => _AsaasConfigSheetState();
-}
-
-class _AsaasConfigSheetState extends ConsumerState<_AsaasConfigSheet> {
-  final _formKey = GlobalKey<FormState>();
-  final _apiKey = TextEditingController();
-  late bool _enabled;
-  late String _environment;
-  bool _busy = false;
-  bool _testing = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _enabled = widget.config.enabled;
-    _environment = widget.config.environment;
-  }
-
-  @override
-  void dispose() {
-    _apiKey.dispose();
-    super.dispose();
-  }
-
-  Future<void> _save() async {
-    setState(() => _busy = true);
-    try {
-      await ref
-          .read(asaasRepositoryProvider)
-          .saveConfig(
-            enabled: _enabled,
-            environment: _environment,
-            apiKey: _apiKey.text.trim().isEmpty ? null : _apiKey.text.trim(),
-          );
-      ref.invalidate(asaasConfigProvider);
-      if (mounted) Navigator.of(context).pop();
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Não foi possível salvar: ${friendlyError(error)}'),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  Future<void> _test() async {
-    setState(() => _testing = true);
-    try {
-      final result = await ref.read(asaasRepositoryProvider).testConnection();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result.message.isEmpty ? 'Testado.' : result.message),
-          ),
-        );
-      }
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(friendlyError(error))));
-      }
-    } finally {
-      if (mounted) setState(() => _testing = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AppFormSheet(
-      title: 'Integração Asaas',
-      subtitle: 'Use a sua chave de API para emitir cobranças na sua conta.',
-      formKey: _formKey,
-      busy: _busy,
-      onSave: _save,
-      children: [
-        AsaasSetupGuide(videoUrl: widget.config.tutorialVideoUrl),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          value: _enabled,
-          onChanged: (value) => setState(() => _enabled = value),
-          title: const Text('Ativar emissão de cobranças'),
-        ),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          initialValue: _environment,
-          decoration: const InputDecoration(labelText: 'Ambiente'),
-          items: const [
-            DropdownMenuItem(value: 'sandbox', child: Text('Sandbox (testes)')),
-            DropdownMenuItem(value: 'production', child: Text('Produção')),
-          ],
-          onChanged: (value) =>
-              setState(() => _environment = value ?? _environment),
-        ),
-        const SizedBox(height: 14),
-        TextFormField(
-          controller: _apiKey,
-          obscureText: true,
-          decoration: InputDecoration(
-            labelText: 'Chave de API',
-            hintText: widget.config.hasKey
-                ? 'Deixe vazio para manter a atual'
-                : 'Sua chave Asaas',
-          ),
-        ),
-        const SizedBox(height: 16),
-        OutlinedButton.icon(
-          onPressed: _testing ? null : _test,
-          icon: _testing
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.wifi_tethering),
-          label: const Text('Testar conexão'),
-        ),
-      ],
-    );
-  }
-}
-
 class _WhatsappSection extends ConsumerWidget {
   const _WhatsappSection();
 
@@ -1216,7 +1002,7 @@ class _DeviceNotificationsSection extends ConsumerWidget {
           children: [
             Text(
               'Receba no aparelho quando um pagamento entrar (inclusive pelo '
-              'Asaas), quando uma cobrança atrasar ou estiver perto de vencer.',
+              'gateway), quando uma cobrança atrasar ou estiver perto de vencer.',
               style: Theme.of(context).textTheme.bodySmall
                   ?.copyWith(color: AppColors.mutedForeground),
             ),

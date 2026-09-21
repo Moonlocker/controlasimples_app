@@ -317,15 +317,13 @@ class _ChargeFormSheetState extends ConsumerState<ChargeFormSheet> {
           contentPadding: EdgeInsets.zero,
           value: _autoAsaas,
           onChanged: (value) => setState(() => _autoAsaas = value),
-          title: const Text('Emitir no Asaas automaticamente'),
+          title: const Text('Emitir cobranças automaticamente'),
           subtitle: const Text('Executado pelo sistema quando configurado.'),
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<BillingType>(
           initialValue: _billingType,
-          decoration: const InputDecoration(
-            labelText: 'Forma de pagamento no Asaas',
-          ),
+          decoration: const InputDecoration(labelText: 'Forma de pagamento'),
           items: [
             for (final type in BillingType.values)
               DropdownMenuItem(value: type, child: Text(type.label)),
@@ -341,7 +339,7 @@ class _ChargeFormSheetState extends ConsumerState<ChargeFormSheet> {
             SizedBox(width: 10),
             Expanded(
               child: Text(
-                'A emissão automática no Asaas não está disponível no seu plano.',
+                'A emissão automática não está disponível no seu plano.',
               ),
             ),
           ],

@@ -31,8 +31,8 @@ class _PaymentFilesSheet extends StatelessWidget {
   final String? description;
   final String title;
 
-  /// O Asaas pode devolver o QR como base64 puro ou como data URI; aceitamos os
-  /// dois formatos para o QR Code sempre renderizar.
+  /// O gateway pode devolver o QR como base64 puro ou como data URI; aceitamos
+  /// os dois formatos para o QR Code sempre renderizar.
   static Uint8List? _decodeQr(String? raw) {
     if (raw == null || raw.isEmpty) return null;
     var value = raw.trim();
@@ -157,7 +157,7 @@ class _PaymentFilesSheet extends StatelessWidget {
                 if (files.asaasStatus != null) ...[
                   const SizedBox(height: 16),
                   Text(
-                    'Status no Asaas: ${files.asaasStatus}',
+                    'Status: ${files.asaasStatus}',
                     style: textTheme.bodySmall?.copyWith(
                       color: AppColors.mutedForeground,
                     ),

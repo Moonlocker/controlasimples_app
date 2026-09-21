@@ -9,8 +9,9 @@ import '../../core/utils/formatters.dart';
 import '../../core/utils/error_messages.dart';
 import '../../models/asaas.dart';
 import '../../models/charge.dart';
-import '../../repositories/asaas_repository.dart';
+import '../../core/constants/payment_providers.dart';
 import '../../repositories/charges_repository.dart';
+import '../../repositories/payments_repository.dart';
 import '../../repositories/workspace_providers.dart';
 import '../../widgets/confirm_dialog.dart';
 import '../../widgets/plan_access.dart';
@@ -152,7 +153,8 @@ class ChargeCard extends StatelessWidget {
               ? '${view.description} · recorrente'
               : view.description);
     final isRecurring = view.charge.recurringId != null;
-    final emitted = view.charge.asaasPaymentId != null;
+    final emitted = view.charge.providerPaymentId != null;
+    final gateway = paymentProviderLabel(view.charge.provider);
     final (dueText, dueColor) = _dueInfo();
 
     return GestureDetector(
@@ -239,8 +241,8 @@ class ChargeCard extends StatelessWidget {
                                   compact: true,
                                 ),
                               if (emitted)
-                                const StatusPill(
-                                  label: 'Asaas',
+                                StatusPill(
+                                  label: gateway,
                                   tone: AppColors.info,
                                   icon: Icons.receipt_outlined,
                                   compact: true,
@@ -295,7 +297,7 @@ class ChargeActionsButton extends ConsumerWidget {
         charge.status == ChargeStatus.pendente ||
         charge.status == ChargeStatus.atrasado;
     final isPaid = charge.status == ChargeStatus.pago;
-    final emitted = charge.asaasPaymentId != null;
+    final emitted = charge.providerPaymentId != null;
     final workspace = ref.watch(workspaceProvider).value;
     final canUseAsaas = workspace?.canUseAsaas ?? true;
     final canUseWhatsapp = workspace?.canUseWhatsapp ?? true;
@@ -313,7 +315,7 @@ class ChargeActionsButton extends ConsumerWidget {
           PopupMenuItem(
             value: 'emit',
             child: _MenuLabel(
-              'Emitir no Asaas',
+              'Gerar cobrança',
               icon: Icons.bolt_outlined,
               locked: !canUseAsaas,
             ),
@@ -406,7 +408,10 @@ class ChargeActionsButton extends ConsumerWidget {
     if ((action == 'emit' || action == 'files' || action == 'sync') &&
         workspace?.canUseAsaas == false) {
       if (context.mounted) {
-        await showPlanLockedDialog(context, feature: 'Integração Asaas');
+        await showPlanLockedDialog(
+          context,
+          feature: 'Integração de pagamentos',
+        );
       }
       return;
     }
@@ -428,8 +433,9 @@ class ChargeActionsButton extends ConsumerWidget {
           final files = await _withProgress(
             context,
             'Emitindo cobrança…',
-            () =>
-                ref.read(asaasRepositoryProvider).emit(charge.id, billingType),
+            () => ref
+                .read(paymentsRepositoryProvider)
+                .emit(charge.id, billingType),
           );
           ref.invalidate(workspaceProvider);
           if (context.mounted) {
@@ -443,7 +449,7 @@ class ChargeActionsButton extends ConsumerWidget {
           final files = await _withProgress(
             context,
             'Carregando…',
-            () => ref.read(asaasRepositoryProvider).files(charge.id),
+            () => ref.read(paymentsRepositoryProvider).files(charge.id),
           );
           if (context.mounted) {
             await showPaymentFilesSheet(
@@ -456,13 +462,13 @@ class ChargeActionsButton extends ConsumerWidget {
           final status = await _withProgress(
             context,
             'Atualizando…',
-            () => ref.read(asaasRepositoryProvider).sync(charge.id),
+            () => ref.read(paymentsRepositoryProvider).sync(charge.id),
           );
           ref.invalidate(workspaceProvider);
           if (context.mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('Status no Asaas: $status')));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Status no gateway: $status')),
+            );
           }
         case 'whatsapp':
           await showChargeNotificationsSheet(
@@ -516,7 +522,7 @@ class ChargeActionsButton extends ConsumerWidget {
     return showDialog<BillingType>(
       context: context,
       builder: (context) => SimpleDialog(
-        title: const Text('Forma de pagamento no Asaas'),
+        title: const Text('Forma de pagamento'),
         children: [
           for (final type in BillingType.values)
             SimpleDialogOption(

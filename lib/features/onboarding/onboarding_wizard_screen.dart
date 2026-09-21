@@ -979,7 +979,8 @@ class _WizardPlanCard extends StatelessWidget {
               children: [
                 for (final feature in plan.features.take(4))
                   _Chip(label: feature),
-                if (plan.allowAsaasIntegration) const _Chip(label: 'Asaas'),
+                if (plan.allowAsaasIntegration)
+                  const _Chip(label: 'Pagamentos'),
                 if (plan.allowWhatsappNotifications)
                   const _Chip(label: 'WhatsApp'),
               ],

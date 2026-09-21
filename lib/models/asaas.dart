@@ -43,9 +43,12 @@ class AsaasConfig {
   }
 }
 
+/// Arquivos/links de pagamento retornados pelo gateway configurado.
 class AsaasPaymentFiles {
   const AsaasPaymentFiles({
     this.emitted = false,
+    this.provider,
+    this.providerLabel,
     this.paymentId,
     this.billingType,
     this.asaasStatus,
@@ -56,8 +59,12 @@ class AsaasPaymentFiles {
   });
 
   final bool emitted;
+  final String? provider;
+  final String? providerLabel;
   final String? paymentId;
   final String? billingType;
+
+  /// Status bruto no gateway (campo histórico; hoje vem de `providerStatus`).
   final String? asaasStatus;
   final String? invoiceUrl;
   final String? bankSlipUrl;
@@ -67,9 +74,11 @@ class AsaasPaymentFiles {
   factory AsaasPaymentFiles.fromMap(Map<String, dynamic> map) {
     return AsaasPaymentFiles(
       emitted: map['emitted'] == true,
+      provider: map['provider'] as String?,
+      providerLabel: map['providerLabel'] as String?,
       paymentId: map['paymentId'] as String?,
       billingType: map['billingType'] as String?,
-      asaasStatus: map['asaasStatus'] as String?,
+      asaasStatus: (map['providerStatus'] ?? map['asaasStatus']) as String?,
       invoiceUrl: map['invoiceUrl'] as String?,
       bankSlipUrl: map['bankSlipUrl'] as String?,
       pixPayload: map['pixPayload'] as String?,

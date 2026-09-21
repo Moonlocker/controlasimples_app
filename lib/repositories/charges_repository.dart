@@ -116,6 +116,8 @@ class ChargesRepository {
       'active': active,
       'auto_asaas': autoAsaas,
       'asaas_billing_type': ?asaasBillingType,
+      'auto_emit': autoAsaas,
+      'provider_billing_type': asaasBillingType ?? 'BOLETO',
     };
     if (id == null) {
       await _client.from(RecurringCharge.table).insert({

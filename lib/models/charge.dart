@@ -21,6 +21,14 @@ class Charge {
     this.asaasPixQrCode,
     this.asaasStatus,
     this.asaasBillingType,
+    this.provider,
+    this.providerPaymentId,
+    this.providerStatus,
+    this.providerInvoiceUrl,
+    this.providerBankSlipUrl,
+    this.providerPixPayload,
+    this.providerPixQrCode,
+    this.providerBillingType,
     this.paidDate,
     required this.createdAt,
   });
@@ -50,6 +58,16 @@ class Charge {
   final String? asaasPixQrCode;
   final String? asaasStatus;
   final String? asaasBillingType;
+
+  /// Provedor de pagamento que emitiu a cobrança (asaas, mercadopago, ...).
+  final String? provider;
+  final String? providerPaymentId;
+  final String? providerStatus;
+  final String? providerInvoiceUrl;
+  final String? providerBankSlipUrl;
+  final String? providerPixPayload;
+  final String? providerPixQrCode;
+  final String? providerBillingType;
   final DateTime? paidDate;
   final DateTime createdAt;
 
@@ -73,6 +91,29 @@ class Charge {
       asaasPixQrCode: map['asaas_pix_qr_code'] as String?,
       asaasStatus: map['asaas_status'] as String?,
       asaasBillingType: map['asaas_billing_type'] as String?,
+      provider:
+          (map['payment_provider'] as String?) ??
+          (map['asaas_payment_id'] != null ? 'asaas' : null),
+      providerPaymentId:
+          (map['provider_payment_id'] as String?) ??
+          map['asaas_payment_id'] as String?,
+      providerStatus:
+          (map['provider_status'] as String?) ?? map['asaas_status'] as String?,
+      providerInvoiceUrl:
+          (map['provider_invoice_url'] as String?) ??
+          map['asaas_invoice_url'] as String?,
+      providerBankSlipUrl:
+          (map['provider_bank_slip_url'] as String?) ??
+          map['asaas_bank_slip_url'] as String?,
+      providerPixPayload:
+          (map['provider_pix_payload'] as String?) ??
+          map['asaas_pix_payload'] as String?,
+      providerPixQrCode:
+          (map['provider_pix_qr_code'] as String?) ??
+          map['asaas_pix_qr_code'] as String?,
+      providerBillingType:
+          (map['provider_billing_type'] as String?) ??
+          map['asaas_billing_type'] as String?,
       paidDate: tryParseDate(map['paid_date']),
       createdAt: parseDate(map['created_at']),
     );
