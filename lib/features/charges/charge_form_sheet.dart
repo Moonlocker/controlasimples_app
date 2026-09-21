@@ -5,6 +5,7 @@ import '../../core/constants/enums.dart';
 import '../../core/utils/error_messages.dart';
 import '../../models/asaas.dart';
 import '../../models/charge.dart';
+import '../../models/client.dart';
 import '../../repositories/charges_repository.dart';
 import '../../repositories/workspace_providers.dart';
 import '../../widgets/app_form_sheet.dart';
@@ -12,6 +13,7 @@ import '../../widgets/date_field.dart';
 import '../../widgets/money_field.dart';
 import '../../widgets/plan_access.dart';
 import '../auth/auth_providers.dart';
+import '../clients/client_form_sheet.dart';
 
 Future<void> showChargeForm(
   BuildContext context, {
@@ -153,6 +155,13 @@ class _ChargeFormSheetState extends ConsumerState<ChargeFormSheet> {
     final services = (workspace?.services ?? const [])
         .where((service) => _clientId == null || service.clientId == _clientId)
         .toList();
+    Client? selectedClient;
+    for (final client in clients) {
+      if (client.id == _clientId) {
+        selectedClient = client;
+        break;
+      }
+    }
 
     return AppFormSheet(
       title: _isNew
@@ -184,18 +193,40 @@ class _ChargeFormSheetState extends ConsumerState<ChargeFormSheet> {
           ),
           const SizedBox(height: 16),
         ],
-        DropdownButtonFormField<String>(
-          initialValue: _clientId,
-          decoration: const InputDecoration(labelText: 'Cliente'),
-          items: [
-            for (final client in clients)
-              DropdownMenuItem(value: client.id, child: Text(client.name)),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                initialValue: _clientId,
+                decoration: const InputDecoration(labelText: 'Cliente'),
+                items: [
+                  for (final client in clients)
+                    DropdownMenuItem(
+                      value: client.id,
+                      child: Text(client.name),
+                    ),
+                ],
+                onChanged: (value) => setState(() {
+                  _clientId = value;
+                  _serviceId = null;
+                }),
+                validator: (value) =>
+                    value == null ? 'Selecione o cliente' : null,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: IconButton(
+                onPressed: selectedClient == null
+                    ? null
+                    : () => showClientForm(context, client: selectedClient),
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: 'Editar cliente selecionado',
+              ),
+            ),
           ],
-          onChanged: (value) => setState(() {
-            _clientId = value;
-            _serviceId = null;
-          }),
-          validator: (value) => value == null ? 'Selecione o cliente' : null,
         ),
         const SizedBox(height: 14),
         DropdownButtonFormField<String?>(

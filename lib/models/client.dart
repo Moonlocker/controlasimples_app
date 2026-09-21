@@ -13,6 +13,7 @@ class Client {
     this.asaasCustomerId,
     this.whatsappValid,
     this.whatsappCheckedAt,
+    this.notificationsEnabled = true,
     required this.createdAt,
   });
 
@@ -29,6 +30,7 @@ class Client {
   final String? asaasCustomerId;
   final bool? whatsappValid;
   final DateTime? whatsappCheckedAt;
+  final bool notificationsEnabled;
   final DateTime createdAt;
 
   factory Client.fromMap(Map<String, dynamic> map) {
@@ -44,6 +46,7 @@ class Client {
       asaasCustomerId: map['asaas_customer_id'] as String?,
       whatsappValid: map['whatsapp_valid'] as bool?,
       whatsappCheckedAt: tryParseDateTime(map['whatsapp_checked_at']),
+      notificationsEnabled: map['notifications_enabled'] != false,
       createdAt: parseDate(map['created_at']),
     );
   }

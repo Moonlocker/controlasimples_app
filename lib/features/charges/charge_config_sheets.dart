@@ -9,6 +9,7 @@ import '../../repositories/asaas_repository.dart';
 import '../../repositories/notifications_repository.dart';
 import '../../repositories/workspace_providers.dart';
 import '../../widgets/app_form_sheet.dart';
+import '../../widgets/asaas_setup_guide.dart';
 
 /// Abre a configuração da integração Asaas do usuário.
 Future<void> showAsaasConfigSheet(BuildContext context) {
@@ -130,6 +131,7 @@ class _AsaasConfigFormState extends ConsumerState<_AsaasConfigForm> {
       busy: _busy,
       onSave: _save,
       children: [
+        AsaasSetupGuide(videoUrl: widget.config.tutorialVideoUrl),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           value: _enabled,

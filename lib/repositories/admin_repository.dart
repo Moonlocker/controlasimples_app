@@ -299,12 +299,14 @@ class AdminRepository {
     String? environment,
     String? apiKey,
     String? webhookToken,
+    String? tutorialVideoUrl,
   }) async {
     await _api.post('/api/mobile/admin/asaas/config', {
       'enabled': ?enabled,
       'environment': ?environment,
       'apiKey': ?apiKey,
       'webhookToken': ?webhookToken,
+      'tutorialVideoUrl': ?tutorialVideoUrl,
     });
   }
 

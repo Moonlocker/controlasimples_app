@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models/charge_notification.dart';
 import '../models/client_notification.dart';
 import '../models/notification_preferences.dart';
 import '../services/mobile_api_service.dart';
@@ -23,6 +24,14 @@ final clientNotificationsProvider =
       return ref
           .watch(notificationsRepositoryProvider)
           .fetchClientNotifications(clientId);
+    });
+
+/// Preferências/datas previstas e overrides de uma cobrança (WhatsApp).
+final chargeNotificationsProvider =
+    FutureProvider.family<ChargeNotificationContext, String>((ref, chargeId) {
+      return ref
+          .watch(notificationsRepositoryProvider)
+          .fetchChargeNotifications(chargeId);
     });
 
 class NotificationsRepository {
@@ -59,6 +68,34 @@ class NotificationsRepository {
           (row) => ClientNotification.fromMap(Map<String, dynamic>.from(row)),
         )
         .toList();
+  }
+
+  Future<ChargeNotificationContext> fetchChargeNotifications(
+    String chargeId,
+  ) async {
+    return ChargeNotificationContext.fromMap(
+      await _api.get('/api/mobile/notifications/charge', {
+        'chargeId': chargeId,
+      }),
+    );
+  }
+
+  Future<ChargeNotificationContext> saveChargeNotifications({
+    required String chargeId,
+    bool? chargeEnabled,
+    bool clearChargeOverride = false,
+    bool? clientEnabled,
+  }) async {
+    final body = <String, dynamic>{'chargeId': chargeId};
+    if (clearChargeOverride) {
+      body['chargeEnabled'] = null;
+    } else if (chargeEnabled != null) {
+      body['chargeEnabled'] = chargeEnabled;
+    }
+    if (clientEnabled != null) body['clientEnabled'] = clientEnabled;
+    return ChargeNotificationContext.fromMap(
+      await _api.post('/api/mobile/notifications/charge', body),
+    );
   }
 
   NotificationSettings _parse(Map<String, dynamic> result) {

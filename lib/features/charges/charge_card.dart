@@ -12,11 +12,11 @@ import '../../models/charge.dart';
 import '../../repositories/asaas_repository.dart';
 import '../../repositories/charges_repository.dart';
 import '../../repositories/workspace_providers.dart';
-import '../../repositories/whatsapp_repository.dart';
 import '../../widgets/confirm_dialog.dart';
 import '../../widgets/plan_access.dart';
 import '../../widgets/status_badge.dart';
 import 'charge_form_sheet.dart';
+import 'charge_notifications_sheet.dart';
 import 'payment_files_sheet.dart';
 import 'payment_form_sheet.dart';
 
@@ -340,7 +340,7 @@ class ChargeActionsButton extends ConsumerWidget {
           PopupMenuItem(
             value: 'whatsapp',
             child: _MenuLabel(
-              'Enviar WhatsApp',
+              'Notificações no WhatsApp',
               icon: Icons.chat_outlined,
               locked: !canUseWhatsapp,
             ),
@@ -465,23 +465,11 @@ class ChargeActionsButton extends ConsumerWidget {
             ).showSnackBar(SnackBar(content: Text('Status no Asaas: $status')));
           }
         case 'whatsapp':
-          final confirmed = await showConfirmDialog(
+          await showChargeNotificationsSheet(
             context,
-            title: 'Enviar WhatsApp',
-            message: 'Enviar o aviso de cobrança para o cliente?',
-            confirmLabel: 'Enviar',
+            chargeId: charge.id,
+            description: charge.description,
           );
-          if (!confirmed || !context.mounted) return;
-          await _withProgress(
-            context,
-            'Enviando…',
-            () => ref.read(whatsappRepositoryProvider).sendCharge(charge.id),
-          );
-          if (context.mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('Mensagem enviada.')));
-          }
         case 'pay':
           await showPaymentForm(context, charge: charge);
         case 'edit':

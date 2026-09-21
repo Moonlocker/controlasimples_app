@@ -118,7 +118,9 @@ double projectedRecurring(Workspace workspace, DateTime from, DateTime to) {
       if (recurring.endDate != null && due.isAfter(recurring.endDate!)) break;
       if (due.isBefore(from)) continue;
       final exists = workspace.charges.any(
-        (charge) => charge.recurringId == recurring.id && charge.dueDate == due,
+        (charge) =>
+            charge.recurringId == recurring.id &&
+            (charge.recurringDueDate ?? charge.dueDate) == due,
       );
       if (!exists) total += recurring.amount;
     }
@@ -553,6 +555,7 @@ class PendingOccurrence {
       'client_id': clientId,
       'project_id': serviceId,
       'recurring_id': recurringId,
+      'recurring_due_date': isoDate(dueDate),
       'description': description,
       'amount': amount,
       'due_date': isoDate(dueDate),
@@ -575,7 +578,9 @@ List<PendingOccurrence> pendingOccurrencesInRange(
       if (recurring.endDate != null && due.isAfter(recurring.endDate!)) break;
       if (due.isBefore(from)) continue;
       final exists = workspace.charges.any(
-        (charge) => charge.recurringId == recurring.id && charge.dueDate == due,
+        (charge) =>
+            charge.recurringId == recurring.id &&
+            (charge.recurringDueDate ?? charge.dueDate) == due,
       );
       if (!exists) {
         out.add(

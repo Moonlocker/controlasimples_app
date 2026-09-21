@@ -31,10 +31,27 @@ class _PaymentFilesSheet extends StatelessWidget {
   final String? description;
   final String title;
 
+  /// O Asaas pode devolver o QR como base64 puro ou como data URI; aceitamos os
+  /// dois formatos para o QR Code sempre renderizar.
+  static Uint8List? _decodeQr(String? raw) {
+    if (raw == null || raw.isEmpty) return null;
+    var value = raw.trim();
+    final comma = value.indexOf(',');
+    if (value.startsWith('data:') && comma != -1) {
+      value = value.substring(comma + 1);
+    }
+    try {
+      return base64Decode(value);
+    } catch (_) {
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final hasQr = files.pixQrCode != null && files.pixQrCode!.isNotEmpty;
+    final qrBytes = _decodeQr(files.pixQrCode);
+    final hasQr = qrBytes != null;
 
     return SizedBox(
       height: MediaQuery.sizeOf(context).height * 0.8,
@@ -95,7 +112,7 @@ class _PaymentFilesSheet extends StatelessWidget {
                         border: Border.all(color: AppColors.border),
                       ),
                       child: Image.memory(
-                        base64Decode(files.pixQrCode!),
+                        qrBytes,
                         width: 220,
                         height: 220,
                         fit: BoxFit.contain,

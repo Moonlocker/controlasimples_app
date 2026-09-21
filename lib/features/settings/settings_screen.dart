@@ -24,6 +24,7 @@ import '../../repositories/workspace_providers.dart';
 import '../../services/local_notifications.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/app_form_sheet.dart';
+import '../../widgets/asaas_setup_guide.dart';
 import '../../widgets/async_error_view.dart';
 import '../../widgets/plan_access.dart';
 import '../auth/auth_providers.dart';
@@ -757,6 +758,7 @@ class _AsaasConfigSheetState extends ConsumerState<_AsaasConfigSheet> {
       busy: _busy,
       onSave: _save,
       children: [
+        AsaasSetupGuide(videoUrl: widget.config.tutorialVideoUrl),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           value: _enabled,

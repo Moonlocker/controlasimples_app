@@ -58,6 +58,12 @@ class AdminAsaasScreen extends ConsumerWidget {
                         ? 'Configurado'
                         : 'Não configurado',
                   ),
+                  _InfoRow(
+                    label: 'Vídeo',
+                    value: (config.tutorialVideoUrl ?? '').isEmpty
+                        ? 'Não definido'
+                        : config.tutorialVideoUrl!,
+                  ),
                 ],
               ),
             ),
@@ -127,6 +133,7 @@ class _AsaasAdminFormSheetState extends ConsumerState<_AsaasAdminFormSheet> {
   final _formKey = GlobalKey<FormState>();
   final _apiKey = TextEditingController();
   final _webhookToken = TextEditingController();
+  late final TextEditingController _tutorial;
   late bool _enabled;
   late String _environment;
   bool _busy = false;
@@ -136,12 +143,16 @@ class _AsaasAdminFormSheetState extends ConsumerState<_AsaasAdminFormSheet> {
     super.initState();
     _enabled = widget.config.enabled;
     _environment = widget.config.environment;
+    _tutorial = TextEditingController(
+      text: widget.config.tutorialVideoUrl ?? '',
+    );
   }
 
   @override
   void dispose() {
     _apiKey.dispose();
     _webhookToken.dispose();
+    _tutorial.dispose();
     super.dispose();
   }
 
@@ -157,6 +168,7 @@ class _AsaasAdminFormSheetState extends ConsumerState<_AsaasAdminFormSheet> {
             webhookToken: _webhookToken.text.trim().isEmpty
                 ? null
                 : _webhookToken.text.trim(),
+            tutorialVideoUrl: _tutorial.text.trim(),
           );
       ref.invalidate(adminAsaasConfigProvider);
       if (mounted) Navigator.of(context).pop();
@@ -212,6 +224,16 @@ class _AsaasAdminFormSheetState extends ConsumerState<_AsaasAdminFormSheet> {
           controller: _webhookToken,
           obscureText: true,
           decoration: const InputDecoration(labelText: 'Token do webhook'),
+        ),
+        const SizedBox(height: 14),
+        TextFormField(
+          controller: _tutorial,
+          keyboardType: TextInputType.url,
+          decoration: const InputDecoration(
+            labelText: 'Vídeo explicativo (opcional)',
+            hintText: 'https://www.youtube.com/watch?v=…',
+            helperText: 'Exibido em Configurações > Asaas para os usuários.',
+          ),
         ),
       ],
     );

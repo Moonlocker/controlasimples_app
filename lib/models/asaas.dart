@@ -17,6 +17,7 @@ class AsaasConfig {
     this.hasKey = false,
     this.maskedKey,
     this.hasWebhookToken = false,
+    this.tutorialVideoUrl,
   });
 
   final bool enabled;
@@ -24,6 +25,9 @@ class AsaasConfig {
   final bool hasKey;
   final String? maskedKey;
   final bool hasWebhookToken;
+
+  /// Vídeo explicativo do Asaas definido pelo superadmin.
+  final String? tutorialVideoUrl;
 
   bool get isProduction => environment == 'production';
 
@@ -34,6 +38,7 @@ class AsaasConfig {
       hasKey: map['hasKey'] == true,
       maskedKey: map['maskedKey'] as String?,
       hasWebhookToken: map['hasWebhookToken'] == true,
+      tutorialVideoUrl: map['tutorialVideoUrl'] as String?,
     );
   }
 }
