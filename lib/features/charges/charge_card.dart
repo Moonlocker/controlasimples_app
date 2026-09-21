@@ -14,8 +14,10 @@ import '../../repositories/charges_repository.dart';
 import '../../repositories/payments_repository.dart';
 import '../../repositories/workspace_providers.dart';
 import '../../widgets/confirm_dialog.dart';
+import '../../widgets/payment_provider_logo.dart';
 import '../../widgets/plan_access.dart';
 import '../../widgets/status_badge.dart';
+import 'charge_config_sheets.dart';
 import 'charge_form_sheet.dart';
 import 'charge_notifications_sheet.dart';
 import 'payment_files_sheet.dart';
@@ -65,19 +67,29 @@ void _showError(BuildContext context, Object error) {
 }
 
 class _MenuLabel extends StatelessWidget {
-  const _MenuLabel(this.label, {required this.locked, this.icon, this.tone});
+  const _MenuLabel(
+    this.label, {
+    required this.locked,
+    this.icon,
+    this.tone,
+    this.leading,
+  });
 
   final String label;
   final bool locked;
   final IconData? icon;
   final Color? tone;
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
     final color = tone ?? AppColors.foreground;
     return Row(
       children: [
-        if (icon != null) ...[
+        if (leading != null) ...[
+          leading!,
+          const SizedBox(width: 12),
+        ] else if (icon != null) ...[
           Icon(icon, size: 18, color: color),
           const SizedBox(width: 12),
         ],
@@ -213,7 +225,10 @@ class ChargeCard extends StatelessWidget {
                               ),
                             ),
                             if (!selectionMode)
-                              ChargeActionsButton(charge: view.charge),
+                              ChargeActionsButton(
+                                charge: view.charge,
+                                clientName: view.clientName,
+                              ),
                           ],
                         ),
                         if (showClient) ...[
@@ -241,11 +256,37 @@ class ChargeCard extends StatelessWidget {
                                   compact: true,
                                 ),
                               if (emitted)
-                                StatusPill(
-                                  label: gateway,
-                                  tone: AppColors.info,
-                                  icon: Icons.receipt_outlined,
-                                  compact: true,
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.info.withValues(
+                                      alpha: 0.12,
+                                    ),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      PaymentProviderLogo(
+                                        provider: view.charge.provider,
+                                        size: 14,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        gateway,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelSmall
+                                            ?.copyWith(
+                                              color: AppColors.info,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                             ],
                           ),
@@ -287,9 +328,10 @@ class ChargeCard extends StatelessWidget {
 }
 
 class ChargeActionsButton extends ConsumerWidget {
-  const ChargeActionsButton({super.key, required this.charge});
+  const ChargeActionsButton({super.key, required this.charge, this.clientName});
 
   final Charge charge;
+  final String? clientName;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -301,6 +343,11 @@ class ChargeActionsButton extends ConsumerWidget {
     final workspace = ref.watch(workspaceProvider).value;
     final canUseAsaas = workspace?.canUseAsaas ?? true;
     final canUseWhatsapp = workspace?.canUseWhatsapp ?? true;
+    final activeProvider = ref
+        .watch(paymentProvidersProvider)
+        .value
+        ?.activeProvider;
+    final gateway = paymentProviderLabel(activeProvider);
 
     return PopupMenuButton<String>(
       icon: const Icon(
@@ -315,8 +362,13 @@ class ChargeActionsButton extends ConsumerWidget {
           PopupMenuItem(
             value: 'emit',
             child: _MenuLabel(
-              'Gerar cobrança',
+              activeProvider == null
+                  ? 'Gerar cobrança'
+                  : 'Gerar cobrança no $gateway',
               icon: Icons.bolt_outlined,
+              leading: activeProvider == null
+                  ? null
+                  : PaymentProviderLogo(provider: activeProvider, size: 18),
               locked: !canUseAsaas,
             ),
           ),
@@ -428,7 +480,24 @@ class ChargeActionsButton extends ConsumerWidget {
     try {
       switch (action) {
         case 'emit':
-          final billingType = await _pickBillingType(context);
+          final activeProvider = ref
+              .read(paymentProvidersProvider)
+              .value
+              ?.activeProvider;
+          if (activeProvider == null) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Configure um meio de pagamento antes de gerar cobranças.',
+                  ),
+                ),
+              );
+              await showAsaasConfigSheet(context);
+            }
+            return;
+          }
+          final billingType = await _pickBillingType(ref, context);
           if (billingType == null || !context.mounted) return;
           final files = await _withProgress(
             context,
@@ -443,6 +512,9 @@ class ChargeActionsButton extends ConsumerWidget {
               context,
               files,
               description: charge.description,
+              clientName: clientName,
+              amount: charge.amount,
+              dueDate: charge.dueDate,
             );
           }
         case 'files':
@@ -456,6 +528,9 @@ class ChargeActionsButton extends ConsumerWidget {
               context,
               files,
               description: charge.description,
+              clientName: clientName,
+              amount: charge.amount,
+              dueDate: charge.dueDate,
             );
           }
         case 'sync':
@@ -518,11 +593,17 @@ class ChargeActionsButton extends ConsumerWidget {
     }
   }
 
-  Future<BillingType?> _pickBillingType(BuildContext context) {
+  Future<BillingType?> _pickBillingType(WidgetRef ref, BuildContext context) {
+    final active = ref.read(paymentProvidersProvider).value?.activeProvider;
+    final gateway = paymentProviderLabel(active);
     return showDialog<BillingType>(
       context: context,
       builder: (context) => SimpleDialog(
-        title: const Text('Forma de pagamento'),
+        title: Text(
+          active == null
+              ? 'Forma de pagamento'
+              : 'Forma de pagamento · $gateway',
+        ),
         children: [
           for (final type in BillingType.values)
             SimpleDialogOption(

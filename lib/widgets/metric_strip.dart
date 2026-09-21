@@ -9,6 +9,7 @@ class MetricItem {
     this.tone = AppColors.foreground,
     this.icon,
     this.hint,
+    this.active = false,
   });
 
   final String label;
@@ -16,6 +17,9 @@ class MetricItem {
   final Color tone;
   final IconData? icon;
   final String? hint;
+
+  /// Destaca o item quando o filtro correspondente está aplicado.
+  final bool active;
 }
 
 /// Faixa horizontal e compacta de indicadores. Boa para dar destaque aos
@@ -66,7 +70,10 @@ class _MetricTile extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     return InkWell(
       onTap: onTap,
-      child: Padding(
+      child: Container(
+        color: item.active
+            ? AppColors.primary.withValues(alpha: 0.08)
+            : Colors.transparent,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

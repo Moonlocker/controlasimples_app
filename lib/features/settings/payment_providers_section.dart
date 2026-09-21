@@ -9,6 +9,7 @@ import '../../models/payment_provider.dart';
 import '../../repositories/payments_repository.dart';
 import '../../widgets/app_form_sheet.dart';
 import '../../widgets/payment_provider_guide.dart';
+import '../../widgets/payment_provider_logo.dart';
 
 /// Seção de configuração dos gateways de pagamento (usada em Configurações).
 class PaymentProvidersSection extends ConsumerWidget {
@@ -55,16 +56,25 @@ Future<void> showPaymentProvidersSheet(BuildContext context) {
   return showAppFormSheet(context, const _PaymentProvidersSheet());
 }
 
-class _PaymentProvidersSheet extends ConsumerWidget {
+class _PaymentProvidersSheet extends ConsumerStatefulWidget {
   const _PaymentProvidersSheet();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_PaymentProvidersSheet> createState() =>
+      _PaymentProvidersSheetState();
+}
+
+class _PaymentProvidersSheetState
+    extends ConsumerState<_PaymentProvidersSheet> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  @override
+  Widget build(BuildContext context) {
     final async = ref.watch(paymentProvidersProvider);
     return AppFormSheet(
       title: 'Meios de pagamento',
-      subtitle: 'Escolha o gateway que emite as cobranças dos seus clientes.',
-      formKey: GlobalKey<FormState>(),
+      subtitle: 'Ative o gateway que emite as cobranças dos seus clientes.',
+      formKey: _formKey,
       onSave: () async => Navigator.of(context).pop(),
       saveLabel: 'Fechar',
       children: [
@@ -82,18 +92,47 @@ class _PaymentProvidersSheet extends ConsumerWidget {
   }
 }
 
-class PaymentProvidersBody extends StatelessWidget {
+/// Lista de gateways com expansão controlada: apenas um fica aberto por vez
+/// para que as credenciais de gateways diferentes não se misturem.
+class PaymentProvidersBody extends StatefulWidget {
   const PaymentProvidersBody({super.key, required this.view});
 
   final PaymentProvidersView view;
+
+  @override
+  State<PaymentProvidersBody> createState() => _PaymentProvidersBodyState();
+}
+
+class _PaymentProvidersBodyState extends State<PaymentProvidersBody> {
+  String? _openId;
+
+  @override
+  void initState() {
+    super.initState();
+    _openId = widget.view.activeProvider;
+  }
+
+  @override
+  void didUpdateWidget(covariant PaymentProvidersBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_openId == null && widget.view.activeProvider != null) {
+      _openId = widget.view.activeProvider;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final provider in view.providers) ...[
-          _ProviderCard(provider: provider),
+        for (final provider in widget.view.providers) ...[
+          _ProviderCard(
+            provider: provider,
+            open: _openId == provider.id,
+            onToggle: () => setState(
+              () => _openId = _openId == provider.id ? null : provider.id,
+            ),
+          ),
           const SizedBox(height: 12),
         ],
       ],
@@ -102,9 +141,15 @@ class PaymentProvidersBody extends StatelessWidget {
 }
 
 class _ProviderCard extends ConsumerStatefulWidget {
-  const _ProviderCard({required this.provider});
+  const _ProviderCard({
+    required this.provider,
+    required this.open,
+    required this.onToggle,
+  });
 
   final PaymentProviderConfig provider;
+  final bool open;
+  final VoidCallback onToggle;
 
   @override
   ConsumerState<_ProviderCard> createState() => _ProviderCardState();
@@ -235,13 +280,16 @@ class _ProviderCardState extends ConsumerState<_ProviderCard> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final entry = paymentProviderCatalog(_config.id);
-    final showConfig = _enabled || _config.configured || _config.active;
     final webhookUrl = entry == null
         ? ''
         : '${AppConfig.apiBaseUrl}${entry.webhookPath}';
+    final statusText = _config.active
+        ? 'Gateway usado nas cobranças.'
+        : _config.configured
+        ? 'Pronto para usar.'
+        : 'Ative e informe as credenciais.';
 
     return Container(
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.background,
         borderRadius: BorderRadius.circular(14),
@@ -251,141 +299,185 @@ class _ProviderCardState extends ConsumerState<_ProviderCard> {
         ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+          InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: widget.onToggle,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  PaymentProviderLogo(provider: _config.id, size: 40),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          _config.label,
-                          style: textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        if (_config.active) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text(
-                              'Em uso',
-                              style: textTheme.labelSmall?.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w700,
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                _config.label,
+                                style: textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                            if (_config.active) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.12,
+                                  ),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  'Em uso',
+                                  style: textTheme.labelSmall?.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        Text(
+                          statusText,
+                          style: textTheme.bodySmall?.copyWith(
+                            color: AppColors.mutedForeground,
                           ),
-                        ],
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ],
                     ),
+                  ),
+                  const SizedBox(width: 4),
+                  Switch(
+                    value: _enabled,
+                    onChanged: (value) {
+                      setState(() => _enabled = value);
+                      if (value && !widget.open) widget.onToggle();
+                    },
+                  ),
+                  Icon(
+                    widget.open ? Icons.expand_less : Icons.expand_more,
+                    color: AppColors.mutedForeground,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (widget.open && entry != null) ...[
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (!_enabled)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Text(
+                        'O gateway está desativado. Ligue o botão acima para usá-lo nas cobranças.',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: AppColors.warning,
+                        ),
+                      ),
+                    ),
+                  PaymentProviderGuide(
+                    providerId: _config.id,
+                    webhookUrl: webhookUrl,
+                  ),
+                  DropdownButtonFormField<String>(
+                    initialValue: _environment,
+                    decoration: const InputDecoration(labelText: 'Ambiente'),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'sandbox',
+                        child: Text('Teste / Sandbox'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'production',
+                        child: Text('Produção'),
+                      ),
+                    ],
+                    onChanged: (value) =>
+                        setState(() => _environment = value ?? _environment),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _token,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      labelText: entry.accessTokenLabel,
+                      hintText:
+                          _config.maskedAccessToken ??
+                          entry.accessTokenPlaceholder,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _secret,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      labelText: entry.webhookSecretLabel,
+                      hintText: _config.hasWebhookSecret
+                          ? 'Configurado'
+                          : entry.webhookSecretHint,
+                      helperText: entry.webhookSecretHint,
+                      helperMaxLines: 2,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      FilledButton(
+                        onPressed: _busy ? null : _save,
+                        child: _busy
+                            ? const SizedBox(
+                                height: 18,
+                                width: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text('Salvar configuração'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: _testing ? null : _test,
+                        icon: const Icon(Icons.wifi_tethering, size: 18),
+                        label: const Text('Testar conexão'),
+                      ),
+                      if (_config.configured && !_config.active)
+                        OutlinedButton(
+                          onPressed: _busy ? null : _activate,
+                          child: const Text('Usar este gateway'),
+                        ),
+                    ],
+                  ),
+                  if (_result != null) ...[
+                    const SizedBox(height: 10),
                     Text(
-                      _config.active
-                          ? 'Gateway usado nas cobranças.'
-                          : _config.configured
-                          ? 'Pronto para usar.'
-                          : 'Informe as credenciais para habilitar.',
+                      _result!,
                       style: textTheme.bodySmall?.copyWith(
-                        color: AppColors.mutedForeground,
+                        color: _resultOk ? AppColors.success : AppColors.danger,
                       ),
                     ),
                   ],
-                ),
-              ),
-              Switch(
-                value: _enabled,
-                onChanged: (value) => setState(() => _enabled = value),
-              ),
-            ],
-          ),
-          if (showConfig && entry != null) ...[
-            const SizedBox(height: 12),
-            PaymentProviderGuide(
-              providerId: _config.id,
-              webhookUrl: webhookUrl,
-            ),
-            DropdownButtonFormField<String>(
-              initialValue: _environment,
-              decoration: const InputDecoration(labelText: 'Ambiente'),
-              items: const [
-                DropdownMenuItem(
-                  value: 'sandbox',
-                  child: Text('Teste / Sandbox'),
-                ),
-                DropdownMenuItem(value: 'production', child: Text('Produção')),
-              ],
-              onChanged: (value) =>
-                  setState(() => _environment = value ?? _environment),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _token,
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: entry.accessTokenLabel,
-                hintText:
-                    _config.maskedAccessToken ?? entry.accessTokenPlaceholder,
+                ],
               ),
             ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _secret,
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: entry.webhookSecretLabel,
-                hintText: _config.hasWebhookSecret
-                    ? 'Configurado'
-                    : entry.webhookSecretHint,
-                helperText: entry.webhookSecretHint,
-                helperMaxLines: 2,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                FilledButton(
-                  onPressed: _busy ? null : _save,
-                  child: _busy
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Salvar configuração'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: _testing ? null : _test,
-                  icon: const Icon(Icons.wifi_tethering, size: 18),
-                  label: const Text('Testar conexão'),
-                ),
-                if (_config.configured && !_config.active)
-                  OutlinedButton(
-                    onPressed: _busy ? null : _activate,
-                    child: const Text('Usar este gateway'),
-                  ),
-              ],
-            ),
-            if (_result != null) ...[
-              const SizedBox(height: 10),
-              Text(
-                _result!,
-                style: textTheme.bodySmall?.copyWith(
-                  color: _resultOk ? AppColors.success : AppColors.danger,
-                ),
-              ),
-            ],
           ],
         ],
       ),

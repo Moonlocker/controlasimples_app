@@ -13,6 +13,7 @@ import '../../core/utils/mask_formatter.dart';
 import '../../core/utils/error_messages.dart';
 import '../../models/notification_preferences.dart';
 import '../../models/plan.dart';
+import '../../models/profile.dart';
 import '../../repositories/auth_repository.dart';
 import '../../repositories/notifications_repository.dart';
 import '../../repositories/profile_repository.dart';
@@ -38,71 +39,113 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final workspaceAsync = ref.watch(workspaceProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Configurações')),
-      body: workspaceAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => AsyncErrorView(
-          error: error,
-          onRetry: () => ref.invalidate(workspaceProvider),
-        ),
-        data: (workspace) {
-          final profile = workspace.profile;
-
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-            children: [
-              _Section(
-                title: 'Conta',
-                action: TextButton(
-                  onPressed: () =>
-                      showAppFormSheet(context, const _ProfileFormSheet()),
-                  child: const Text('Editar'),
-                ),
-                children: [
-                  _InfoRow(label: 'Nome', value: profile?.name ?? '—'),
-                  _InfoRow(label: 'E-mail', value: profile?.email ?? '—'),
-                  _InfoRow(label: 'Empresa', value: profile?.company ?? '—'),
-                  _InfoRow(label: 'Telefone', value: profile?.phone ?? '—'),
-                  _InfoRow(label: 'CPF/CNPJ', value: profile?.document ?? '—'),
-                ],
-              ),
-              const SizedBox(height: 16),
-              const _SubscriptionSection(),
-              const SizedBox(height: 16),
-              const PaymentProvidersSection(),
-              const SizedBox(height: 16),
-              const _WhatsappSection(),
-              const SizedBox(height: 16),
-              const _NotificationsSection(),
-              const SizedBox(height: 16),
-              const _DeviceNotificationsSection(),
-              const SizedBox(height: 16),
-              const _BusinessSection(),
-              const SizedBox(height: 16),
-              const _DataSection(),
-              const SizedBox(height: 24),
-              OutlinedButton.icon(
-                onPressed: () => showDialog<void>(
-                  context: context,
-                  builder: (_) => const _ChangePasswordDialog(),
-                ),
-                icon: const Icon(Icons.lock_outline),
-                label: const Text('Alterar senha'),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () => ref.read(authRepositoryProvider).signOut(),
-                icon: const Icon(Icons.logout),
-                label: const Text('Sair'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.danger,
-                ),
-              ),
+    return DefaultTabController(
+      length: 5,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Configurações'),
+          bottom: const TabBar(
+            isScrollable: true,
+            tabs: [
+              Tab(text: 'Conta'),
+              Tab(text: 'Plano'),
+              Tab(text: 'Pagamentos'),
+              Tab(text: 'Avisos'),
+              Tab(text: 'Dados'),
             ],
-          );
-        },
+          ),
+        ),
+        body: workspaceAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) => AsyncErrorView(
+            error: error,
+            onRetry: () => ref.invalidate(workspaceProvider),
+          ),
+          data: (workspace) {
+            return TabBarView(
+              children: [
+                _TabList(
+                  children: [
+                    _AccountSection(profile: workspace.profile),
+                    const SizedBox(height: 16),
+                    const _BusinessSection(),
+                    const SizedBox(height: 24),
+                    OutlinedButton.icon(
+                      onPressed: () => showDialog<void>(
+                        context: context,
+                        builder: (_) => const _ChangePasswordDialog(),
+                      ),
+                      icon: const Icon(Icons.lock_outline),
+                      label: const Text('Alterar senha'),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: () =>
+                          ref.read(authRepositoryProvider).signOut(),
+                      icon: const Icon(Icons.logout),
+                      label: const Text('Sair'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.danger,
+                      ),
+                    ),
+                  ],
+                ),
+                const _TabList(children: [_SubscriptionSection()]),
+                const _TabList(children: [PaymentProvidersSection()]),
+                const _TabList(
+                  children: [
+                    _WhatsappSection(),
+                    SizedBox(height: 16),
+                    _NotificationsSection(),
+                    SizedBox(height: 16),
+                    _DeviceNotificationsSection(),
+                  ],
+                ),
+                const _TabList(children: [_DataSection()]),
+              ],
+            );
+          },
+        ),
       ),
+    );
+  }
+}
+
+/// Lista rolável padrão de uma aba de Configurações.
+class _TabList extends StatelessWidget {
+  const _TabList({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+      children: children,
+    );
+  }
+}
+
+class _AccountSection extends StatelessWidget {
+  const _AccountSection({required this.profile});
+
+  final Profile? profile;
+
+  @override
+  Widget build(BuildContext context) {
+    return _Section(
+      title: 'Conta',
+      action: TextButton(
+        onPressed: () => showAppFormSheet(context, const _ProfileFormSheet()),
+        child: const Text('Editar'),
+      ),
+      children: [
+        _InfoRow(label: 'Nome', value: profile?.name ?? '—'),
+        _InfoRow(label: 'E-mail', value: profile?.email ?? '—'),
+        _InfoRow(label: 'Empresa', value: profile?.company ?? '—'),
+        _InfoRow(label: 'Telefone', value: profile?.phone ?? '—'),
+        _InfoRow(label: 'CPF/CNPJ', value: profile?.document ?? '—'),
+      ],
     );
   }
 }

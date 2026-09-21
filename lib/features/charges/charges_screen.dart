@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/enums.dart';
+import '../../core/constants/payment_providers.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/derive.dart';
 import '../../core/utils/error_messages.dart';
@@ -37,6 +38,7 @@ class ChargesScreen extends ConsumerStatefulWidget {
 class _ChargesScreenState extends ConsumerState<ChargesScreen> {
   PeriodRange? _range = currentMonthWindow();
   ChargeStatus? _status;
+  bool _openOnly = false;
   String? _clientId;
   String _query = '';
   bool _showFilters = false;
@@ -45,7 +47,23 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
   final Set<String> _selected = {};
   bool _bulkBusy = false;
 
-  bool get _hasFilters => _status != null || _clientId != null;
+  bool get _hasFilters => _status != null || _openOnly || _clientId != null;
+
+  /// Aplica/remove o filtro de status exato (clicar de novo desmarca).
+  void _toggleStatus(ChargeStatus status) {
+    setState(() {
+      _openOnly = false;
+      _status = _status == status ? null : status;
+    });
+  }
+
+  /// Aplica/remove o filtro “Em aberto” (pendentes + atrasadas).
+  void _toggleOpenOnly() {
+    setState(() {
+      _status = null;
+      _openOnly = !_openOnly;
+    });
+  }
 
   void _toggleSelect(String id) {
     setState(() {
@@ -64,10 +82,16 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
   void _clearSelection() => setState(_selected.clear);
 
   Future<BillingType?> _pickBillingType() {
+    final active = ref.read(paymentProvidersProvider).value?.activeProvider;
+    final gateway = paymentProviderLabel(active);
     return showDialog<BillingType>(
       context: context,
       builder: (context) => SimpleDialog(
-        title: const Text('Forma de pagamento'),
+        title: Text(
+          active == null
+              ? 'Forma de pagamento'
+              : 'Forma de pagamento · $gateway',
+        ),
         children: [
           for (final type in BillingType.values)
             SimpleDialogOption(
@@ -98,6 +122,21 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
           content: Text('Nenhuma cobrança elegível para emissão.'),
         ),
       );
+      return;
+    }
+    final activeProvider = ref
+        .read(paymentProvidersProvider)
+        .value
+        ?.activeProvider;
+    if (activeProvider == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Configure um meio de pagamento antes de gerar cobranças.',
+          ),
+        ),
+      );
+      await showAsaasConfigSheet(context);
       return;
     }
     final billingType = await _pickBillingType();
@@ -191,8 +230,9 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
     }
   }
 
-  bool _matches(ChargeView view) {
-    if (_status != null && view.status != _status) return false;
+  /// Filtros de cliente e busca (ignoram o status, para o resumo não “zerar”
+  /// quando o usuário filtra por um status).
+  bool _matchesBase(ChargeView view) {
     if (_clientId != null && view.clientId != _clientId) return false;
     final query = _query.trim().toLowerCase();
     if (query.isEmpty) return true;
@@ -202,6 +242,14 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
         (view.serviceName?.toLowerCase().contains(query) ?? false) ||
         brl(view.amount).toLowerCase().contains(query) ||
         view.amount.toStringAsFixed(2).contains(normalizedAmount);
+  }
+
+  bool _matchesStatus(ChargeView view) {
+    if (_openOnly) {
+      return view.status == ChargeStatus.pendente ||
+          view.status == ChargeStatus.atrasado;
+    }
+    return _status == null || view.status == _status;
   }
 
   @override
@@ -253,9 +301,16 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
                 .toList()
                 .reversed
                 .toList();
-            final views = inRange.where(_matches).toList();
+            final baseViews = inRange.where(_matchesBase).toList();
+            final views = baseViews.where(_matchesStatus).toList();
+            // As recorrências “não geradas” só aparecem quando o filtro de
+            // status permite cobranças em aberto.
+            final showPending =
+                _openOnly ||
+                _status == null ||
+                _status == ChargeStatus.pendente;
             final pending =
-                (_range == null
+                (!showPending || _range == null
                         ? const <PendingOccurrence>[]
                         : pendingOccurrencesInRange(
                             workspace,
@@ -278,21 +333,7 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
 
             // Contagem por status considerando período, cliente e busca, para
             // o usuário ver a quantidade antes de filtrar.
-            final baseForCounts = inRange.where((view) {
-              if (_clientId != null && view.clientId != _clientId) {
-                return false;
-              }
-              final query = _query.trim().toLowerCase();
-              if (query.isEmpty) return true;
-              final normalizedAmount = query
-                  .replaceAll('.', '')
-                  .replaceAll(',', '.');
-              return view.clientName.toLowerCase().contains(query) ||
-                  view.description.toLowerCase().contains(query) ||
-                  (view.serviceName?.toLowerCase().contains(query) ?? false) ||
-                  brl(view.amount).toLowerCase().contains(query) ||
-                  view.amount.toStringAsFixed(2).contains(normalizedAmount);
-            }).toList();
+            final baseForCounts = baseViews;
             final statusCounts = <ChargeStatus, int>{};
             for (final view in baseForCounts) {
               statusCounts.update(
@@ -303,16 +344,23 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
             }
             final totalCount = baseForCounts.length + pending.length;
 
-            final openTotal = views
+            final openTotal = baseViews
                 .where(
                   (view) =>
                       view.status == ChargeStatus.pendente ||
                       view.status == ChargeStatus.atrasado,
                 )
                 .fold<double>(0, (sum, view) => sum + view.amount);
-            final overdueTotal = views
+            final overdueTotal = baseViews
                 .where((view) => view.status == ChargeStatus.atrasado)
                 .fold<double>(0, (sum, view) => sum + view.amount);
+            final openCount = baseViews
+                .where(
+                  (view) =>
+                      view.status == ChargeStatus.pendente ||
+                      view.status == ChargeStatus.atrasado,
+                )
+                .length;
             final receivedTotal = workspace.payments
                 .where((p) => _range == null || _range!.contains(p.paidAt))
                 .fold<double>(0, (sum, p) => sum + p.amount);
@@ -382,25 +430,33 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: MetricStrip(
+                    onTap: (index) {
+                      if (index == 0) _toggleOpenOnly();
+                      if (index == 1) _toggleStatus(ChargeStatus.atrasado);
+                      if (index == 2) _toggleStatus(ChargeStatus.pago);
+                    },
                     items: [
                       MetricItem(
                         label: 'Em aberto',
                         value: brl(openTotal),
                         tone: AppColors.info,
                         icon: Icons.schedule_outlined,
-                        hint: '${views.length} cobranças',
+                        hint: '$openCount cobranças',
+                        active: _openOnly,
                       ),
                       MetricItem(
                         label: 'Atrasado',
                         value: brl(overdueTotal),
                         tone: AppColors.danger,
                         icon: Icons.warning_amber_outlined,
+                        active: _status == ChargeStatus.atrasado,
                       ),
                       MetricItem(
                         label: 'Recebido',
                         value: brl(receivedTotal),
                         tone: AppColors.success,
                         icon: Icons.account_balance_wallet_outlined,
+                        active: _status == ChargeStatus.pago,
                       ),
                     ],
                   ),
@@ -450,10 +506,13 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
                             children: [
                               FilterPill(
                                 label: 'Todas',
-                                selected: _status == null,
+                                selected: _status == null && !_openOnly,
                                 count: totalCount,
                                 icon: Icons.all_inclusive,
-                                onTap: () => setState(() => _status = null),
+                                onTap: () => setState(() {
+                                  _status = null;
+                                  _openOnly = false;
+                                }),
                               ),
                               for (final status in [
                                 ChargeStatus.pendente,
@@ -471,7 +530,7 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
                                       (status == ChargeStatus.pendente
                                           ? pending.length
                                           : 0),
-                                  onTap: () => setState(() => _status = status),
+                                  onTap: () => _toggleStatus(status),
                                 ),
                             ],
                           ),
