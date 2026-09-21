@@ -102,6 +102,62 @@ const List<PaymentProviderCatalog> paymentProviders = [
     ],
   ),
   PaymentProviderCatalog(
+    id: 'pagarme',
+    label: 'Pagar.me',
+    short: 'Pagar.me',
+    docsUrl: 'https://docs.pagar.me/',
+    webhookPath: '/api/public/pagarme-webhook',
+    accessTokenLabel: 'Secret Key',
+    accessTokenPlaceholder: 'sk_test_... ou sk_live_...',
+    webhookSecretLabel: 'Senha do webhook',
+    webhookSecretHint: 'A mesma senha (ou chave secreta) configurada no webhook do Pagar.me, usada para validar as notificações.',
+    steps: [
+      PaymentProviderGuideStep(
+        title: 'Acesse o painel do Pagar.me',
+        body:
+            'Entre em dashboard.pagar.me (crie uma conta se ainda não tiver).',
+        linkLabel: 'dashboard.pagar.me',
+        linkUrl: 'https://dashboard.pagar.me/',
+      ),
+      PaymentProviderGuideStep(
+        title: 'Copie a Secret Key',
+        body: 'Abra Configurações › Chaves e copie a Secret Key (sk_test_ ou sk_live_).',
+        linkLabel: 'Chaves de API',
+        linkUrl: 'https://dashboard.pagar.me/#/account/keys',
+      ),
+      PaymentProviderGuideStep(
+        title: 'Cole a chave e escolha o ambiente',
+        body: 'Use Teste para validar e Produção para valer de verdade.',
+      ),
+      PaymentProviderGuideStep(
+        title: 'Ative e teste',
+        body: 'Ligue a integração, salve e toque em Testar conexão.',
+      ),
+      PaymentProviderGuideStep(
+        title: 'Cadastre o webhook',
+        body: 'Em Configurações › Webhooks, informe a URL abaixo, escolha uma senha e marque os eventos de cobrança/estorno.',
+        linkLabel: 'Configurações › Webhooks',
+        linkUrl: 'https://dashboard.pagar.me/#/account/webhooks',
+      ),
+      PaymentProviderGuideStep(
+        title: 'Informe a senha do webhook',
+        body: 'Copie a mesma senha cadastrada no webhook e cole no campo de segredo para validar as notificações.',
+      ),
+    ],
+    events: [
+      'charge.paid',
+      'charge.pending',
+      'charge.processing',
+      'charge.payment_failed',
+      'charge.canceled',
+      'charge.refunded',
+      'order.paid',
+      'order.pending',
+      'order.canceled',
+      'checkout.paid',
+    ],
+  ),
+  PaymentProviderCatalog(
     id: 'mercadopago',
     label: 'Mercado Pago',
     short: 'Mercado Pago',

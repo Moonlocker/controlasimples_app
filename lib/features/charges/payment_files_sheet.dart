@@ -31,11 +31,12 @@ class _PaymentFilesSheet extends StatelessWidget {
   final String? description;
   final String title;
 
-  /// O gateway pode devolver o QR como base64 puro ou como data URI; aceitamos
-  /// os dois formatos para o QR Code sempre renderizar.
+  /// O gateway pode devolver o QR como base64 puro, data URI ou URL; aceitamos
+  /// os formatos para o QR Code sempre renderizar.
   static Uint8List? _decodeQr(String? raw) {
     if (raw == null || raw.isEmpty) return null;
     var value = raw.trim();
+    if (value.startsWith('http')) return null;
     final comma = value.indexOf(',');
     if (value.startsWith('data:') && comma != -1) {
       value = value.substring(comma + 1);
@@ -47,11 +48,17 @@ class _PaymentFilesSheet extends StatelessWidget {
     }
   }
 
+  static String? _qrUrl(String? raw) {
+    final value = raw?.trim() ?? '';
+    return value.startsWith('http') ? value : null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final qrBytes = _decodeQr(files.pixQrCode);
-    final hasQr = qrBytes != null;
+    final qrUrl = _qrUrl(files.pixQrCode);
+    final hasQr = qrBytes != null || qrUrl != null;
 
     return SizedBox(
       height: MediaQuery.sizeOf(context).height * 0.8,
@@ -111,12 +118,19 @@ class _PaymentFilesSheet extends StatelessWidget {
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: AppColors.border),
                       ),
-                      child: Image.memory(
-                        qrBytes,
-                        width: 220,
-                        height: 220,
-                        fit: BoxFit.contain,
-                      ),
+                      child: qrBytes != null
+                          ? Image.memory(
+                              qrBytes,
+                              width: 220,
+                              height: 220,
+                              fit: BoxFit.contain,
+                            )
+                          : Image.network(
+                              qrUrl!,
+                              width: 220,
+                              height: 220,
+                              fit: BoxFit.contain,
+                            ),
                     ),
                   ),
                   const SizedBox(height: 16),
