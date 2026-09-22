@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mantém o ícone das notificações: ele só é referenciado pelo Dart, então o
+     R8/resource shrinker o removeria do APK de release e os avisos deixariam
+     de aparecer silenciosamente. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_stat_notification" />

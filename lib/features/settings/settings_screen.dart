@@ -46,6 +46,7 @@ class SettingsScreen extends ConsumerWidget {
           title: const Text('Configurações'),
           bottom: const TabBar(
             isScrollable: true,
+            tabAlignment: TabAlignment.start,
             tabs: [
               Tab(text: 'Conta'),
               Tab(text: 'Plano'),

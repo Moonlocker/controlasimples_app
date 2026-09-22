@@ -173,53 +173,92 @@ class _ServiceHeader extends StatelessWidget {
   }
 }
 
-class _ChargesTab extends StatelessWidget {
+class _ChargesTab extends StatefulWidget {
   const _ChargesTab({required this.service, required this.views});
 
   final Service service;
   final List<ChargeView> views;
 
   @override
+  State<_ChargesTab> createState() => _ChargesTabState();
+}
+
+class _ChargesTabState extends State<_ChargesTab> {
+  ChargeStatus? _status;
+  bool _openOnly = false;
+
+  /// Aplica/remove o filtro de status exato (clicar de novo desmarca).
+  void _toggleStatus(ChargeStatus status) {
+    setState(() {
+      _openOnly = false;
+      _status = _status == status ? null : status;
+    });
+  }
+
+  /// Aplica/remove o filtro "Em aberto" (pendentes + atrasadas).
+  void _toggleOpenOnly() {
+    setState(() {
+      _status = null;
+      _openOnly = !_openOnly;
+    });
+  }
+
+  bool _matchesStatus(ChargeView view) {
+    if (_openOnly) {
+      return view.status == ChargeStatus.pendente ||
+          view.status == ChargeStatus.atrasado;
+    }
+    return _status == null || view.status == _status;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final chargeIds = views.map((view) => view.id).toSet();
+    final views = widget.views;
     final received = views
         .where((v) => v.status == ChargeStatus.pago)
         .fold<double>(0, (total, v) => total + v.amount);
     final open = views
-        .where((v) => v.status == ChargeStatus.pendente)
+        .where(
+          (v) =>
+              v.status == ChargeStatus.pendente ||
+              v.status == ChargeStatus.atrasado,
+        )
         .fold<double>(0, (total, v) => total + v.amount);
     final overdue = views
         .where((v) => v.status == ChargeStatus.atrasado)
         .fold<double>(0, (total, v) => total + v.amount);
+    final filtered = views.where(_matchesStatus).toList();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
       children: [
         MetricStrip(
+          onTap: (index) {
+            if (index == 0) _toggleStatus(ChargeStatus.pago);
+            if (index == 1) _toggleOpenOnly();
+            if (index == 2) _toggleStatus(ChargeStatus.atrasado);
+          },
           items: [
             MetricItem(
               label: 'Recebido',
               value: brl(received),
               tone: AppColors.success,
               icon: Icons.account_balance_wallet_outlined,
+              active: _status == ChargeStatus.pago,
             ),
             MetricItem(
               label: 'Em aberto',
               value: brl(open),
               tone: AppColors.info,
               icon: Icons.schedule_outlined,
+              active: _openOnly,
             ),
             MetricItem(
               label: 'Atrasado',
               value: brl(overdue),
               tone: AppColors.danger,
               icon: Icons.warning_amber_outlined,
-            ),
-            MetricItem(
-              label: 'Cobranças',
-              value: '${chargeIds.length}',
-              tone: AppColors.primary,
-              icon: Icons.receipt_outlined,
+              active: _status == ChargeStatus.atrasado,
             ),
           ],
         ),
@@ -230,8 +269,14 @@ class _ChargesTab extends StatelessWidget {
             title: 'Nenhuma cobrança',
             description: 'Crie a primeira cobrança deste serviço.',
           )
+        else if (filtered.isEmpty)
+          const EmptyState(
+            icon: Icons.filter_alt_off_outlined,
+            title: 'Nenhuma cobrança neste filtro',
+            description: 'Toque no card selecionado para limpar o filtro.',
+          )
         else
-          for (final view in views) ...[
+          for (final view in filtered) ...[
             ChargeCard(view: view, showClient: false),
             const SizedBox(height: 10),
           ],

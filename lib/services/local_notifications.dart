@@ -20,7 +20,9 @@ class LocalNotifications {
       'Pagamentos recebidos, cobranças atrasadas e vencimentos próximos.';
 
   /// Ícone monocromático (marca do Controla Simples) usado na barra de status.
-  static const String _icon = '@drawable/ic_stat_notification';
+  /// O nome é resolvido como drawable; mantenha-o também em
+  /// `android/app/src/main/res/raw/keep.xml` para o R8 não removê-lo.
+  static const String _icon = 'ic_stat_notification';
 
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
