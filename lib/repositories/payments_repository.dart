@@ -86,6 +86,11 @@ class PaymentsRepository {
     );
   }
 
+  /// Cancela a cobrança no gateway e libera a emissão de uma nova.
+  Future<void> resetEmission(String chargeId) async {
+    await _api.post('/api/mobile/payments/reset', {'chargeId': chargeId});
+  }
+
   Future<String> sync(String chargeId) async {
     final result = await _api.post('/api/mobile/payments/sync', {
       'chargeId': chargeId,

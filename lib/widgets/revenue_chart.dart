@@ -11,17 +11,25 @@ import '../core/utils/formatters.dart';
 /// O fl_chart não tem um gráfico combinado, então sobrepomos um [BarChart]
 /// (recebido) e um [LineChart] transparente (a receber) com a mesma escala e
 /// área de plotagem — assim os pontos da linha caem no centro das barras.
-class RevenueChart extends StatelessWidget {
+class RevenueChart extends StatefulWidget {
   const RevenueChart({super.key, required this.series, this.onMonthTap});
 
   final List<MonthPoint> series;
   final ValueChanged<String>? onMonthTap;
 
-  static const double _leftReserved = 54;
+  @override
+  State<RevenueChart> createState() => _RevenueChartState();
+}
+
+class _RevenueChartState extends State<RevenueChart> {
   static const double _bottomReserved = 28;
+
+  /// Mostra os valores (rótulos) diretamente sobre o gráfico.
+  bool _showValues = false;
 
   @override
   Widget build(BuildContext context) {
+    final series = widget.series;
     if (series.isEmpty) {
       return const SizedBox(
         height: 200,
@@ -32,8 +40,19 @@ class RevenueChart extends StatelessWidget {
     final maxValue = series
         .expand((point) => [point.received, point.forecast])
         .fold<double>(0, (max, value) => value > max ? value : max);
-    final maxY = maxValue == 0 ? 100.0 : maxValue * 1.2;
+    final maxY = maxValue == 0 ? 100.0 : maxValue * 1.25;
     final count = series.length.toDouble();
+    // Sem nenhum valor previsto, não desenhamos a linha (evita um caso-limite
+    // do fl_chart com uma série só de pontos nulos).
+    final hasForecast = series.any((point) => point.forecast > 0);
+
+    // Espaço à esquerda adaptado: valores altos precisam de mais largura.
+    final leftReserved = maxY >= 100000 ? 62.0 : 54.0;
+    final labelFontSize = series.length > 7
+        ? 8.0
+        : series.length > 4
+        ? 9.0
+        : 10.0;
 
     return SizedBox(
       height: 220,
@@ -62,7 +81,7 @@ class RevenueChart extends StatelessWidget {
                 leftTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
-                    reservedSize: _leftReserved,
+                    reservedSize: leftReserved,
                     interval: maxY / 4,
                     getTitlesWidget: (value, meta) => Text(
                       brlCompact(value),
@@ -97,7 +116,7 @@ class RevenueChart extends StatelessWidget {
                 ),
               ),
               barTouchData: BarTouchData(
-                touchCallback: onMonthTap == null
+                touchCallback: widget.onMonthTap == null
                     ? null
                     : (event, response) {
                         if (event is! FlTapUpEvent) return;
@@ -107,20 +126,47 @@ class RevenueChart extends StatelessWidget {
                             index >= series.length) {
                           return;
                         }
-                        onMonthTap!(series[index].key);
+                        widget.onMonthTap!(series[index].key);
                       },
                 touchTooltipData: BarTouchTooltipData(
-                  getTooltipItem: (group, groupIndex, rod, rodIndex) =>
-                      BarTooltipItem(
-                        'Recebido\n${brl(rod.toY)}',
-                        const TextStyle(color: Colors.white, fontSize: 12),
+                  fitInsideHorizontally: true,
+                  fitInsideVertically: true,
+                  tooltipPadding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 3,
+                  ),
+                  tooltipMargin: 4,
+                  getTooltipColor: (group) => AppColors.foreground,
+                  getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                    final point = series[group.x];
+                    final lines = <String>[];
+                    if (point.received > 0) {
+                      lines.add('Recebido ${brlCompact(point.received)}');
+                    }
+                    if (point.forecast > 0) {
+                      lines.add('A receber ${brlCompact(point.forecast)}');
+                    }
+                    return BarTooltipItem(
+                      lines.join('\n'),
+                      TextStyle(
+                        color: Colors.white,
+                        fontSize: labelFontSize,
+                        fontWeight: FontWeight.w600,
+                        height: 1.3,
                       ),
+                    );
+                  },
                 ),
               ),
               barGroups: [
                 for (var i = 0; i < series.length; i++)
                   BarChartGroupData(
                     x: i,
+                    showingTooltipIndicators:
+                        _showValues &&
+                            (series[i].received > 0 || series[i].forecast > 0)
+                        ? const [0]
+                        : const [],
                     barRods: [
                       BarChartRodData(
                         toY: series[i].received,
@@ -133,58 +179,89 @@ class RevenueChart extends StatelessWidget {
               ],
             ),
           ),
-          // Linha "a receber" (mesma área de plotagem das barras).
-          IgnorePointer(
-            child: LineChart(
-              LineChartData(
-                minX: 0,
-                maxX: count,
-                minY: 0,
-                maxY: maxY,
-                gridData: const FlGridData(show: false),
-                borderData: FlBorderData(show: false),
-                titlesData: FlTitlesData(
-                  topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  leftTitles: const AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: false,
-                      reservedSize: _leftReserved,
+          // Linha "a receber" (mesma área de plotagem das barras). Meses sem
+          // valor usam `nullSpot` para a linha não descer até o eixo.
+          if (hasForecast)
+            IgnorePointer(
+              child: LineChart(
+                LineChartData(
+                  minX: 0,
+                  maxX: count,
+                  minY: 0,
+                  maxY: maxY,
+                  gridData: const FlGridData(show: false),
+                  borderData: FlBorderData(show: false),
+                  titlesData: FlTitlesData(
+                    topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: false,
+                        reservedSize: leftReserved,
+                      ),
+                    ),
+                    bottomTitles: const AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: false,
+                        reservedSize: _bottomReserved,
+                      ),
                     ),
                   ),
-                  bottomTitles: const AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: false,
-                      reservedSize: _bottomReserved,
+                  lineTouchData: const LineTouchData(enabled: false),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: [
+                        for (var i = 0; i < series.length; i++)
+                          series[i].forecast > 0
+                              ? FlSpot(i + 0.5, series[i].forecast)
+                              : FlSpot.nullSpot,
+                      ],
+                      isCurved: false,
+                      color: AppColors.chart2,
+                      barWidth: 2,
+                      dotData: FlDotData(
+                        show: true,
+                        checkToShowDot: (spot, barData) => !spot.isNull(),
+                        getDotPainter: (spot, percent, bar, index) =>
+                            FlDotCirclePainter(
+                              radius: 3,
+                              color: AppColors.chart2,
+                              strokeWidth: 0,
+                            ),
+                      ),
+                      belowBarData: BarAreaData(show: false),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          // Olhinho para exibir/ocultar os valores sobre o gráfico.
+          Positioned(
+            top: 0,
+            right: 0,
+            child: Tooltip(
+              message: _showValues ? 'Ocultar valores' : 'Mostrar valores',
+              child: Material(
+                color: AppColors.surface.withValues(alpha: 0.9),
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () => setState(() => _showValues = !_showValues),
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: Icon(
+                      _showValues
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                      size: 18,
+                      color: AppColors.mutedForeground,
                     ),
                   ),
                 ),
-                lineTouchData: const LineTouchData(enabled: false),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: [
-                      for (var i = 0; i < series.length; i++)
-                        FlSpot(i + 0.5, series[i].forecast),
-                    ],
-                    isCurved: false,
-                    color: AppColors.chart2,
-                    barWidth: 2,
-                    dotData: FlDotData(
-                      show: true,
-                      getDotPainter: (spot, percent, bar, index) =>
-                          FlDotCirclePainter(
-                            radius: 3,
-                            color: AppColors.chart2,
-                            strokeWidth: 0,
-                          ),
-                    ),
-                    belowBarData: BarAreaData(show: false),
-                  ),
-                ],
               ),
             ),
           ),

@@ -511,6 +511,7 @@ class ChargeActionsButton extends ConsumerWidget {
             await showPaymentFilesSheet(
               context,
               files,
+              chargeId: charge.id,
               description: charge.description,
               clientName: clientName,
               amount: charge.amount,
@@ -527,6 +528,7 @@ class ChargeActionsButton extends ConsumerWidget {
             await showPaymentFilesSheet(
               context,
               files,
+              chargeId: charge.id,
               description: charge.description,
               clientName: clientName,
               amount: charge.amount,

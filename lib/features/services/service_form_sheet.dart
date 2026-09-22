@@ -7,10 +7,12 @@ import '../../models/service.dart';
 import '../../repositories/charges_repository.dart';
 import '../../repositories/services_repository.dart';
 import '../../repositories/workspace_providers.dart';
+import '../../models/client.dart';
 import '../../widgets/app_form_sheet.dart';
 import '../../widgets/date_field.dart';
 import '../../widgets/money_field.dart';
 import '../auth/auth_providers.dart';
+import '../clients/client_form_sheet.dart';
 
 Future<void> showServiceForm(
   BuildContext context, {
@@ -202,6 +204,13 @@ class _ServiceFormSheetState extends ConsumerState<ServiceFormSheet> {
   Widget build(BuildContext context) {
     final clients = ref.watch(workspaceProvider).value?.clients ?? const [];
     final isRecurring = _billing != ServiceBilling.unico;
+    Client? selectedClient;
+    for (final client in clients) {
+      if (client.id == _clientId) {
+        selectedClient = client;
+        break;
+      }
+    }
 
     return AppFormSheet(
       title: widget.service == null
@@ -211,15 +220,37 @@ class _ServiceFormSheetState extends ConsumerState<ServiceFormSheet> {
       busy: _busy,
       onSave: _save,
       children: [
-        DropdownButtonFormField<String>(
-          initialValue: _clientId,
-          decoration: const InputDecoration(labelText: 'Cliente'),
-          items: [
-            for (final client in clients)
-              DropdownMenuItem(value: client.id, child: Text(client.name)),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                initialValue: _clientId,
+                decoration: const InputDecoration(labelText: 'Cliente'),
+                items: [
+                  for (final client in clients)
+                    DropdownMenuItem(
+                      value: client.id,
+                      child: Text(client.name),
+                    ),
+                ],
+                onChanged: (value) => setState(() => _clientId = value),
+                validator: (value) =>
+                    value == null ? 'Selecione o cliente' : null,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: IconButton(
+                onPressed: selectedClient == null
+                    ? null
+                    : () => showClientForm(context, client: selectedClient),
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: 'Editar cliente selecionado',
+              ),
+            ),
           ],
-          onChanged: (value) => setState(() => _clientId = value),
-          validator: (value) => value == null ? 'Selecione o cliente' : null,
         ),
         const SizedBox(height: 14),
         TextFormField(

@@ -15,8 +15,8 @@ import '../../repositories/workspace_providers.dart';
 import '../../widgets/async_error_view.dart';
 import '../../widgets/confirm_dialog.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/metric_strip.dart';
 import '../../widgets/section_card.dart';
-import '../../widgets/stat_card.dart';
 import '../../widgets/status_badge.dart';
 import '../charges/charge_card.dart';
 import '../charges/charge_form_sheet.dart';
@@ -195,33 +195,27 @@ class _ChargesTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
       children: [
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 1.5,
-          children: [
-            StatCard(
+        MetricStrip(
+          items: [
+            MetricItem(
               label: 'Recebido',
               value: brl(received),
               tone: AppColors.success,
               icon: Icons.account_balance_wallet_outlined,
             ),
-            StatCard(
+            MetricItem(
               label: 'Em aberto',
               value: brl(open),
               tone: AppColors.info,
               icon: Icons.schedule_outlined,
             ),
-            StatCard(
+            MetricItem(
               label: 'Atrasado',
               value: brl(overdue),
               tone: AppColors.danger,
               icon: Icons.warning_amber_outlined,
             ),
-            StatCard(
+            MetricItem(
               label: 'Cobranças',
               value: '${chargeIds.length}',
               tone: AppColors.primary,

@@ -291,10 +291,12 @@ class _ProviderCardState extends ConsumerState<_ProviderCard> {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: _config.active
+            ? AppColors.success.withValues(alpha: 0.08)
+            : AppColors.background,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: _config.active ? AppColors.primary : AppColors.border,
+          color: _config.active ? AppColors.success : AppColors.border,
           width: _config.active ? 1.4 : 1,
         ),
       ),
@@ -309,45 +311,69 @@ class _ProviderCardState extends ConsumerState<_ProviderCard> {
               child: Row(
                 children: [
                   PaymentProviderLogo(provider: _config.id, size: 40),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
+                  if (_config.active) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.success.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: AppColors.success.withValues(alpha: 0.5),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.check_circle,
+                            size: 14,
+                            color: AppColors.success,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Em uso',
+                            style: textTheme.labelSmall?.copyWith(
+                              color: AppColors.success,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ] else if (_config.configured) ...[
+                    Tooltip(
+                      message: 'Usar este gateway',
+                      child: FilledButton.tonal(
+                        onPressed: _busy ? null : _activate,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.success.withValues(
+                            alpha: 0.16,
+                          ),
+                          foregroundColor: AppColors.success,
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          minimumSize: const Size(0, 32),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: const Text('Usar'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                _config.label,
-                                style: textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            if (_config.active) ...[
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(
-                                    alpha: 0.12,
-                                  ),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: Text(
-                                  'Em uso',
-                                  style: textTheme.labelSmall?.copyWith(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
+                        Text(
+                          _config.label,
+                          style: textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                         Text(
                           statusText,
