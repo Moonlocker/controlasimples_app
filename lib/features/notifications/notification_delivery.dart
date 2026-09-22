@@ -141,11 +141,25 @@ String osNotificationTitle(NotificationKind kind) {
   };
 }
 
+/// Idade máxima de um aviso para ainda virar notificação do sistema. Evita
+/// avisar sobre cobranças atrasadas há semanas ao reabrir o app.
+const Duration _maxNotificationAge = Duration(days: 7);
+
+/// Acima disso, os avisos são resumidos em uma única notificação (em vez de
+/// várias mensagens seguidas).
+const int _maxIndividualNotifications = 3;
+
+/// Id fixo do resumo — assim ele substitui o anterior em vez de acumular.
+const int _digestNotificationId = 900000001;
+
 /// Compara os avisos atuais com os já exibidos e dispara notificações do
 /// sistema para os novos, respeitando as preferências do usuário.
 ///
-/// Na primeira execução apenas registra o estado atual como base, evitando
-/// uma enxurrada de avisos ao instalar/atualizar o app.
+/// Regras para não incomodar:
+/// - na primeira execução apenas registra o estado atual como base;
+/// - ignora avisos antigos (mais de [_maxNotificationAge]);
+/// - não envia o "resumo" diário como push (ele já aparece dentro do app);
+/// - quando há muitos avisos novos de uma vez, envia um único resumo.
 Future<void> syncOsNotifications(
   WidgetRef ref,
   List<AppNotification> notifications,
@@ -156,27 +170,71 @@ Future<void> syncOsNotifications(
   final delivered = await ref.read(osDeliveredNotificationIdsProvider.future);
   final notifier = ref.read(osDeliveredNotificationIdsProvider.notifier);
 
-  final fresh = notifications
-      .where((notification) => !delivered.contains(notification.id))
-      .toList();
-
   if (!await notifier.hasBaseline()) {
     await notifier.markDelivered(notifications.map((n) => n.id));
     await notifier.markBaselineDone();
     return;
   }
 
-  if (preferences.enabled) {
-    for (final notification in fresh) {
-      if (!preferences.allows(notification.kind)) continue;
-      await LocalNotifications.instance.show(
-        id: notification.id.hashCode & 0x7fffffff,
-        title: osNotificationTitle(notification.kind),
-        body: notification.title,
-        payload: notification.id,
-      );
-    }
+  final now = DateTime.now();
+  final fresh = notifications.where((notification) {
+    if (delivered.contains(notification.id)) return false;
+    if (notification.kind == NotificationKind.resumo) return false;
+    if (!preferences.allows(notification.kind)) return false;
+    final age = now.difference(notification.createdAt);
+    return !age.isNegative && age <= _maxNotificationAge;
+  }).toList();
+
+  // Marca tudo como processado (inclusive o que foi filtrado) para não
+  // reprocessar depois.
+  await notifier.markDelivered(notifications.map((n) => n.id));
+
+  if (!preferences.enabled || fresh.isEmpty) return;
+
+  await LocalNotifications.instance.ensurePermission();
+
+  if (fresh.length > _maxIndividualNotifications) {
+    await LocalNotifications.instance.show(
+      id: _digestNotificationId,
+      title: '${fresh.length} novidades no Controla Simples',
+      body: _digestBody(fresh),
+    );
+    return;
   }
 
-  await notifier.markDelivered(fresh.map((n) => n.id));
+  for (final notification in fresh) {
+    await LocalNotifications.instance.show(
+      id: notification.id.hashCode & 0x7fffffff,
+      title: osNotificationTitle(notification.kind),
+      body: notification.title,
+      payload: notification.id,
+    );
+  }
+}
+
+/// Resumo curto por tipo, ex.: "2 pagamentos recebidos · 1 cobrança atrasada".
+String _digestBody(List<AppNotification> items) {
+  final paid = items.where((n) => n.kind == NotificationKind.pago).length;
+  final overdue = items
+      .where((n) => n.kind == NotificationKind.atrasado)
+      .length;
+  final upcoming = items
+      .where(
+        (n) =>
+            n.kind == NotificationKind.vencendo ||
+            n.kind == NotificationKind.recorrente,
+      )
+      .length;
+
+  final parts = <String>[
+    if (paid > 0)
+      '$paid ${paid == 1 ? 'pagamento recebido' : 'pagamentos recebidos'}',
+    if (overdue > 0)
+      '$overdue ${overdue == 1 ? 'cobrança atrasada' : 'cobranças atrasadas'}',
+    if (upcoming > 0)
+      '$upcoming ${upcoming == 1 ? 'cobrança a vencer' : 'cobranças a vencer'}',
+  ];
+  return parts.isEmpty
+      ? 'Abra o app para ver as novidades.'
+      : parts.join(' · ');
 }

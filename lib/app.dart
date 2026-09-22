@@ -30,6 +30,7 @@ class _ControlaSimplesAppState extends ConsumerState<ControlaSimplesApp>
     with WidgetsBindingObserver {
   StreamSubscription<String?>? _tapSubscription;
   bool _syncing = false;
+  bool _biometricOffered = false;
   DateTime? _lastResumeRefresh;
 
   @override
@@ -38,6 +39,30 @@ class _ControlaSimplesAppState extends ConsumerState<ControlaSimplesApp>
     WidgetsBinding.instance.addObserver(this);
     LocalNotifications.instance.init();
     _tapSubscription = LocalNotifications.instance.taps.listen(_handleTap);
+    // Sessão já restaurada na abertura: oferece a biometria assim que a
+    // primeira tela montar.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybeOfferBiometric();
+    });
+  }
+
+  /// Convida o usuário a ativar o acesso por biometria/senha do aparelho,
+  /// quando o aparelho suporta, ainda não está ativo e ele não recusou antes.
+  Future<void> _maybeOfferBiometric() async {
+    if (_biometricOffered) return;
+    final userId = ref.read(currentUserIdProvider);
+    if (userId == null) return;
+    final enabled = await ref.read(biometricEnabledProvider.future);
+    if (enabled) return;
+    final dismissed = await ref.read(biometricPromptDismissedProvider.future);
+    if (dismissed) return;
+    final supported = await ref.read(biometricSupportProvider.future);
+    if (!supported) return;
+    _biometricOffered = true;
+    // Aguarda a navegação pós-login terminar antes de abrir o convite.
+    await Future<void>.delayed(const Duration(milliseconds: 700));
+    if (!mounted) return;
+    await ref.read(routerProvider).push('/biometric-setup');
   }
 
   @override
@@ -105,9 +130,16 @@ class _ControlaSimplesAppState extends ConsumerState<ControlaSimplesApp>
       final event = next.value?.event;
       if (event == AuthChangeEvent.signedIn) {
         ref.read(appUnlockedProvider.notifier).unlock();
+        _maybeOfferBiometric();
       } else if (event == AuthChangeEvent.signedOut) {
         ref.read(appUnlockedProvider.notifier).lock();
+        _biometricOffered = false;
       }
+    });
+
+    // Cobre o caso em que a sessão é restaurada logo após a primeira tela.
+    ref.listen(currentUserIdProvider, (previous, next) {
+      if (next != null && previous == null) _maybeOfferBiometric();
     });
 
     final router = ref.watch(routerProvider);

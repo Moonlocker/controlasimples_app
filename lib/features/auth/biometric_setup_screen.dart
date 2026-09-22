@@ -43,6 +43,13 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen> {
     }
   }
 
+  /// Fecha sem ativar: registra que o convite foi recusado para não insistir a
+  /// cada abertura (o usuário ainda pode ativar em Configurações).
+  Future<void> _close() async {
+    await ref.read(biometricPromptDismissedProvider.notifier).dismiss();
+    if (mounted) context.pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -56,7 +63,7 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen> {
               child: IconButton(
                 icon: const Icon(Icons.close),
                 tooltip: 'Fechar',
-                onPressed: () => context.pop(),
+                onPressed: _close,
               ),
             ),
             Expanded(

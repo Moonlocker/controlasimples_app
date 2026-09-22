@@ -34,6 +34,33 @@ class BiometricEnabledNotifier extends AsyncNotifier<bool> {
   }
 }
 
+/// O usuário já foi convidado a ativar a biometria e optou por não ativar.
+/// Evita insistir a cada abertura/login (ele ainda pode ativar em Configurações).
+final biometricPromptDismissedProvider =
+    AsyncNotifierProvider<BiometricPromptDismissed, bool>(
+      BiometricPromptDismissed.new,
+    );
+
+class BiometricPromptDismissed extends AsyncNotifier<bool> {
+  String get _key {
+    final userId = ref.watch(currentUserIdProvider) ?? 'anon';
+    return 'controla_simples.biometric.prompted.$userId';
+  }
+
+  @override
+  Future<bool> build() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_key) ?? false;
+  }
+
+  Future<void> dismiss() async {
+    if (state.value == true) return;
+    state = const AsyncData(true);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_key, true);
+  }
+}
+
 /// A sessão atual está desbloqueada? No início do app fica `false` quando o
 /// acesso por biometria está ativo, exigindo a autenticação antes de mostrar
 /// o conteúdo. Um login com senha/e-mail (ou Google) desbloqueia a sessão.
