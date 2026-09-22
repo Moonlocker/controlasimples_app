@@ -158,7 +158,6 @@ class _ProviderCard extends ConsumerStatefulWidget {
 class _ProviderCardState extends ConsumerState<_ProviderCard> {
   final _token = TextEditingController();
   final _secret = TextEditingController();
-  late bool _enabled;
   late String _environment;
   bool _busy = false;
   bool _testing = false;
@@ -170,16 +169,12 @@ class _ProviderCardState extends ConsumerState<_ProviderCard> {
   @override
   void initState() {
     super.initState();
-    _enabled = _config.enabled;
     _environment = _config.environment;
   }
 
   @override
   void didUpdateWidget(covariant _ProviderCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.provider.enabled != _config.enabled) {
-      _enabled = _config.enabled;
-    }
     if (oldWidget.provider.environment != _config.environment) {
       _environment = _config.environment;
     }
@@ -199,7 +194,7 @@ class _ProviderCardState extends ConsumerState<_ProviderCard> {
           .read(paymentsRepositoryProvider)
           .saveProvider(
             provider: _config.id,
-            enabled: _enabled,
+            enabled: true,
             environment: _environment,
             accessToken: _token.text.trim().isEmpty ? null : _token.text.trim(),
             webhookSecret: _secret.text.trim().isEmpty
@@ -255,7 +250,22 @@ class _ProviderCardState extends ConsumerState<_ProviderCard> {
   Future<void> _activate() async {
     setState(() => _busy = true);
     try {
+      // Salva as credenciais informadas e passa a usar este gateway. Só pode
+      // haver um gateway ativo, então a ativação substitui o anterior.
+      await ref
+          .read(paymentsRepositoryProvider)
+          .saveProvider(
+            provider: _config.id,
+            enabled: true,
+            environment: _environment,
+            accessToken: _token.text.trim().isEmpty ? null : _token.text.trim(),
+            webhookSecret: _secret.text.trim().isEmpty
+                ? null
+                : _secret.text.trim(),
+          );
       await ref.read(paymentsRepositoryProvider).activateProvider(_config.id);
+      _token.clear();
+      _secret.clear();
       ref.invalidate(paymentProvidersProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -286,8 +296,8 @@ class _ProviderCardState extends ConsumerState<_ProviderCard> {
     final statusText = _config.active
         ? 'Gateway usado nas cobranças.'
         : _config.configured
-        ? 'Pronto para usar.'
-        : 'Ative e informe as credenciais.';
+        ? 'Configurado. Toque em Ativar para usá-lo.'
+        : 'Informe as credenciais e ative para usar.';
 
     return Container(
       decoration: BoxDecoration(
@@ -345,9 +355,9 @@ class _ProviderCardState extends ConsumerState<_ProviderCard> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                  ] else if (_config.configured) ...[
+                  ] else ...[
                     Tooltip(
-                      message: 'Usar este gateway',
+                      message: 'Ativar este gateway',
                       child: FilledButton.tonal(
                         onPressed: _busy ? null : _activate,
                         style: FilledButton.styleFrom(
@@ -359,7 +369,7 @@ class _ProviderCardState extends ConsumerState<_ProviderCard> {
                           minimumSize: const Size(0, 32),
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        child: const Text('Usar'),
+                        child: const Text('Ativar'),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -387,13 +397,6 @@ class _ProviderCardState extends ConsumerState<_ProviderCard> {
                     ),
                   ),
                   const SizedBox(width: 4),
-                  Switch(
-                    value: _enabled,
-                    onChanged: (value) {
-                      setState(() => _enabled = value);
-                      if (value && !widget.open) widget.onToggle();
-                    },
-                  ),
                   Icon(
                     widget.open ? Icons.expand_less : Icons.expand_more,
                     color: AppColors.mutedForeground,
@@ -409,16 +412,6 @@ class _ProviderCardState extends ConsumerState<_ProviderCard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (!_enabled)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Text(
-                        'O gateway está desativado. Ligue o botão acima para usá-lo nas cobranças.',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: AppColors.warning,
-                        ),
-                      ),
-                    ),
                   PaymentProviderGuide(
                     providerId: _config.id,
                     webhookUrl: webhookUrl,
@@ -485,11 +478,6 @@ class _ProviderCardState extends ConsumerState<_ProviderCard> {
                         icon: const Icon(Icons.wifi_tethering, size: 18),
                         label: const Text('Testar conexão'),
                       ),
-                      if (_config.configured && !_config.active)
-                        OutlinedButton(
-                          onPressed: _busy ? null : _activate,
-                          child: const Text('Usar este gateway'),
-                        ),
                     ],
                   ),
                   if (_result != null) ...[

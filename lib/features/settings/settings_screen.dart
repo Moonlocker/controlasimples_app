@@ -528,6 +528,7 @@ class _SubscriptionSection extends ConsumerWidget {
     if (workspace == null) return const SizedBox.shrink();
     final currentPlan = workspace.plan;
     final subscription = workspace.subscription;
+    final billing = ref.watch(billingInfoProvider).value;
     final canCancel =
         subscription != null &&
         (currentPlan?.price ?? 0) > 0 &&
@@ -536,33 +537,125 @@ class _SubscriptionSection extends ConsumerWidget {
     return _Section(
       title: 'Assinatura',
       children: [
-        _InfoRow(label: 'Plano', value: currentPlan?.name ?? 'Sem plano'),
-        _InfoRow(label: 'Situação', value: subscription?.status.label ?? '—'),
-        if (subscription?.currentPeriodEnd != null)
-          _InfoRow(
-            label: 'Válido até',
-            value: formatDate(subscription!.currentPeriodEnd!),
-          ),
-        if (subscription?.asaasInvoiceUrl != null)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: OutlinedButton.icon(
-              onPressed: () =>
-                  launchUrl(Uri.parse(subscription!.asaasInvoiceUrl!)),
-              icon: const Icon(Icons.open_in_new, size: 18),
-              label: const Text('Abrir fatura'),
+        // Cartão do plano atual — deixa explícito o que está contratado.
+        Container(
+          width: double.infinity,
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.4),
+              width: 1.4,
             ),
           ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'SEU PLANO ATUAL',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.6,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      currentPlan?.name ?? 'Sem plano',
+                      style: Theme.of(context).textTheme.titleLarge
+                          ?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  if (currentPlan != null)
+                    Text(
+                      currentPlan.price <= 0
+                          ? 'Grátis'
+                          : '${brl(currentPlan.price)}/mês',
+                      style: Theme.of(context).textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.muted,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      subscription?.status.label ?? 'Sem assinatura',
+                      style: Theme.of(context).textTheme.labelSmall
+                          ?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  const Spacer(),
+                  if (subscription?.currentPeriodEnd != null)
+                    Text(
+                      'Válido até ${formatDate(subscription!.currentPeriodEnd!)}',
+                      style: Theme.of(context).textTheme.bodySmall
+                          ?.copyWith(color: AppColors.mutedForeground),
+                    ),
+                ],
+              ),
+              if (subscription?.asaasInvoiceUrl != null)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () =>
+                        launchUrl(Uri.parse(subscription!.asaasInvoiceUrl!)),
+                    icon: const Icon(Icons.open_in_new, size: 16),
+                    label: const Text('Abrir fatura'),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(0, 32),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
         if (canCancel)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
+          Align(
+            alignment: Alignment.centerLeft,
             child: TextButton(
               onPressed: () => _cancel(context, ref),
               style: TextButton.styleFrom(foregroundColor: AppColors.danger),
               child: const Text('Cancelar assinatura'),
             ),
           ),
-        const Divider(height: 20),
+        const Divider(height: 24),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            'Trocar de plano',
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.w700),
+          ),
+        ),
+        const SizedBox(height: 2),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            billing != null
+                ? 'Cobrança ${billing.cycleLabel} por ${billing.billingTypeLabel}.'
+                : 'Escolha outro plano para assinar.',
+            style: Theme.of(context).textTheme.bodySmall
+                ?.copyWith(color: AppColors.mutedForeground),
+          ),
+        ),
+        const SizedBox(height: 10),
         for (final plan in workspace.plans) ...[
           _PlanCard(
             plan: plan,
@@ -590,90 +683,120 @@ class _PlanCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return InkWell(
-      onTap: current ? null : onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: current
-              ? AppColors.primary.withValues(alpha: 0.06)
-              : AppColors.background,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: plan.highlighted ? AppColors.primary : AppColors.border,
-            width: plan.highlighted ? 1.5 : 1,
-          ),
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: current
+            ? AppColors.primary.withValues(alpha: 0.06)
+            : AppColors.background,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: current || plan.highlighted
+              ? AppColors.primary
+              : AppColors.border,
+          width: current || plan.highlighted ? 1.5 : 1,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  plan.name,
+                  style: textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              if (current)
+                Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
                   child: Text(
-                    plan.name,
-                    style: textTheme.titleSmall?.copyWith(
+                    'Atual',
+                    style: textTheme.labelSmall?.copyWith(
+                      color: AppColors.success,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
+              Text(
+                plan.price <= 0 ? 'Grátis' : '${brl(plan.price)}/mês',
+                style: textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          if (plan.description.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              plan.description,
+              style: textTheme.bodySmall?.copyWith(
+                color: AppColors.mutedForeground,
+              ),
+            ),
+          ],
+          if (plan.features.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final feature in plan.features)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.muted,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(feature, style: textTheme.labelSmall),
+                  ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 10),
+          if (current)
+            Row(
+              children: [
+                const Icon(
+                  Icons.check_circle,
+                  size: 16,
+                  color: AppColors.success,
+                ),
+                const SizedBox(width: 6),
                 Text(
-                  plan.price <= 0 ? 'Grátis' : '${brl(plan.price)}/mês',
-                  style: textTheme.bodyMedium?.copyWith(
+                  'Você já está neste plano',
+                  style: textTheme.labelMedium?.copyWith(
+                    color: AppColors.success,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
+            )
+          else
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: onTap,
+                child: Text(
+                  plan.price > 0 ? 'Assinar este plano' : 'Ativar este plano',
+                ),
+              ),
             ),
-            if (plan.description.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                plan.description,
-                style: textTheme.bodySmall?.copyWith(
-                  color: AppColors.mutedForeground,
-                ),
-              ),
-            ],
-            if (plan.features.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  for (final feature in plan.features)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.muted,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(feature, style: textTheme.labelSmall),
-                    ),
-                ],
-              ),
-            ],
-            const SizedBox(height: 8),
-            if (current)
-              Text(
-                'Plano atual',
-                style: textTheme.labelMedium?.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w700,
-                ),
-              )
-            else
-              Text(
-                'Toque para assinar',
-                style: textTheme.labelMedium?.copyWith(
-                  color: AppColors.mutedForeground,
-                ),
-              ),
-          ],
-        ),
+        ],
       ),
     );
   }

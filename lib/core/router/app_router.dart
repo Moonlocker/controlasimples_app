@@ -10,6 +10,7 @@ import '../../features/auth/login_screen.dart';
 import '../../features/admin/admin_asaas_screen.dart';
 import '../../features/admin/admin_home_screen.dart';
 import '../../features/admin/admin_plans_screen.dart';
+import '../../features/admin/admin_subscriptions_screen.dart';
 import '../../features/admin/admin_user_detail_screen.dart';
 import '../../features/admin/admin_users_screen.dart';
 import '../../features/admin/admin_whatsapp_screen.dart';
@@ -146,6 +147,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                       GoRoute(
                         path: '/admin/plans',
                         builder: (context, state) => const AdminPlansScreen(),
+                      ),
+                      GoRoute(
+                        path: '/admin/subscriptions',
+                        builder: (context, state) =>
+                            const AdminSubscriptionsScreen(),
                       ),
                       GoRoute(
                         path: '/admin/whatsapp',

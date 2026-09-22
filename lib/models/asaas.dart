@@ -8,6 +8,13 @@ enum BillingType {
 
   final String wire;
   final String label;
+
+  static BillingType fromWire(String? wire) {
+    for (final value in BillingType.values) {
+      if (value.wire == wire) return value;
+    }
+    return BillingType.boleto;
+  }
 }
 
 class AsaasConfig {

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/admin.dart';
 import '../../models/asaas.dart';
+import '../../models/platform_billing.dart';
 import '../../models/whatsapp_template.dart';
 import '../../repositories/admin_repository.dart';
 
@@ -12,6 +13,16 @@ final adminDataProvider = FutureProvider<AdminData>((ref) {
 final adminAsaasConfigProvider = FutureProvider<AsaasConfig>((ref) {
   return ref.watch(adminRepositoryProvider).asaasAdminConfig();
 });
+
+final adminPlatformBillingConfigProvider =
+    FutureProvider<PlatformBillingConfig>((ref) {
+      return ref.watch(adminRepositoryProvider).platformBillingConfig();
+    });
+
+final adminPlatformSubscriptionsProvider =
+    FutureProvider<List<PlatformSubscription>>((ref) {
+      return ref.watch(adminRepositoryProvider).platformSubscriptions();
+    });
 
 final adminWhatsappConfigProvider = FutureProvider<WhatsappAdminConfig>((ref) {
   return ref.watch(adminRepositoryProvider).whatsappAdminConfig();

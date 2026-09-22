@@ -110,12 +110,16 @@ class _SubscribePlanFormSheetState
     extends ConsumerState<SubscribePlanFormSheet> {
   final _formKey = GlobalKey<FormState>();
   final _document = TextEditingController();
-  BillingType _billing = BillingType.pix;
+  BillingType _billing = BillingType.creditCard;
 
   @override
   void initState() {
     super.initState();
     _document.text = ref.read(workspaceProvider).value?.profile?.document ?? '';
+    final billing = ref.read(billingInfoProvider).value;
+    if (billing != null) {
+      _billing = BillingType.fromWire(billing.defaultBillingType);
+    }
   }
 
   @override
@@ -132,9 +136,13 @@ class _SubscribePlanFormSheetState
 
   @override
   Widget build(BuildContext context) {
+    final billing = ref.watch(billingInfoProvider).value;
+    final allowOther = billing?.allowOtherBillingTypes ?? true;
     return AppFormSheet(
       title: 'Assinar ${widget.plan.name}',
-      subtitle: '${brl(widget.plan.price)} por mês.',
+      subtitle: billing != null
+          ? 'Cobrança ${billing.cycleLabel} por ${billing.billingTypeLabel}.'
+          : '${brl(widget.plan.price)} por mês.',
       formKey: _formKey,
       saveLabel: 'Continuar',
       onSave: () async => _submit(),
@@ -151,16 +159,18 @@ class _SubscribePlanFormSheetState
             return null;
           },
         ),
-        const SizedBox(height: 14),
-        DropdownButtonFormField<BillingType>(
-          initialValue: _billing,
-          decoration: const InputDecoration(labelText: 'Forma de pagamento'),
-          items: [
-            for (final type in BillingType.values)
-              DropdownMenuItem(value: type, child: Text(type.label)),
-          ],
-          onChanged: (value) => setState(() => _billing = value ?? _billing),
-        ),
+        if (allowOther) ...[
+          const SizedBox(height: 14),
+          DropdownButtonFormField<BillingType>(
+            initialValue: _billing,
+            decoration: const InputDecoration(labelText: 'Forma de pagamento'),
+            items: [
+              for (final type in BillingType.values)
+                DropdownMenuItem(value: type, child: Text(type.label)),
+            ],
+            onChanged: (value) => setState(() => _billing = value ?? _billing),
+          ),
+        ],
       ],
     );
   }

@@ -6,6 +6,7 @@ import '../core/utils/dates.dart';
 import '../models/admin.dart';
 import '../models/asaas.dart';
 import '../models/plan.dart';
+import '../models/platform_billing.dart';
 import '../models/subscription.dart';
 import '../models/whatsapp_template.dart';
 import '../services/mobile_api_service.dart';
@@ -318,6 +319,65 @@ class AdminRepository {
       ok: result['ok'] == true,
       message: (result['message'] as String?) ?? '',
     );
+  }
+
+  Future<PlatformBillingConfig> platformBillingConfig() async {
+    return PlatformBillingConfig.fromMap(
+      await _api.get('/api/mobile/admin/billing/config'),
+    );
+  }
+
+  Future<void> savePlatformBillingConfig({
+    bool? enabled,
+    String? provider,
+    String? providerEnvironment,
+    String? providerAccessToken,
+    String? providerWebhookSecret,
+    String? billingCycle,
+    String? defaultBillingType,
+    bool? allowOtherBillingTypes,
+    int? trialDays,
+  }) async {
+    await _api.post('/api/mobile/admin/billing/config', {
+      'enabled': ?enabled,
+      'provider': ?provider,
+      'providerEnvironment': ?providerEnvironment,
+      'providerAccessToken': ?providerAccessToken,
+      'providerWebhookSecret': ?providerWebhookSecret,
+      'billingCycle': ?billingCycle,
+      'defaultBillingType': ?defaultBillingType,
+      'allowOtherBillingTypes': ?allowOtherBillingTypes,
+      'trialDays': ?trialDays,
+    });
+  }
+
+  Future<({bool ok, String message})> testPlatformBilling({
+    required String provider,
+    String? providerEnvironment,
+    String? providerAccessToken,
+  }) async {
+    final result = await _api.post('/api/mobile/admin/billing/config', {
+      'action': 'test',
+      'provider': provider,
+      'providerEnvironment': ?providerEnvironment,
+      'providerAccessToken': ?providerAccessToken,
+    });
+    return (
+      ok: result['ok'] == true,
+      message: (result['message'] as String?) ?? '',
+    );
+  }
+
+  Future<List<PlatformSubscription>> platformSubscriptions() async {
+    final result = await _api.get('/api/mobile/admin/billing/subscriptions');
+    final raw = result['subscriptions'];
+    if (raw is! List) return const [];
+    return raw
+        .whereType<Map>()
+        .map(
+          (row) => PlatformSubscription.fromMap(Map<String, dynamic>.from(row)),
+        )
+        .toList();
   }
 
   Future<WhatsappAdminConfig> whatsappAdminConfig() async {

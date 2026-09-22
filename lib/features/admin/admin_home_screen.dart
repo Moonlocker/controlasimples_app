@@ -118,6 +118,12 @@ class AdminHomeScreen extends ConsumerWidget {
                       onTap: () => context.push('/more/admin/plans'),
                     ),
                     _AdminMenuItem(
+                      icon: Icons.receipt_long_outlined,
+                      label: 'Assinaturas',
+                      subtitle: 'Gateway, ciclo e assinantes',
+                      onTap: () => context.push('/more/admin/subscriptions'),
+                    ),
+                    _AdminMenuItem(
                       icon: Icons.chat_outlined,
                       label: 'WhatsApp',
                       subtitle: 'Mensagens, consumo e configuração',
