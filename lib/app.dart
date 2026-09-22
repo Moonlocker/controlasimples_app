@@ -3,15 +3,21 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/config/app_config.dart';
 import 'core/router/app_router.dart';
+import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
+import 'features/auth/auth_providers.dart';
+import 'features/auth/biometric_lock_screen.dart';
+import 'features/auth/biometric_providers.dart';
 import 'features/notifications/notification_delivery.dart';
 import 'features/notifications/notifications_providers.dart';
 import 'models/notification.dart';
 import 'repositories/workspace_providers.dart';
 import 'services/local_notifications.dart';
+import 'widgets/brand_logo.dart';
 
 class ControlaSimplesApp extends ConsumerStatefulWidget {
   const ControlaSimplesApp({super.key});
@@ -93,7 +99,21 @@ class _ControlaSimplesAppState extends ConsumerState<ControlaSimplesApp>
       },
     );
 
+    // Um login com senha/e-mail ou Google desbloqueia a sessão; sair volta a
+    // bloquear (para o próximo início exigir a biometria, se estiver ativa).
+    ref.listen(authStateProvider, (_, next) {
+      final event = next.value?.event;
+      if (event == AuthChangeEvent.signedIn) {
+        ref.read(appUnlockedProvider.notifier).unlock();
+      } else if (event == AuthChangeEvent.signedOut) {
+        ref.read(appUnlockedProvider.notifier).lock();
+      }
+    });
+
     final router = ref.watch(routerProvider);
+    final userId = ref.watch(currentUserIdProvider);
+    final biometricEnabled = ref.watch(biometricEnabledProvider);
+    final unlocked = ref.watch(appUnlockedProvider);
 
     return MaterialApp.router(
       title: AppConfig.appName,
@@ -107,6 +127,40 @@ class _ControlaSimplesAppState extends ConsumerState<ControlaSimplesApp>
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      builder: (context, child) {
+        final base = child ?? const SizedBox.shrink();
+        if (userId == null) return base;
+        if (biometricEnabled.isLoading) {
+          return Stack(
+            children: [
+              base,
+              const Positioned.fill(child: _StartupSplash()),
+            ],
+          );
+        }
+        final locked = (biometricEnabled.value ?? false) && !unlocked;
+        if (!locked) return base;
+        return Stack(
+          children: [
+            base,
+            const Positioned.fill(child: BiometricLockScreen()),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Tela neutra exibida enquanto as preferências de acesso são carregadas,
+/// evitando mostrar o conteúdo antes de saber se o app está bloqueado.
+class _StartupSplash extends StatelessWidget {
+  const _StartupSplash();
+
+  @override
+  Widget build(BuildContext context) {
+    return const ColoredBox(
+      color: AppColors.landing,
+      child: Center(child: BrandLogo(surface: BrandSurface.dark, width: 200)),
     );
   }
 }

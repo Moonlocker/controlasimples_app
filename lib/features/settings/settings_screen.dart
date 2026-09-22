@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -26,6 +27,7 @@ import '../../widgets/app_form_sheet.dart';
 import '../../widgets/async_error_view.dart';
 import '../../widgets/plan_access.dart';
 import '../auth/auth_providers.dart';
+import '../auth/biometric_providers.dart';
 import '../notifications/notification_delivery.dart';
 import '../quotes/business_form_sheet.dart';
 import '../quotes/quotes_providers.dart';
@@ -70,6 +72,8 @@ class SettingsScreen extends ConsumerWidget {
                     _AccountSection(profile: workspace.profile),
                     const SizedBox(height: 16),
                     const _BusinessSection(),
+                    const SizedBox(height: 16),
+                    const _BiometricSection(),
                     const SizedBox(height: 24),
                     OutlinedButton.icon(
                       onPressed: () => showDialog<void>(
@@ -146,6 +150,47 @@ class _AccountSection extends StatelessWidget {
         _InfoRow(label: 'Empresa', value: profile?.company ?? '—'),
         _InfoRow(label: 'Telefone', value: profile?.phone ?? '—'),
         _InfoRow(label: 'CPF/CNPJ', value: profile?.document ?? '—'),
+      ],
+    );
+  }
+}
+
+class _BiometricSection extends ConsumerWidget {
+  const _BiometricSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final enabledAsync = ref.watch(biometricEnabledProvider);
+    final supportAsync = ref.watch(biometricSupportProvider);
+    final supported = supportAsync.value ?? false;
+    final enabled = enabledAsync.value ?? false;
+    final busy = enabledAsync.isLoading || supportAsync.isLoading;
+
+    return _Section(
+      title: 'Acesso ao app',
+      children: [
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          value: enabled,
+          onChanged: (!supported || busy)
+              ? null
+              : (value) async {
+                  if (value) {
+                    await context.push<bool>('/biometric-setup');
+                  } else {
+                    await ref
+                        .read(biometricEnabledProvider.notifier)
+                        .setEnabled(false);
+                  }
+                },
+          secondary: const Icon(Icons.fingerprint, color: AppColors.primary),
+          title: const Text('Entrar com biometria'),
+          subtitle: Text(
+            supported
+                ? 'Use a digital, o reconhecimento facial ou a senha do celular para entrar.'
+                : 'Indisponível neste aparelho. Cadastre uma biometria ou uma senha de bloqueio.',
+          ),
+        ),
       ],
     );
   }

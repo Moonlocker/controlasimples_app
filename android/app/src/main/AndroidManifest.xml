@@ -6,6 +6,8 @@
     <!-- Avisos de cobrança/pagamento no dispositivo (Android 13+). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
+    <!-- Acesso por biometria/senha do aparelho (local_auth). -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <application
         android:label="Controla Simples"
         android:name="${applicationName}"

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../features/auth/biometric_setup_screen.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/admin/admin_asaas_screen.dart';
 import '../../features/admin/admin_home_screen.dart';
@@ -172,6 +173,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/services/:id',
         builder: (context, state) =>
             ServiceDetailScreen(serviceId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/biometric-setup',
+        builder: (context, state) => const BiometricSetupScreen(),
       ),
     ],
   );
