@@ -520,18 +520,26 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
                                 ChargeStatus.pago,
                                 ChargeStatus.cancelado,
                               ])
-                                FilterPill(
-                                  label: status.label,
-                                  selected: _status == status,
-                                  tone: StatusBadge.styleFor(status).$1,
-                                  icon: StatusBadge.styleFor(status).$2,
-                                  count:
-                                      (statusCounts[status] ?? 0) +
-                                      (status == ChargeStatus.pendente
-                                          ? pending.length
-                                          : 0),
-                                  onTap: () => _toggleStatus(status),
-                                ),
+                                if (status == ChargeStatus.pendente)
+                                  // O card "Em aberto" (pendentes + atrasadas)
+                                  // compartilha o mesmo filtro desta pílula.
+                                  FilterPill(
+                                    label: 'Pendentes',
+                                    selected: _openOnly || _status == status,
+                                    tone: StatusBadge.styleFor(status).$1,
+                                    icon: StatusBadge.styleFor(status).$2,
+                                    count: openCount + pending.length,
+                                    onTap: _toggleOpenOnly,
+                                  )
+                                else
+                                  FilterPill(
+                                    label: status.label,
+                                    selected: _status == status,
+                                    tone: StatusBadge.styleFor(status).$1,
+                                    icon: StatusBadge.styleFor(status).$2,
+                                    count: statusCounts[status] ?? 0,
+                                    onTap: () => _toggleStatus(status),
+                                  ),
                             ],
                           ),
                         ),
