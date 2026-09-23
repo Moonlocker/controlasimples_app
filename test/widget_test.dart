@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:flutter_controlasimples/widgets/async_error_view.dart';
 import 'package:flutter_controlasimples/widgets/empty_state.dart';
+import 'package:flutter_controlasimples/widgets/google_mark.dart';
 import 'package:flutter_controlasimples/widgets/whatsapp_icon.dart';
 
 void main() {
@@ -28,6 +29,15 @@ void main() {
     );
 
     expect(find.byType(WhatsAppIcon), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('GoogleMark renderiza o logotipo oficial', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: GoogleMark(size: 32))),
+    );
+
+    expect(find.byType(GoogleMark), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
