@@ -41,10 +41,11 @@ android {
 
     signingConfigs {
         create("release") {
-            if (keystorePropertiesFile.exists()) {
+            val storePath = keystoreProperties["storeFile"] as String?
+            if (storePath != null && file(storePath).exists()) {
                 keyAlias = keystoreProperties["keyAlias"] as String
                 keyPassword = keystoreProperties["keyPassword"] as String
-                storeFile = keystoreProperties["storeFile"]?.let { file(it) }
+                storeFile = file(storePath)
                 storePassword = keystoreProperties["storePassword"] as String
             }
         }
@@ -52,9 +53,11 @@ android {
 
     buildTypes {
         release {
-            // Usa a chave de release quando key.properties existe; caso contrário, mantém
-            // a chave de debug para permitir testes locais.
-            signingConfig = if (keystorePropertiesFile.exists()) {
+            // Usa a chave de release apenas quando o keystore realmente existe.
+            // Caso contrário mantém a chave de debug (mesma assinatura dos APKs
+            // atuais, permitindo atualizar a instalação existente).
+            val storePath = keystoreProperties["storeFile"] as String?
+            signingConfig = if (storePath != null && file(storePath).exists()) {
                 signingConfigs.getByName("release")
             } else {
                 signingConfigs.getByName("debug")
