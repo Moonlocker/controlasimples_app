@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/enums.dart';
 import '../../core/theme/app_colors.dart';
@@ -236,6 +237,40 @@ class _UserDetailState extends ConsumerState<_UserDetail> {
             ),
           ],
         ),
+        if ((user.document ?? '').isNotEmpty ||
+            user.createdAt != null ||
+            (user.asaasInvoiceUrl ?? '').isNotEmpty) ...[
+          const SizedBox(height: 16),
+          SectionCard(
+            title: 'Dados da conta',
+            child: Column(
+              children: [
+                if ((user.document ?? '').isNotEmpty)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    title: const Text('CPF/CNPJ'),
+                    trailing: Text(user.document!),
+                  ),
+                if (user.createdAt != null)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    title: const Text('Cliente desde'),
+                    trailing: Text(formatDate(user.createdAt!)),
+                  ),
+                if ((user.asaasInvoiceUrl ?? '').isNotEmpty)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    title: const Text('Fatura Asaas'),
+                    trailing: const Icon(Icons.open_in_new, size: 16),
+                    onTap: () => launchUrl(Uri.parse(user.asaasInvoiceUrl!)),
+                  ),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 16),
         SectionCard(
           title: 'Assinatura',

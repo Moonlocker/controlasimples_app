@@ -9,7 +9,6 @@ import '../../core/utils/derive.dart';
 import '../../core/utils/dates.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/period.dart';
-import '../../core/utils/error_messages.dart';
 import '../../models/client.dart';
 import '../../models/client_notification.dart';
 import '../../models/recurring_charge.dart';
@@ -17,7 +16,6 @@ import '../../models/service.dart';
 import '../../models/workspace.dart';
 import '../../repositories/clients_repository.dart';
 import '../../repositories/notifications_repository.dart';
-import '../../repositories/whatsapp_repository.dart';
 import '../../repositories/workspace_providers.dart';
 import '../../widgets/async_error_view.dart';
 import '../../widgets/breakdown_charts.dart';
@@ -306,6 +304,7 @@ class _ClientHeader extends ConsumerWidget {
     final textTheme = Theme.of(context).textTheme;
     final hasPhone = client.phone != null && client.phone!.isNotEmpty;
     final hasEmail = client.email != null && client.email!.isNotEmpty;
+    final hasDocument = client.document != null && client.document!.isNotEmpty;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       child: Column(
@@ -342,31 +341,49 @@ class _ClientHeader extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            hasPhone
-                                ? client.phone!
-                                : (hasEmail ? client.email! : 'Sem contato'),
-                            style: textTheme.bodyLarge?.copyWith(
-                              fontWeight: FontWeight.w600,
+                            client.name,
+                            style: textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          if (hasPhone && hasEmail)
-                            Text(
-                              client.email!,
-                              style: textTheme.bodySmall?.copyWith(
-                                color: AppColors.mutedForeground,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                          const SizedBox(height: 5),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              if (client.active)
+                                const StatusPill(
+                                  label: 'Ativo',
+                                  tone: AppColors.success,
+                                  icon: Icons.check_circle_outline,
+                                  compact: true,
+                                )
+                              else
+                                const StatusPill(
+                                  label: 'Inativo',
+                                  tone: AppColors.danger,
+                                  icon: Icons.block,
+                                  compact: true,
+                                ),
+                              if (client.whatsappValid == true)
+                                const StatusPill(
+                                  label: 'WhatsApp confirmado',
+                                  tone: AppColors.success,
+                                  icon: Icons.verified_outlined,
+                                  compact: true,
+                                ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
-                    if (hasPhone)
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
+                    const SizedBox(width: 8),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (hasPhone)
                           IconButton(
                             tooltip: 'Abrir conversa no WhatsApp',
                             onPressed: () {
@@ -385,65 +402,47 @@ class _ClientHeader extends ConsumerWidget {
                                   .withValues(alpha: 0.12),
                             ),
                           ),
-                          IconButton(
-                            tooltip: 'Avisos automáticos deste cliente',
-                            onPressed: () => showClientNotificationSheet(
-                              context,
-                              clientId: client.id,
-                            ),
-                            icon: const Icon(
-                              Icons.notifications_active_outlined,
-                              color: AppColors.primary,
-                            ),
-                            style: IconButton.styleFrom(
-                              backgroundColor: AppColors.primary.withValues(
-                                alpha: 0.10,
-                              ),
+                        IconButton(
+                          tooltip: 'Avisos automáticos deste cliente',
+                          onPressed: () => showClientNotificationSheet(
+                            context,
+                            clientId: client.id,
+                          ),
+                          icon: const Icon(
+                            Icons.notifications_active_outlined,
+                            color: AppColors.primary,
+                          ),
+                          style: IconButton.styleFrom(
+                            backgroundColor: AppColors.primary.withValues(
+                              alpha: 0.10,
                             ),
                           ),
-                        ],
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    if (client.active)
-                      const StatusPill(
-                        label: 'Ativo',
-                        tone: AppColors.success,
-                        icon: Icons.check_circle_outline,
-                        compact: true,
-                      )
-                    else
-                      const StatusPill(
-                        label: 'Inativo',
-                        tone: AppColors.danger,
-                        icon: Icons.block,
-                        compact: true,
-                      ),
-                    if (client.whatsappValid == true)
-                      const StatusPill(
-                        label: 'WhatsApp confirmado',
-                        tone: AppColors.success,
-                        icon: Icons.verified_outlined,
-                        compact: true,
-                      ),
-                    if (hasPhone)
-                      TextButton.icon(
-                        onPressed: () => _checkWhatsapp(context, ref),
-                        icon: const Icon(Icons.fact_check_outlined, size: 16),
-                        label: const Text('Verificar número'),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          minimumSize: const Size(0, 32),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                      ),
+                      ],
+                    ),
                   ],
                 ),
+                if (hasPhone || hasDocument || hasEmail) ...[
+                  const SizedBox(height: 14),
+                  const Divider(height: 1),
+                  const SizedBox(height: 12),
+                  if (hasPhone)
+                    _ContactLine(
+                      icon: Icons.call_outlined,
+                      value: client.phone!,
+                    ),
+                  if (hasDocument)
+                    _ContactLine(
+                      icon: Icons.badge_outlined,
+                      label: 'CPF/CNPJ',
+                      value: client.document!,
+                    ),
+                  if (hasEmail)
+                    _ContactLine(
+                      icon: Icons.mail_outline,
+                      value: client.email!,
+                    ),
+                ],
               ],
             ),
           ),
@@ -479,24 +478,46 @@ class _ClientHeader extends ConsumerWidget {
       ),
     );
   }
+}
 
-  Future<void> _checkWhatsapp(BuildContext context, WidgetRef ref) async {
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      final status = await ref
-          .read(whatsappRepositoryProvider)
-          .checkClient(client.id);
-      ref.invalidate(workspaceProvider);
-      final label = switch (status) {
-        'valid' => 'Número confirmado no WhatsApp.',
-        'invalid' => 'Este número não parece ser um WhatsApp válido.',
-        'unknown' => 'A Meta não permite verificar o número direto. A confirmação aparece na entrega das mensagens.',
-        _ => 'A Meta ainda está processando. Tente novamente mais tarde.',
-      };
-      messenger.showSnackBar(SnackBar(content: Text(label)));
-    } catch (error) {
-      messenger.showSnackBar(SnackBar(content: Text(friendlyError(error))));
-    }
+class _ContactLine extends StatelessWidget {
+  const _ContactLine({required this.icon, required this.value, this.label});
+
+  final IconData icon;
+  final String value;
+  final String? label;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: AppColors.mutedForeground),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  if (label != null)
+                    TextSpan(
+                      text: '$label: ',
+                      style: const TextStyle(
+                        color: AppColors.mutedForeground,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  TextSpan(text: value),
+                ],
+              ),
+              style: textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

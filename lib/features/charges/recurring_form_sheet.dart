@@ -58,7 +58,7 @@ class _RecurringFormSheetState extends ConsumerState<RecurringFormSheet> {
   DateTime? _endDate;
   bool _active = true;
   bool _autoAsaas = false;
-  BillingType _billingType = BillingType.boleto;
+  BillingType _billingType = BillingType.undefined;
   bool _busy = false;
 
   @override
@@ -79,7 +79,7 @@ class _RecurringFormSheetState extends ConsumerState<RecurringFormSheet> {
     _autoAsaas = recurring?.autoAsaas ?? false;
     _billingType = BillingType.values.firstWhere(
       (type) => type.wire == recurring?.asaasBillingType,
-      orElse: () => BillingType.boleto,
+      orElse: () => BillingType.undefined,
     );
   }
 

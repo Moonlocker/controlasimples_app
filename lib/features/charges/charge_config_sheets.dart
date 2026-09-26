@@ -40,10 +40,24 @@ class _ClientNotificationSheet extends ConsumerStatefulWidget {
 }
 
 class _ClientNotificationSheetState
-    extends ConsumerState<_ClientNotificationSheet> {
+    extends ConsumerState<_ClientNotificationSheet>
+    with SingleTickerProviderStateMixin {
   bool? _clientEnabled;
   NotificationPreferences? _form;
   bool _busy = false;
+  late final TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   NotificationPreferences _sync(NotificationPreferences value) {
     return value.copyWith(
@@ -116,7 +130,7 @@ class _ClientNotificationSheetState
           onSave: _save,
           children: [
             Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
               decoration: BoxDecoration(
                 color: clientEnabled
                     ? AppColors.success.withValues(alpha: 0.08)
@@ -133,152 +147,225 @@ class _ClientNotificationSheetState
                 value: clientEnabled,
                 onChanged: (value) => setState(() => _clientEnabled = value),
                 title: Text(
-                  'Enviar avisos automáticos para ${ctx.clientName}',
+                  'Enviar avisos para ${ctx.clientName}',
                   style: textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 subtitle: Text(
                   clientEnabled
-                      ? 'Este cliente recebe os avisos de cobrança pelo WhatsApp oficial.'
-                      : 'Desligado: nenhum aviso automático é enviado a este cliente.',
+                      ? 'Ativado: o cliente recebe os avisos pelo WhatsApp oficial.'
+                      : 'Desativado: nenhum aviso é enviado a este cliente.',
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Ocasiões dos avisos (valem para todos os clientes)',
-              style: textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 4),
             if (!limits.integrationEnabled)
               Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.only(top: 10),
                 child: Text(
-                  'O envio pelo WhatsApp oficial está temporariamente indisponível.',
+                  'O WhatsApp oficial está temporariamente indisponível.',
                   style: textTheme.bodySmall?.copyWith(
                     color: AppColors.warning,
                   ),
                 ),
               ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              value: form.reminderBeforeEnabled,
-              onChanged: (value) =>
-                  _update(form.copyWith(reminderBeforeEnabled: value)),
-              title: const Text('Antes do vencimento'),
-              subtitle: Text(
-                'Avisa até ${form.reminderBeforeDays} dia(s) antes (máx. ${limits.maxReminderDaysBefore}).',
-              ),
+            const SizedBox(height: 16),
+            TabBar(
+              controller: _tabController,
+              labelColor: AppColors.primary,
+              unselectedLabelColor: AppColors.mutedForeground,
+              indicatorColor: AppColors.primary,
+              dividerColor: AppColors.border,
+              tabs: [
+                _occasionTab('Antes', form.reminderBeforeEnabled),
+                _occasionTab('No dia', form.onDueEnabled),
+                _occasionTab('Após', form.overdueEnabled),
+              ],
             ),
-            if (limits.maxReminderDaysBefore > 1)
-              Slider(
-                value: form.reminderBeforeDays
-                    .clamp(1, limits.maxReminderDaysBefore)
-                    .toDouble(),
-                min: 1,
-                max: limits.maxReminderDaysBefore.toDouble(),
-                divisions: limits.maxReminderDaysBefore - 1,
-                label: '${form.reminderBeforeDays} dia(s)',
-                onChanged: form.reminderBeforeEnabled
-                    ? (value) => _update(
-                        form.copyWith(reminderBeforeDays: value.round()),
-                      )
-                    : null,
-              ),
-            const Divider(height: 8),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              value: form.onDueEnabled,
-              onChanged: (value) => _update(form.copyWith(onDueEnabled: value)),
-              title: const Text('No dia do vencimento'),
-            ),
-            const Divider(height: 8),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              value: form.overdueEnabled,
-              onChanged: (value) =>
-                  _update(form.copyWith(overdueEnabled: value)),
-              title: const Text('Após o vencimento'),
-              subtitle: Text(
-                'Relembra até ${form.overdueDays} dia(s) depois (máx. ${limits.maxOverdueDays}).',
-              ),
-            ),
-            if (limits.maxOverdueDays > 1)
-              Slider(
-                value: form.overdueDays
-                    .clamp(1, limits.maxOverdueDays)
-                    .toDouble(),
-                min: 1,
-                max: limits.maxOverdueDays.toDouble(),
-                divisions: limits.maxOverdueDays - 1,
-                label: '${form.overdueDays} dia(s)',
-                onChanged: form.overdueEnabled
-                    ? (value) =>
-                          _update(form.copyWith(overdueDays: value.round()))
-                    : null,
-              ),
-            if (ctx.templates.isNotEmpty) ...[
-              const Divider(height: 24),
-              Text(
-                'Prévia das mensagens',
-                style: textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Texto configurado pela plataforma para cada ocasião.',
-                style: textTheme.bodySmall?.copyWith(
-                  color: AppColors.mutedForeground,
-                ),
-              ),
-              const SizedBox(height: 10),
-              for (final template in ctx.templates)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        template.label,
-                        style: textTheme.labelMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      if (template.usingPlatformDefault)
-                        Text(
-                          'Usa o modelo padrão aprovado na Meta.',
-                          style: textTheme.bodySmall?.copyWith(
-                            color: AppColors.mutedForeground,
-                          ),
-                        )
-                      else
-                        _WhatsappBubble(
-                          text: template.preview.isEmpty
-                              ? template.body
-                              : template.preview,
-                        ),
-                      if (template.buttonUrlEnabled)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            'Inclui botão com o link de pagamento.',
-                            style: textTheme.labelSmall?.copyWith(
-                              color: AppColors.mutedForeground,
-                            ),
-                          ),
-                        ),
-                    ],
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 360,
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _OccasionPanel(
+                    title: 'Antes do vencimento',
+                    description: 'Enviado alguns dias antes do vencimento.',
+                    enabled: form.reminderBeforeEnabled,
+                    canEdit: clientEnabled,
+                    onToggle: (value) =>
+                        _update(form.copyWith(reminderBeforeEnabled: value)),
+                    days: form.reminderBeforeDays,
+                    maxDays: limits.maxReminderDaysBefore,
+                    onDaysChanged: (value) =>
+                        _update(form.copyWith(reminderBeforeDays: value)),
+                    template: _templateFor(ctx.templates, 'cobranca_vencendo'),
                   ),
-                ),
-            ],
+                  _OccasionPanel(
+                    title: 'No dia do vencimento',
+                    description: 'Enviado no dia do vencimento.',
+                    enabled: form.onDueEnabled,
+                    canEdit: clientEnabled,
+                    onToggle: (value) =>
+                        _update(form.copyWith(onDueEnabled: value)),
+                    template: _templateFor(ctx.templates, 'cobranca'),
+                  ),
+                  _OccasionPanel(
+                    title: 'Após o vencimento',
+                    description:
+                        'Reenviado enquanto a cobrança estiver aberta.',
+                    enabled: form.overdueEnabled,
+                    canEdit: clientEnabled,
+                    onToggle: (value) =>
+                        _update(form.copyWith(overdueEnabled: value)),
+                    days: form.overdueDays,
+                    maxDays: limits.maxOverdueDays,
+                    onDaysChanged: (value) =>
+                        _update(form.copyWith(overdueDays: value)),
+                    template: _templateFor(ctx.templates, 'cobranca_atraso'),
+                  ),
+                ],
+              ),
+            ),
           ],
         );
       },
+    );
+  }
+
+  NotificationTemplatePreview? _templateFor(
+    List<NotificationTemplatePreview> templates,
+    String occasion,
+  ) {
+    for (final template in templates) {
+      if (template.occasion == occasion) return template;
+    }
+    return null;
+  }
+
+  Tab _occasionTab(String label, bool enabled) {
+    return Tab(
+      height: 44,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            enabled ? Icons.check_circle : Icons.radio_button_unchecked,
+            size: 16,
+            color: enabled ? AppColors.success : AppColors.mutedForeground,
+          ),
+          const SizedBox(width: 6),
+          Text(label),
+        ],
+      ),
+    );
+  }
+}
+
+class _OccasionPanel extends StatelessWidget {
+  const _OccasionPanel({
+    required this.title,
+    required this.description,
+    required this.enabled,
+    required this.canEdit,
+    required this.onToggle,
+    required this.template,
+    this.days,
+    this.maxDays,
+    this.onDaysChanged,
+  });
+
+  final String title;
+  final String description;
+  final bool enabled;
+  final bool canEdit;
+  final ValueChanged<bool> onToggle;
+  final NotificationTemplatePreview? template;
+  final int? days;
+  final int? maxDays;
+  final ValueChanged<int>? onDaysChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final days = this.days;
+    final maxDays = this.maxDays;
+    final editable = canEdit && enabled;
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          value: enabled,
+          onChanged: canEdit ? onToggle : null,
+          title: Text(title),
+          subtitle: Text(description),
+        ),
+        if (days != null && maxDays != null && maxDays > 1)
+          Row(
+            children: [
+              Expanded(
+                child: Slider(
+                  value: days.clamp(1, maxDays).toDouble(),
+                  min: 1,
+                  max: maxDays.toDouble(),
+                  divisions: maxDays - 1,
+                  label: '$days dia(s)',
+                  onChanged: editable
+                      ? (value) => onDaysChanged?.call(value.round())
+                      : null,
+                ),
+              ),
+              Text('$days dia(s)', style: textTheme.labelSmall),
+            ],
+          ),
+        const SizedBox(height: 4),
+        Text(
+          'Prévia da mensagem',
+          style: textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 6),
+        if (template == null)
+          Text(
+            'Prévia indisponível.',
+            style: textTheme.bodySmall?.copyWith(
+              color: AppColors.mutedForeground,
+            ),
+          )
+        else if (template!.usingPlatformDefault)
+          Text(
+            'Usa o modelo padrão aprovado na Meta.',
+            style: textTheme.bodySmall?.copyWith(
+              color: AppColors.mutedForeground,
+            ),
+          )
+        else
+          _WhatsappBubble(
+            text: template!.preview.isEmpty
+                ? template!.body
+                : template!.preview,
+          ),
+        if (template?.buttonUrlEnabled == true)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              'Inclui botão com o link de pagamento.',
+              style: textTheme.labelSmall?.copyWith(
+                color: AppColors.mutedForeground,
+              ),
+            ),
+          ),
+        if (!canEdit)
+          Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: Text(
+              'Ative o envio de avisos acima para editar.',
+              style: textTheme.labelSmall?.copyWith(
+                color: AppColors.mutedForeground,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

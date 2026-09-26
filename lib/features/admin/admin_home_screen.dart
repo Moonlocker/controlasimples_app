@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/constants/enums.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../../widgets/async_error_view.dart';
@@ -35,6 +36,47 @@ class AdminHomeScreen extends ConsumerWidget {
         ),
         data: (data) {
           final recent = data.users.reversed.take(8).toList();
+
+          final now = DateTime.now();
+          final blocked = data.users.where((u) => !u.active).toList();
+          final delinquent = data.users
+              .where(
+                (u) => u.subscriptionStatus == SubscriptionStatus.inadimplente,
+              )
+              .toList();
+          final trialsEnding = data.users.where((u) {
+            if (u.subscriptionStatus != SubscriptionStatus.trial) return false;
+            final end = u.currentPeriodEnd;
+            if (end == null) return false;
+            final days = end.difference(now).inDays;
+            return days >= 0 && days <= 7;
+          }).toList();
+          final attention = [
+            for (final u in delinquent)
+              (
+                user: u,
+                label: 'Pagamento pendente',
+                tone: AppColors.danger,
+                icon: Icons.error_outline,
+              ),
+            for (final u in trialsEnding)
+              (
+                user: u,
+                label: u.currentPeriodEnd == null
+                    ? 'Teste terminando'
+                    : 'Teste termina ${formatDate(u.currentPeriodEnd!)}',
+                tone: AppColors.warning,
+                icon: Icons.hourglass_bottom,
+              ),
+            for (final u in blocked)
+              (
+                user: u,
+                label: 'Acesso bloqueado',
+                tone: AppColors.mutedForeground,
+                icon: Icons.block,
+              ),
+          ];
+
           return RefreshIndicator(
             onRefresh: () async {
               ref.invalidate(adminDataProvider);
@@ -94,8 +136,67 @@ class AdminHomeScreen extends ConsumerWidget {
                       tone: AppColors.info,
                       icon: Icons.assignment_ind_outlined,
                     ),
+                    StatCard(
+                      label: 'Cobranças',
+                      value: '${data.totalCharges}',
+                      tone: AppColors.primary,
+                      icon: Icons.receipt_long_outlined,
+                    ),
+                    StatCard(
+                      label: 'WhatsApp no mês',
+                      value: '${data.whatsappSentTotal}',
+                      hint: data.whatsappFailedTotal > 0
+                          ? '${data.whatsappFailedTotal} falhas'
+                          : 'sem falhas',
+                      tone: data.whatsappFailedTotal > 0
+                          ? AppColors.danger
+                          : AppColors.success,
+                      icon: Icons.chat_outlined,
+                    ),
                   ],
                 ),
+                if (attention.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  Text(
+                    'Precisa de atenção',
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Column(
+                      children: [
+                        for (var i = 0; i < attention.length; i++) ...[
+                          if (i > 0) const Divider(height: 1),
+                          ListTile(
+                            onTap: () => context.push(
+                              '/more/admin/users/${attention[i].user.id}',
+                            ),
+                            leading: Icon(
+                              attention[i].icon,
+                              color: attention[i].tone,
+                            ),
+                            title: Text(
+                              attention[i].user.name.isEmpty
+                                  ? attention[i].user.email
+                                  : attention[i].user.name,
+                            ),
+                            subtitle: Text(attention[i].label),
+                            trailing: const Icon(
+                              Icons.chevron_right,
+                              color: AppColors.mutedForeground,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 20),
                 Text(
                   'Áreas de gestão',
