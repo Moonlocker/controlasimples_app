@@ -118,9 +118,9 @@ class AdminHomeScreen extends ConsumerWidget {
                       onTap: () => context.push('/more/admin/plans'),
                     ),
                     _AdminMenuItem(
-                      icon: Icons.receipt_long_outlined,
-                      label: 'Assinaturas',
-                      subtitle: 'Gateway, ciclo e assinantes',
+                      icon: Icons.account_balance_outlined,
+                      label: 'Gateways e assinaturas',
+                      subtitle: 'Asaas, Mercado Pago, Pagar.me e assinantes',
                       onTap: () => context.push('/more/admin/subscriptions'),
                     ),
                     _AdminMenuItem(
@@ -131,8 +131,8 @@ class AdminHomeScreen extends ConsumerWidget {
                     ),
                     _AdminMenuItem(
                       icon: Icons.payments_outlined,
-                      label: 'Asaas',
-                      subtitle: 'Chave da plataforma',
+                      label: 'Asaas da plataforma',
+                      subtitle: 'Configuração legada',
                       onTap: () => context.push('/more/admin/asaas'),
                     ),
                   ],

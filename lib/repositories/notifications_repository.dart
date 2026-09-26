@@ -34,6 +34,20 @@ final chargeNotificationsProvider =
           .fetchChargeNotifications(chargeId);
     });
 
+/// Avisos, preferências e prévias de mensagens de um cliente.
+final clientNotificationContextProvider =
+    FutureProvider.family<ClientNotificationContext, String>((ref, clientId) {
+      return ref
+          .watch(notificationsRepositoryProvider)
+          .fetchClientContext(clientId);
+    });
+
+/// Prévia dos modelos de mensagem por ocasião (configurados pelo superadmin).
+final notificationTemplatesProvider =
+    FutureProvider<List<NotificationTemplatePreview>>((ref) {
+      return ref.watch(notificationsRepositoryProvider).fetchTemplates();
+    });
+
 class NotificationsRepository {
   NotificationsRepository(this._api);
 
@@ -78,6 +92,39 @@ class NotificationsRepository {
         'chargeId': chargeId,
       }),
     );
+  }
+
+  Future<ClientNotificationContext> fetchClientContext(String clientId) async {
+    return ClientNotificationContext.fromMap(
+      await _api.get('/api/mobile/notifications/client-context', {
+        'clientId': clientId,
+      }),
+    );
+  }
+
+  Future<bool> setClientNotifications({
+    required String clientId,
+    required bool enabled,
+  }) async {
+    final result = await _api.post('/api/mobile/notifications/client-context', {
+      'clientId': clientId,
+      'notificationsEnabled': enabled,
+    });
+    return result['notificationsEnabled'] == true;
+  }
+
+  Future<List<NotificationTemplatePreview>> fetchTemplates() async {
+    final result = await _api.get('/api/mobile/notifications/templates');
+    final raw = result['templates'];
+    if (raw is! List) return const [];
+    return raw
+        .whereType<Map>()
+        .map(
+          (row) => NotificationTemplatePreview.fromMap(
+            Map<String, dynamic>.from(row),
+          ),
+        )
+        .toList();
   }
 
   Future<ChargeNotificationContext> saveChargeNotifications({

@@ -87,3 +87,92 @@ class NotificationSettings {
   final NotificationPreferences preferences;
   final NotificationLimits limits;
 }
+
+/// Prévia de um modelo de notificação configurado pelo superadmin.
+class NotificationTemplatePreview {
+  const NotificationTemplatePreview({
+    required this.occasion,
+    required this.label,
+    required this.description,
+    this.templateName,
+    required this.body,
+    required this.preview,
+    required this.buttonUrlEnabled,
+    required this.usingPlatformDefault,
+  });
+
+  final String occasion;
+  final String label;
+  final String description;
+  final String? templateName;
+  final String body;
+  final String preview;
+  final bool buttonUrlEnabled;
+  final bool usingPlatformDefault;
+
+  factory NotificationTemplatePreview.fromMap(Map<String, dynamic> map) {
+    return NotificationTemplatePreview(
+      occasion: (map['occasion'] as String?) ?? '',
+      label: (map['label'] as String?) ?? '',
+      description: (map['description'] as String?) ?? '',
+      templateName: map['templateName'] as String?,
+      body: (map['body'] as String?) ?? '',
+      preview: (map['preview'] as String?) ?? '',
+      buttonUrlEnabled: map['buttonUrlEnabled'] == true,
+      usingPlatformDefault: map['usingPlatformDefault'] == true,
+    );
+  }
+}
+
+/// Contexto de notificações de um cliente: avisos, preferências e prévias.
+class ClientNotificationContext {
+  const ClientNotificationContext({
+    required this.clientId,
+    required this.clientName,
+    this.phone,
+    required this.notificationsEnabled,
+    required this.preferences,
+    required this.limits,
+    required this.templates,
+  });
+
+  final String clientId;
+  final String clientName;
+  final String? phone;
+  final bool notificationsEnabled;
+  final NotificationPreferences preferences;
+  final NotificationLimits limits;
+  final List<NotificationTemplatePreview> templates;
+
+  factory ClientNotificationContext.fromMap(Map<String, dynamic> map) {
+    final client = map['client'];
+    final prefs = map['preferences'];
+    final limits = map['limits'];
+    final templates = map['templates'];
+    final clientMap = client is Map
+        ? Map<String, dynamic>.from(client)
+        : const <String, dynamic>{};
+    return ClientNotificationContext(
+      clientId: (clientMap['id'] as String?) ?? '',
+      clientName: (clientMap['name'] as String?) ?? '',
+      phone: clientMap['phone'] as String?,
+      notificationsEnabled: clientMap['notificationsEnabled'] != false,
+      preferences: prefs is Map
+          ? NotificationPreferences.fromMap(Map<String, dynamic>.from(prefs))
+          : const NotificationPreferences(),
+      limits: limits is Map
+          ? NotificationLimits.fromMap(Map<String, dynamic>.from(limits))
+          : const NotificationLimits(),
+      templates: templates is List
+          ? templates
+                .whereType<Map>()
+                .map(
+                  (row) => NotificationTemplatePreview.fromMap(
+                    Map<String, dynamic>.from(row),
+                  ),
+                )
+                .toList()
+          : const [],
+    );
+  }
+}

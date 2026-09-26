@@ -168,6 +168,13 @@ class _ChargeNotificationsSheetState
                           color: AppColors.mutedForeground,
                         ),
                       ),
+                      if (client?.phone != null && client!.phone!.isNotEmpty)
+                        Text(
+                          'WhatsApp: ${client.phone}',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: AppColors.mutedForeground,
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -295,6 +302,86 @@ class _ChargeNotificationsSheetState
             label: Text(_sending ? 'Enviando…' : 'Enviar aviso agora'),
           ),
         ),
+        const Divider(height: 24),
+        Text(
+          'Prévia das mensagens',
+          style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Texto configurado pela plataforma para cada ocasião de aviso.',
+          style: textTheme.bodySmall?.copyWith(
+            color: AppColors.mutedForeground,
+          ),
+        ),
+        const SizedBox(height: 10),
+        ref
+            .watch(notificationTemplatesProvider)
+            .when(
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (error, _) => Text(
+                'Não foi possível carregar as prévias.',
+                style: textTheme.bodySmall?.copyWith(
+                  color: AppColors.mutedForeground,
+                ),
+              ),
+              data: (templates) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final template in templates)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            template.label,
+                            style: textTheme.labelMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          if (template.usingPlatformDefault)
+                            Text(
+                              'Usa o modelo padrão aprovado na Meta.',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: AppColors.mutedForeground,
+                              ),
+                            )
+                          else
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFDCF8C6),
+                                borderRadius: BorderRadius.only(
+                                  topLeft: Radius.circular(4),
+                                  topRight: Radius.circular(14),
+                                  bottomLeft: Radius.circular(14),
+                                  bottomRight: Radius.circular(14),
+                                ),
+                              ),
+                              child: Text(
+                                template.preview.isEmpty
+                                    ? template.body
+                                    : template.preview,
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: const Color(0xFF111B21),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
         if (data.history.isNotEmpty) ...[
           const Divider(height: 24),
           Text(

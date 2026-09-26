@@ -17,6 +17,7 @@ import '../../widgets/confirm_dialog.dart';
 import '../../widgets/payment_provider_logo.dart';
 import '../../widgets/plan_access.dart';
 import '../../widgets/status_badge.dart';
+import '../../widgets/whatsapp_icon.dart';
 import 'charge_config_sheets.dart';
 import 'charge_form_sheet.dart';
 import 'charge_notifications_sheet.dart';
@@ -394,8 +395,8 @@ class ChargeActionsButton extends ConsumerWidget {
           PopupMenuItem(
             value: 'whatsapp',
             child: _MenuLabel(
-              'Notificações no WhatsApp',
-              icon: Icons.chat_outlined,
+              'Avisar no WhatsApp',
+              leading: const WhatsAppIcon(size: 18),
               locked: !canUseWhatsapp,
             ),
           ),

@@ -33,6 +33,7 @@ import '../../widgets/stat_card.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/whatsapp_icon.dart';
 import '../charges/charge_card.dart';
+import '../charges/charge_config_sheets.dart';
 import '../charges/charge_form_sheet.dart';
 import '../charges/recurring_form_sheet.dart';
 import '../services/service_form_sheet.dart';
@@ -51,6 +52,29 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
   int _lastIndex = 0;
+  ChargeStatus? _statusFilter;
+  bool _openOnly = false;
+
+  String? get _activeFilter {
+    if (_openOnly) return 'open';
+    if (_statusFilter == ChargeStatus.atrasado) return 'overdue';
+    if (_statusFilter == ChargeStatus.pago) return 'paid';
+    return null;
+  }
+
+  void _toggleOpenOnly() {
+    setState(() {
+      _openOnly = !_openOnly;
+      _statusFilter = null;
+    });
+  }
+
+  void _toggleStatus(ChargeStatus status) {
+    setState(() {
+      _statusFilter = _statusFilter == status ? null : status;
+      _openOnly = false;
+    });
+  }
 
   @override
   void initState() {
@@ -145,6 +169,13 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen>
                 overdueTotal: overdueTotal,
                 receivedTotal: receivedTotal,
                 chargesCount: views.length,
+                activeFilter: _activeFilter,
+                onTapMetric: (index) {
+                  if (_tabController.index != 0) _tabController.animateTo(0);
+                  if (index == 0) _toggleOpenOnly();
+                  if (index == 1) _toggleStatus(ChargeStatus.atrasado);
+                  if (index == 2) _toggleStatus(ChargeStatus.pago);
+                },
               ),
               TabBar(
                 controller: _tabController,
@@ -161,7 +192,18 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen>
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _ChargesTab(views: views),
+                    _ChargesTab(
+                      views: views.where((view) {
+                        if (_openOnly) {
+                          return view.status == ChargeStatus.pendente ||
+                              view.status == ChargeStatus.atrasado;
+                        }
+                        if (_statusFilter != null) {
+                          return view.status == _statusFilter;
+                        }
+                        return true;
+                      }).toList(),
+                    ),
                     _ServicesTab(
                       services: services,
                       recurring: recurring,
@@ -245,6 +287,8 @@ class _ClientHeader extends ConsumerWidget {
     required this.overdueTotal,
     required this.receivedTotal,
     required this.chargesCount,
+    required this.activeFilter,
+    required this.onTapMetric,
   });
 
   final Client client;
@@ -252,6 +296,10 @@ class _ClientHeader extends ConsumerWidget {
   final double overdueTotal;
   final double receivedTotal;
   final int chargesCount;
+
+  /// Filtro ativo ('open', 'overdue', 'paid') para destacar o card clicado.
+  final String? activeFilter;
+  final void Function(int index) onTapMetric;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -316,32 +364,44 @@ class _ClientHeader extends ConsumerWidget {
                       ),
                     ),
                     if (hasPhone)
-                      IconButton(
-                        tooltip: 'Verificar WhatsApp',
-                        icon: const Icon(
-                          Icons.verified_rounded,
-                          color: AppColors.info,
-                        ),
-                        onPressed: () => _checkWhatsapp(context, ref),
-                      ),
-                    if (hasPhone)
-                      IconButton(
-                        tooltip: 'Abrir no WhatsApp',
-                        onPressed: () {
-                          final digits = client.phone!.replaceAll(
-                            RegExp(r'[^0-9]'),
-                            '',
-                          );
-                          final number = digits.length <= 11
-                              ? '55$digits'
-                              : digits;
-                          launchUrl(Uri.parse('https://wa.me/$number'));
-                        },
-                        icon: const WhatsAppIcon(size: 22),
-                        style: IconButton.styleFrom(
-                          backgroundColor: const Color(0xFF25D366)
-                              .withValues(alpha: 0.12),
-                        ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            tooltip: 'Abrir conversa no WhatsApp',
+                            onPressed: () {
+                              final digits = client.phone!.replaceAll(
+                                RegExp(r'[^0-9]'),
+                                '',
+                              );
+                              final number = digits.length <= 11
+                                  ? '55$digits'
+                                  : digits;
+                              launchUrl(Uri.parse('https://wa.me/$number'));
+                            },
+                            icon: const WhatsAppIcon(size: 22),
+                            style: IconButton.styleFrom(
+                              backgroundColor: const Color(0xFF25D366)
+                                  .withValues(alpha: 0.12),
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Avisos automáticos deste cliente',
+                            onPressed: () => showClientNotificationSheet(
+                              context,
+                              clientId: client.id,
+                            ),
+                            icon: const Icon(
+                              Icons.notifications_active_outlined,
+                              color: AppColors.primary,
+                            ),
+                            style: IconButton.styleFrom(
+                              backgroundColor: AppColors.primary.withValues(
+                                alpha: 0.10,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                   ],
                 ),
@@ -371,6 +431,17 @@ class _ClientHeader extends ConsumerWidget {
                         icon: Icons.verified_outlined,
                         compact: true,
                       ),
+                    if (hasPhone)
+                      TextButton.icon(
+                        onPressed: () => _checkWhatsapp(context, ref),
+                        icon: const Icon(Icons.fact_check_outlined, size: 16),
+                        label: const Text('Verificar número'),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          minimumSize: const Size(0, 32),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
                   ],
                 ),
               ],
@@ -378,6 +449,7 @@ class _ClientHeader extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           MetricStrip(
+            onTap: onTapMetric,
             items: [
               MetricItem(
                 label: 'Em aberto',
@@ -385,18 +457,21 @@ class _ClientHeader extends ConsumerWidget {
                 tone: AppColors.info,
                 icon: Icons.schedule_outlined,
                 hint: '$chargesCount cobranças',
+                active: activeFilter == 'open',
               ),
               MetricItem(
                 label: 'Atrasado',
                 value: brl(overdueTotal),
                 tone: AppColors.danger,
                 icon: Icons.warning_amber_outlined,
+                active: activeFilter == 'overdue',
               ),
               MetricItem(
                 label: 'Recebido',
                 value: brl(receivedTotal),
                 tone: AppColors.success,
                 icon: Icons.account_balance_wallet_outlined,
+                active: activeFilter == 'paid',
               ),
             ],
           ),
@@ -414,9 +489,9 @@ class _ClientHeader extends ConsumerWidget {
       ref.invalidate(workspaceProvider);
       final label = switch (status) {
         'valid' => 'Número confirmado no WhatsApp.',
-        'processing' =>
-          'A Meta ainda está processando. Tente novamente mais tarde.',
-        _ => 'Este número não parece ser um WhatsApp válido.',
+        'invalid' => 'Este número não parece ser um WhatsApp válido.',
+        'unknown' => 'A Meta não permite verificar o número direto. A confirmação aparece na entrega das mensagens.',
+        _ => 'A Meta ainda está processando. Tente novamente mais tarde.',
       };
       messenger.showSnackBar(SnackBar(content: Text(label)));
     } catch (error) {
