@@ -311,7 +311,7 @@ class _ClientHeader extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(16),
@@ -323,32 +323,32 @@ class _ClientHeader extends ConsumerWidget {
                 Row(
                   children: [
                     CircleAvatar(
-                      radius: 24,
+                      radius: 20,
                       backgroundColor: AppColors.primary.withValues(
                         alpha: 0.12,
                       ),
                       child: Text(
                         initials(client.name),
-                        style: textTheme.titleMedium?.copyWith(
+                        style: textTheme.titleSmall?.copyWith(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             client.name,
-                            style: textTheme.titleMedium?.copyWith(
+                            style: textTheme.titleSmall?.copyWith(
                               fontWeight: FontWeight.w700,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 5),
+                          const SizedBox(height: 4),
                           Wrap(
                             spacing: 6,
                             runSpacing: 6,
@@ -379,69 +379,76 @@ class _ClientHeader extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (hasPhone)
-                          IconButton(
-                            tooltip: 'Abrir conversa no WhatsApp',
-                            onPressed: () {
-                              final digits = client.phone!.replaceAll(
-                                RegExp(r'[^0-9]'),
-                                '',
-                              );
-                              final number = digits.length <= 11
-                                  ? '55$digits'
-                                  : digits;
-                              launchUrl(Uri.parse('https://wa.me/$number'));
-                            },
-                            icon: const WhatsAppIcon(size: 22),
-                            style: IconButton.styleFrom(
-                              backgroundColor: const Color(0xFF25D366)
-                                  .withValues(alpha: 0.12),
-                            ),
-                          ),
-                        IconButton(
-                          tooltip: 'Avisos automáticos deste cliente',
-                          onPressed: () => showClientNotificationSheet(
-                            context,
-                            clientId: client.id,
-                          ),
-                          icon: const Icon(
-                            Icons.notifications_active_outlined,
-                            color: AppColors.primary,
-                          ),
-                          style: IconButton.styleFrom(
-                            backgroundColor: AppColors.primary.withValues(
-                              alpha: 0.10,
-                            ),
-                          ),
+                    const SizedBox(width: 4),
+                    if (hasPhone)
+                      IconButton(
+                        tooltip: 'Abrir conversa no WhatsApp',
+                        onPressed: () {
+                          final digits = client.phone!.replaceAll(
+                            RegExp(r'[^0-9]'),
+                            '',
+                          );
+                          final number = digits.length <= 11
+                              ? '55$digits'
+                              : digits;
+                          launchUrl(Uri.parse('https://wa.me/$number'));
+                        },
+                        icon: const WhatsAppIcon(size: 20),
+                        visualDensity: VisualDensity.compact,
+                        style: IconButton.styleFrom(
+                          backgroundColor: const Color(0xFF25D366)
+                              .withValues(alpha: 0.12),
                         ),
-                      ],
+                      ),
+                    IconButton(
+                      tooltip: client.notificationsEnabled
+                          ? 'Avisos automáticos ativados'
+                          : 'Avisos automáticos desativados',
+                      onPressed: () => showClientNotificationSheet(
+                        context,
+                        clientId: client.id,
+                      ),
+                      icon: Icon(
+                        client.notificationsEnabled
+                            ? Icons.notifications_active_outlined
+                            : Icons.notifications_off_outlined,
+                        color: client.notificationsEnabled
+                            ? AppColors.primary
+                            : AppColors.mutedForeground,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                      style: IconButton.styleFrom(
+                        backgroundColor: client.notificationsEnabled
+                            ? AppColors.primary.withValues(alpha: 0.10)
+                            : AppColors.muted,
+                      ),
                     ),
                   ],
                 ),
                 if (hasPhone || hasDocument || hasEmail) ...[
-                  const SizedBox(height: 14),
-                  const Divider(height: 1),
-                  const SizedBox(height: 12),
-                  if (hasPhone)
-                    _ContactLine(
-                      icon: Icons.call_outlined,
-                      value: client.phone!,
-                    ),
-                  if (hasDocument)
-                    _ContactLine(
-                      icon: Icons.badge_outlined,
-                      label: 'CPF/CNPJ',
-                      value: client.document!,
-                    ),
-                  if (hasEmail)
-                    _ContactLine(
-                      icon: Icons.mail_outline,
-                      value: client.email!,
-                    ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 14,
+                    runSpacing: 6,
+                    children: [
+                      if (hasPhone)
+                        _ContactItem(
+                          icon: Icons.call_outlined,
+                          value: client.phone!,
+                        ),
+                      if (hasDocument)
+                        _ContactItem(
+                          icon: Icons.badge_outlined,
+                          label: 'CPF/CNPJ',
+                          value: client.document!,
+                        ),
+                      if (hasEmail)
+                        _ContactItem(
+                          icon: Icons.mail_outline,
+                          value: client.email!,
+                        ),
+                    ],
+                  ),
                 ],
               ],
             ),
@@ -480,8 +487,8 @@ class _ClientHeader extends ConsumerWidget {
   }
 }
 
-class _ContactLine extends StatelessWidget {
-  const _ContactLine({required this.icon, required this.value, this.label});
+class _ContactItem extends StatelessWidget {
+  const _ContactItem({required this.icon, required this.value, this.label});
 
   final IconData icon;
   final String value;
@@ -490,33 +497,32 @@ class _ContactLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 16, color: AppColors.mutedForeground),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text.rich(
-              TextSpan(
-                children: [
-                  if (label != null)
-                    TextSpan(
-                      text: '$label: ',
-                      style: const TextStyle(
-                        color: AppColors.mutedForeground,
-                        fontWeight: FontWeight.w600,
-                      ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: AppColors.mutedForeground),
+        const SizedBox(width: 5),
+        Flexible(
+          child: Text.rich(
+            TextSpan(
+              children: [
+                if (label != null)
+                  TextSpan(
+                    text: '$label: ',
+                    style: const TextStyle(
+                      color: AppColors.mutedForeground,
+                      fontWeight: FontWeight.w600,
                     ),
-                  TextSpan(text: value),
-                ],
-              ),
-              style: textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
+                  ),
+                TextSpan(text: value),
+              ],
             ),
+            style: textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

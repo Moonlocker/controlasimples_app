@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/utils/error_messages.dart';
 import '../../models/notification_preferences.dart';
 import '../../repositories/notifications_repository.dart';
+import '../../repositories/workspace_providers.dart';
 import '../../widgets/app_form_sheet.dart';
 import '../settings/payment_providers_section.dart';
 
@@ -86,6 +87,7 @@ class _ClientNotificationSheetState
       );
       ref.invalidate(notificationSettingsProvider);
       ref.invalidate(clientNotificationContextProvider(widget.clientId));
+      ref.invalidate(workspaceProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Preferências de avisos salvas.')),
