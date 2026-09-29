@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../core/constants/enums.dart';
 import '../core/theme/app_colors.dart';
 import '../core/utils/formatters.dart';
+import '../features/charges/charge_card.dart';
+import '../models/charge.dart';
 import 'status_badge.dart';
 
 class RecordRow {
@@ -17,6 +19,7 @@ class RecordRow {
     this.status,
     this.badgeLabel,
     this.note,
+    this.charge,
   });
 
   final String clientName;
@@ -29,6 +32,9 @@ class RecordRow {
   final ChargeStatus? status;
   final String? badgeLabel;
   final String? note;
+
+  /// Cobrança de origem (quando houver), para habilitar as ações rápidas.
+  final Charge? charge;
 }
 
 class RecordSection {
@@ -281,6 +287,11 @@ class _RecordTile extends StatelessWidget {
               ],
             ],
           ),
+          if (row.charge != null)
+            ChargeActionsButton(
+              charge: row.charge!,
+              clientName: row.clientName,
+            ),
         ],
       ),
     );

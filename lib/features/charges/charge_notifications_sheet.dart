@@ -2,14 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/dates.dart';
 import '../../core/utils/error_messages.dart';
 import '../../core/utils/formatters.dart';
 import '../../models/charge_notification.dart';
+import '../../models/notification_preferences.dart';
 import '../../repositories/notifications_repository.dart';
 import '../../repositories/whatsapp_repository.dart';
+import '../../repositories/workspace_providers.dart';
 import '../../widgets/app_form_sheet.dart';
+import 'notification_widgets.dart';
 
 /// Painel de notificações (automáticas e manual) de uma cobrança.
+///
+/// Usa o mesmo layout com abas do modal de configuração de avisos do cliente
+/// (Antes / No dia / Após), com a diferença de que cada ocasião mostra a data
+/// prevista de envio calculada a partir do vencimento da cobrança e permite
+/// disparar o aviso na hora, quando dentro do intervalo permitido.
 Future<void> showChargeNotificationsSheet(
   BuildContext context, {
   required String chargeId,
@@ -33,31 +42,70 @@ class _ChargeNotificationsSheet extends ConsumerStatefulWidget {
 }
 
 class _ChargeNotificationsSheetState
-    extends ConsumerState<_ChargeNotificationsSheet> {
+    extends ConsumerState<_ChargeNotificationsSheet>
+    with SingleTickerProviderStateMixin {
   bool _busy = false;
-  bool _sending = false;
+  String? _sendingOccasion;
+  NotificationPreferences? _form;
+  bool? _chargeEnabled;
+  bool? _clientEnabled;
+  late final TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   void _invalidate() {
     ref.invalidate(chargeNotificationsProvider(widget.chargeId));
+    ref.invalidate(notificationSettingsProvider);
+    ref.invalidate(workspaceProvider);
   }
 
-  Future<void> _save({
-    bool? chargeEnabled,
-    bool clearChargeOverride = false,
-    bool? clientEnabled,
-  }) async {
-    if (_busy) return;
+  NotificationPreferences _sync(NotificationPreferences value) {
+    return value.copyWith(
+      whatsappEnabled:
+          value.reminderBeforeEnabled ||
+          value.onDueEnabled ||
+          value.overdueEnabled,
+    );
+  }
+
+  void _update(NotificationPreferences value) {
+    setState(() => _form = _sync(value));
+  }
+
+  Future<void> _save() async {
+    final form = _form;
+    if (form == null || _busy) return;
     setState(() => _busy = true);
     try {
-      await ref
-          .read(notificationsRepositoryProvider)
-          .saveChargeNotifications(
-            chargeId: widget.chargeId,
-            chargeEnabled: chargeEnabled,
-            clearChargeOverride: clearChargeOverride,
-            clientEnabled: clientEnabled,
-          );
+      final repository = ref.read(notificationsRepositoryProvider);
+      await repository.savePreferences(_sync(form));
+      if (_chargeEnabled != null) {
+        await repository.saveChargeNotifications(
+          chargeId: widget.chargeId,
+          chargeEnabled: _chargeEnabled,
+        );
+      }
+      if (_clientEnabled != null) {
+        await repository.saveChargeNotifications(
+          chargeId: widget.chargeId,
+          clientEnabled: _clientEnabled,
+        );
+      }
       _invalidate();
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Avisos atualizados.')));
+      }
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -68,11 +116,13 @@ class _ChargeNotificationsSheetState
     }
   }
 
-  Future<void> _sendNow() async {
-    if (_sending) return;
-    setState(() => _sending = true);
+  Future<void> _sendNow(String occasion) async {
+    if (_sendingOccasion != null) return;
+    setState(() => _sendingOccasion = occasion);
     try {
-      await ref.read(whatsappRepositoryProvider).sendCharge(widget.chargeId);
+      await ref
+          .read(whatsappRepositoryProvider)
+          .sendCharge(widget.chargeId, occasion: occasion);
       _invalidate();
       ref.invalidate(whatsappUsageProvider);
       if (mounted) {
@@ -86,7 +136,7 @@ class _ChargeNotificationsSheetState
             .showSnackBar(SnackBar(content: Text(friendlyError(error))));
       }
     } finally {
-      if (mounted) setState(() => _sending = false);
+      if (mounted) setState(() => _sendingOccasion = null);
     }
   }
 
@@ -113,7 +163,7 @@ class _ChargeNotificationsSheetState
         saveLabel: 'Fechar',
         children: [Text('Não foi possível carregar: ${friendlyError(error)}')],
       ),
-      data: (context_) => _buildBody(context, context_),
+      data: (data) => _buildBody(context, data),
     );
   }
 
@@ -121,17 +171,26 @@ class _ChargeNotificationsSheetState
     final textTheme = Theme.of(context).textTheme;
     final charge = data.charge;
     final client = data.client;
-    final isOpen =
+    _form ??= data.preferences;
+    _chargeEnabled ??= charge?.notificationsEnabled;
+    _clientEnabled ??= client?.notificationsEnabled ?? true;
+
+    final form = _form!;
+    final limits = data.limits;
+    final dueDate = charge?.dueDate;
+    final canSend =
         charge != null &&
         charge.status != 'pago' &&
-        charge.status != 'cancelado';
+        charge.status != 'cancelado' &&
+        data.integrationEnabled;
 
     return AppFormSheet(
       title: 'Notificações da cobrança',
       subtitle: widget.description,
       formKey: GlobalKey<FormState>(),
-      onSave: () async => Navigator.of(context).pop(),
-      saveLabel: 'Fechar',
+      busy: _busy,
+      saveLabel: 'Salvar avisos',
+      onSave: _save,
       children: [
         if (!data.integrationEnabled)
           Padding(
@@ -187,139 +246,20 @@ class _ChargeNotificationsSheetState
               ],
             ),
           ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         Text(
-          'Datas previstas dos avisos automáticos',
-          style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'As ocasiões são definidas em Configurações. Aqui você liga/desliga '
-          'os avisos desta cobrança e deste cliente.',
+          'Escolha as ocasiões em que o cliente deve ser avisado. As datas são '
+          'calculadas a partir do vencimento desta cobrança.',
           style: textTheme.bodySmall?.copyWith(
             color: AppColors.mutedForeground,
           ),
         ),
-        const SizedBox(height: 8),
-        for (final item in data.schedule)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(item.label, style: textTheme.bodyMedium),
-                        Text(
-                          item.date == null ? '—' : formatDate(item.date!),
-                          style: textTheme.bodySmall?.copyWith(
-                            color: AppColors.mutedForeground,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: item.enabled
-                          ? AppColors.success.withValues(alpha: 0.12)
-                          : AppColors.muted,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      item.enabled ? 'Ativa' : 'Desativada',
-                      style: textTheme.labelSmall?.copyWith(
-                        color: item.enabled
-                            ? AppColors.success
-                            : AppColors.mutedForeground,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        const Divider(height: 24),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          value: charge?.notificationsEnabled ?? true,
-          onChanged: _busy ? null : (value) => _save(chargeEnabled: value),
-          title: const Text('Avisos desta cobrança'),
-          subtitle: Text(
-            charge?.notificationsEnabled == null
-                ? 'Usando o padrão do cliente.'
-                : (charge!.notificationsEnabled!
-                      ? 'Ativados para esta cobrança.'
-                      : 'Desativados para esta cobrança.'),
-          ),
-        ),
-        if (charge?.notificationsEnabled != null)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton(
-              onPressed: _busy ? null : () => _save(clearChargeOverride: true),
-              child: const Text('Voltar a usar o padrão do cliente'),
-            ),
-          ),
-        if (client != null)
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            value: client.notificationsEnabled,
-            onChanged: _busy ? null : (value) => _save(clientEnabled: value),
-            title: Text('Avisos do cliente (${client.name})'),
-            subtitle: Text(
-              client.notificationsEnabled
-                  ? 'O cliente recebe avisos automáticos.'
-                  : 'O cliente não recebe avisos automáticos.',
-            ),
-          ),
-        const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton.icon(
-            onPressed: (!isOpen || _sending || !data.integrationEnabled)
-                ? null
-                : _sendNow,
-            icon: _sending
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.send),
-            label: Text(_sending ? 'Enviando…' : 'Enviar aviso agora'),
-          ),
-        ),
-        const Divider(height: 24),
-        Text(
-          'Prévia das mensagens',
-          style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Texto configurado pela plataforma para cada ocasião de aviso.',
-          style: textTheme.bodySmall?.copyWith(
-            color: AppColors.mutedForeground,
-          ),
-        ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         ref
             .watch(notificationTemplatesProvider)
             .when(
               loading: () => const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
+                padding: EdgeInsets.symmetric(vertical: 20),
                 child: Center(child: CircularProgressIndicator()),
               ),
               error: (error, _) => Text(
@@ -329,59 +269,168 @@ class _ChargeNotificationsSheetState
                 ),
               ),
               data: (templates) => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  for (final template in templates)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            template.label,
-                            style: textTheme.labelMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          if (template.usingPlatformDefault)
-                            Text(
-                              'Usa o modelo padrão aprovado na Meta.',
-                              style: textTheme.bodySmall?.copyWith(
-                                color: AppColors.mutedForeground,
-                              ),
-                            )
-                          else
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 10,
-                              ),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFDCF8C6),
-                                borderRadius: BorderRadius.only(
-                                  topLeft: Radius.circular(4),
-                                  topRight: Radius.circular(14),
-                                  bottomLeft: Radius.circular(14),
-                                  bottomRight: Radius.circular(14),
-                                ),
-                              ),
-                              child: Text(
-                                template.preview.isEmpty
-                                    ? template.body
-                                    : template.preview,
-                                style: textTheme.bodyMedium?.copyWith(
-                                  color: const Color(0xFF111B21),
-                                ),
-                              ),
-                            ),
-                        ],
+                  TabBar(
+                    controller: _tabController,
+                    labelColor: AppColors.primary,
+                    unselectedLabelColor: AppColors.mutedForeground,
+                    indicatorColor: AppColors.primary,
+                    dividerColor: AppColors.border,
+                    tabs: [
+                      OccasionTab(
+                        label: 'Antes',
+                        enabled: form.reminderBeforeEnabled,
                       ),
+                      OccasionTab(label: 'No dia', enabled: form.onDueEnabled),
+                      OccasionTab(label: 'Após', enabled: form.overdueEnabled),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 420,
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        OccasionPanel(
+                          title: 'Antes do vencimento',
+                          description:
+                              'Enviado alguns dias antes do vencimento.',
+                          enabled: form.reminderBeforeEnabled,
+                          canEdit: true,
+                          onToggle: (value) => _update(
+                            form.copyWith(reminderBeforeEnabled: value),
+                          ),
+                          days: form.reminderBeforeDays,
+                          maxDays: limits.maxReminderDaysBefore,
+                          onDaysChanged: (value) =>
+                              _update(form.copyWith(reminderBeforeDays: value)),
+                          template: _templateFor(
+                            templates,
+                            'cobranca_vencendo',
+                          ),
+                          scheduleDate: _scheduleDate(
+                            data,
+                            'cobranca_vencendo',
+                          ),
+                          onSendNow: canSend
+                              ? () => _sendNow('cobranca_vencendo')
+                              : null,
+                          canSendNow:
+                              canSend &&
+                              form.reminderBeforeEnabled &&
+                              dueDate != null &&
+                              _withinWindow('cobranca_vencendo', dueDate, form),
+                          sendBusy: _sendingOccasion == 'cobranca_vencendo',
+                        ),
+                        OccasionPanel(
+                          title: 'No dia do vencimento',
+                          description: 'Enviado no dia do vencimento.',
+                          enabled: form.onDueEnabled,
+                          canEdit: true,
+                          onToggle: (value) =>
+                              _update(form.copyWith(onDueEnabled: value)),
+                          template: _templateFor(templates, 'cobranca'),
+                          scheduleDate: _scheduleDate(data, 'cobranca'),
+                          onSendNow: canSend
+                              ? () => _sendNow('cobranca')
+                              : null,
+                          canSendNow:
+                              canSend &&
+                              form.onDueEnabled &&
+                              dueDate != null &&
+                              _withinWindow('cobranca', dueDate, form),
+                          sendBusy: _sendingOccasion == 'cobranca',
+                        ),
+                        OccasionPanel(
+                          title: 'Após o vencimento',
+                          description:
+                              'Reenviado enquanto a cobrança estiver aberta.',
+                          enabled: form.overdueEnabled,
+                          canEdit: true,
+                          onToggle: (value) =>
+                              _update(form.copyWith(overdueEnabled: value)),
+                          days: form.overdueDays,
+                          maxDays: limits.maxOverdueDays,
+                          onDaysChanged: (value) =>
+                              _update(form.copyWith(overdueDays: value)),
+                          template: _templateFor(templates, 'cobranca_atraso'),
+                          scheduleDate: _scheduleDate(data, 'cobranca_atraso'),
+                          onSendNow: canSend
+                              ? () => _sendNow('cobranca_atraso')
+                              : null,
+                          canSendNow:
+                              canSend &&
+                              form.overdueEnabled &&
+                              dueDate != null &&
+                              _withinWindow('cobranca_atraso', dueDate, form),
+                          sendBusy: _sendingOccasion == 'cobranca_atraso',
+                        ),
+                      ],
                     ),
+                  ),
                 ],
               ),
             ),
+        const Divider(height: 28),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          value: _chargeEnabled ?? true,
+          onChanged: _busy
+              ? null
+              : (value) => setState(() => _chargeEnabled = value),
+          title: const Text('Avisos desta cobrança'),
+          subtitle: Text(
+            charge?.notificationsEnabled == null
+                ? 'Usando o padrão do cliente.'
+                : (_chargeEnabled == true
+                      ? 'Ativados para esta cobrança.'
+                      : 'Desativados para esta cobrança.'),
+          ),
+        ),
+        if (charge?.notificationsEnabled != null)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              onPressed: _busy
+                  ? null
+                  : () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      final repository = ref.read(
+                        notificationsRepositoryProvider,
+                      );
+                      setState(() => _busy = true);
+                      try {
+                        await repository.saveChargeNotifications(
+                          chargeId: widget.chargeId,
+                          clearChargeOverride: true,
+                        );
+                        _invalidate();
+                        if (mounted) setState(() => _chargeEnabled = true);
+                      } catch (error) {
+                        messenger.showSnackBar(
+                          SnackBar(content: Text(friendlyError(error))),
+                        );
+                      } finally {
+                        if (mounted) setState(() => _busy = false);
+                      }
+                    },
+              child: const Text('Voltar a usar o padrão do cliente'),
+            ),
+          ),
+        if (client != null)
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _clientEnabled ?? client.notificationsEnabled,
+            onChanged: _busy
+                ? null
+                : (value) => setState(() => _clientEnabled = value),
+            title: Text('Avisos do cliente (${client.name})'),
+            subtitle: Text(
+              (_clientEnabled ?? client.notificationsEnabled)
+                  ? 'O cliente recebe avisos automáticos.'
+                  : 'O cliente não recebe avisos automáticos.',
+            ),
+          ),
         if (data.history.isNotEmpty) ...[
           const Divider(height: 24),
           Text(
@@ -416,6 +465,44 @@ class _ChargeNotificationsSheetState
         ],
       ],
     );
+  }
+
+  DateTime? _scheduleDate(ChargeNotificationContext data, String occasion) {
+    for (final item in data.schedule) {
+      if (item.occasion == occasion) return item.date;
+    }
+    return null;
+  }
+
+  bool _withinWindow(
+    String occasion,
+    DateTime dueDate,
+    NotificationPreferences prefs,
+  ) {
+    final due = dateOnly(dueDate);
+    final now = today();
+    switch (occasion) {
+      case 'cobranca_vencendo':
+        final start = due.subtract(Duration(days: prefs.reminderBeforeDays));
+        return !now.isBefore(start) && !now.isAfter(due);
+      case 'cobranca':
+        return now == due;
+      case 'cobranca_atraso':
+        final start = due.add(Duration(days: prefs.overdueDays));
+        return !now.isBefore(start);
+      default:
+        return false;
+    }
+  }
+
+  NotificationTemplatePreview? _templateFor(
+    List<NotificationTemplatePreview> templates,
+    String occasion,
+  ) {
+    for (final template in templates) {
+      if (template.occasion == occasion) return template;
+    }
+    return null;
   }
 
   static String _kindLabel(String kind) {

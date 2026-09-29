@@ -48,6 +48,19 @@ const Map<String, (String, Color)> _statusView = {
   'CANCELLED': ('Cancelado', AppColors.mutedForeground),
 };
 
+/// Traduz o status retornado pelo gateway (ex.: OVERDUE) para um rótulo em
+/// português. Cai para uma versão "capitalizada" quando não houver tradução.
+String gatewayStatusLabel(String? status) {
+  final value = (status ?? '').trim();
+  if (value.isEmpty) return 'Sem alterações';
+  final view = _statusView[value.toUpperCase()];
+  if (view != null) return view.$1;
+  final normalized = value.replaceAll('_', ' ').toLowerCase();
+  return normalized.isEmpty
+      ? value
+      : normalized[0].toUpperCase() + normalized.substring(1);
+}
+
 const Map<String, String> _billingLabels = {
   'BOLETO': 'Boleto',
   'PIX': 'Pix',

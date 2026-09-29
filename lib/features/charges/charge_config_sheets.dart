@@ -8,6 +8,7 @@ import '../../repositories/notifications_repository.dart';
 import '../../repositories/workspace_providers.dart';
 import '../../widgets/app_form_sheet.dart';
 import '../settings/payment_providers_section.dart';
+import 'notification_widgets.dart';
 
 /// Abre a configuração dos meios de pagamento do usuário.
 Future<void> showAsaasConfigSheet(BuildContext context) {
@@ -179,9 +180,12 @@ class _ClientNotificationSheetState
               indicatorColor: AppColors.primary,
               dividerColor: AppColors.border,
               tabs: [
-                _occasionTab('Antes', form.reminderBeforeEnabled),
-                _occasionTab('No dia', form.onDueEnabled),
-                _occasionTab('Após', form.overdueEnabled),
+                OccasionTab(
+                  label: 'Antes',
+                  enabled: form.reminderBeforeEnabled,
+                ),
+                OccasionTab(label: 'No dia', enabled: form.onDueEnabled),
+                OccasionTab(label: 'Após', enabled: form.overdueEnabled),
               ],
             ),
             const SizedBox(height: 12),
@@ -190,7 +194,7 @@ class _ClientNotificationSheetState
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _OccasionPanel(
+                  OccasionPanel(
                     title: 'Antes do vencimento',
                     description: 'Enviado alguns dias antes do vencimento.',
                     enabled: form.reminderBeforeEnabled,
@@ -203,7 +207,7 @@ class _ClientNotificationSheetState
                         _update(form.copyWith(reminderBeforeDays: value)),
                     template: _templateFor(ctx.templates, 'cobranca_vencendo'),
                   ),
-                  _OccasionPanel(
+                  OccasionPanel(
                     title: 'No dia do vencimento',
                     description: 'Enviado no dia do vencimento.',
                     enabled: form.onDueEnabled,
@@ -212,7 +216,7 @@ class _ClientNotificationSheetState
                         _update(form.copyWith(onDueEnabled: value)),
                     template: _templateFor(ctx.templates, 'cobranca'),
                   ),
-                  _OccasionPanel(
+                  OccasionPanel(
                     title: 'Após o vencimento',
                     description:
                         'Reenviado enquanto a cobrança estiver aberta.',
@@ -243,160 +247,6 @@ class _ClientNotificationSheetState
       if (template.occasion == occasion) return template;
     }
     return null;
-  }
-
-  Tab _occasionTab(String label, bool enabled) {
-    return Tab(
-      height: 44,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            enabled ? Icons.check_circle : Icons.radio_button_unchecked,
-            size: 16,
-            color: enabled ? AppColors.success : AppColors.mutedForeground,
-          ),
-          const SizedBox(width: 6),
-          Text(label),
-        ],
-      ),
-    );
-  }
-}
-
-class _OccasionPanel extends StatelessWidget {
-  const _OccasionPanel({
-    required this.title,
-    required this.description,
-    required this.enabled,
-    required this.canEdit,
-    required this.onToggle,
-    required this.template,
-    this.days,
-    this.maxDays,
-    this.onDaysChanged,
-  });
-
-  final String title;
-  final String description;
-  final bool enabled;
-  final bool canEdit;
-  final ValueChanged<bool> onToggle;
-  final NotificationTemplatePreview? template;
-  final int? days;
-  final int? maxDays;
-  final ValueChanged<int>? onDaysChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final days = this.days;
-    final maxDays = this.maxDays;
-    final editable = canEdit && enabled;
-    return ListView(
-      padding: EdgeInsets.zero,
-      children: [
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          value: enabled,
-          onChanged: canEdit ? onToggle : null,
-          title: Text(title),
-          subtitle: Text(description),
-        ),
-        if (days != null && maxDays != null && maxDays > 1)
-          Row(
-            children: [
-              Expanded(
-                child: Slider(
-                  value: days.clamp(1, maxDays).toDouble(),
-                  min: 1,
-                  max: maxDays.toDouble(),
-                  divisions: maxDays - 1,
-                  label: '$days dia(s)',
-                  onChanged: editable
-                      ? (value) => onDaysChanged?.call(value.round())
-                      : null,
-                ),
-              ),
-              Text('$days dia(s)', style: textTheme.labelSmall),
-            ],
-          ),
-        const SizedBox(height: 4),
-        Text(
-          'Prévia da mensagem',
-          style: textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 6),
-        if (template == null)
-          Text(
-            'Prévia indisponível.',
-            style: textTheme.bodySmall?.copyWith(
-              color: AppColors.mutedForeground,
-            ),
-          )
-        else if (template!.usingPlatformDefault)
-          Text(
-            'Usa o modelo padrão aprovado na Meta.',
-            style: textTheme.bodySmall?.copyWith(
-              color: AppColors.mutedForeground,
-            ),
-          )
-        else
-          _WhatsappBubble(
-            text: template!.preview.isEmpty
-                ? template!.body
-                : template!.preview,
-          ),
-        if (template?.buttonUrlEnabled == true)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              'Inclui botão com o link de pagamento.',
-              style: textTheme.labelSmall?.copyWith(
-                color: AppColors.mutedForeground,
-              ),
-            ),
-          ),
-        if (!canEdit)
-          Padding(
-            padding: const EdgeInsets.only(top: 10),
-            child: Text(
-              'Ative o envio de avisos acima para editar.',
-              style: textTheme.labelSmall?.copyWith(
-                color: AppColors.mutedForeground,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _WhatsappBubble extends StatelessWidget {
-  const _WhatsappBubble({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: const BoxDecoration(
-        color: Color(0xFFDCF8C6),
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(4),
-          topRight: Radius.circular(14),
-          bottomLeft: Radius.circular(14),
-          bottomRight: Radius.circular(14),
-        ),
-      ),
-      child: Text(
-        text,
-        style: Theme.of(context).textTheme.bodyMedium
-            ?.copyWith(color: const Color(0xFF111B21)),
-      ),
-    );
   }
 }
 

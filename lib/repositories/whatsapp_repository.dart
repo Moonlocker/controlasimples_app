@@ -20,9 +20,10 @@ class WhatsappRepository {
     return WhatsappUsage.fromMap(await _api.get('/api/mobile/whatsapp/usage'));
   }
 
-  Future<int> sendCharge(String chargeId) async {
+  Future<int> sendCharge(String chargeId, {String? occasion}) async {
     final result = await _api.post('/api/mobile/whatsapp/send', {
       'chargeId': chargeId,
+      'occasion': ?occasion,
     });
     return (result['remaining'] as num?)?.toInt() ?? 0;
   }
