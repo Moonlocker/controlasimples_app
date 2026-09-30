@@ -190,7 +190,7 @@ class ChargeCard extends StatelessWidget {
                 Container(width: 4, color: _accent),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 12, 10, 12),
+                    padding: const EdgeInsets.fromLTRB(12, 9, 10, 9),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -232,7 +232,7 @@ class ChargeCard extends StatelessWidget {
                           ],
                         ),
                         if (showClient) ...[
-                          const SizedBox(height: 2),
+                          const SizedBox(height: 1),
                           Text(
                             view.description,
                             style: textTheme.bodySmall?.copyWith(
@@ -243,10 +243,10 @@ class ChargeCard extends StatelessWidget {
                           ),
                         ],
                         if (isRecurring || emitted) ...[
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 6),
                           Wrap(
                             spacing: 6,
-                            runSpacing: 6,
+                            runSpacing: 4,
                             children: [
                               if (isRecurring)
                                 const StatusPill(
@@ -291,7 +291,7 @@ class ChargeCard extends StatelessWidget {
                             ],
                           ),
                         ],
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
                         Row(
                           children: [
                             StatusBadge(status: view.status, compact: true),

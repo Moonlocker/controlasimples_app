@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:printing/printing.dart';
@@ -23,6 +21,7 @@ import '../../widgets/revenue_chart.dart';
 import '../../widgets/screen_header.dart';
 import '../../widgets/section_card.dart';
 import '../../widgets/stat_card.dart';
+import 'report_excel.dart';
 import 'report_pdf.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
@@ -37,6 +36,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   String? _clientId;
   String? _serviceId;
   bool _initializedRange = false;
+  bool _exporting = false;
 
   DateTime _earliest(Workspace workspace) {
     DateTime? min;
@@ -97,17 +97,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       0,
       (sum, p) => sum + p.amount,
     );
-    final open = views
-        .where(
-          (v) =>
-              v.status == ChargeStatus.pendente ||
-              v.status == ChargeStatus.atrasado,
-        )
-        .fold<double>(0, (sum, v) => sum + v.amount);
-    final overdue = views
-        .where((v) => v.status == ChargeStatus.atrasado)
-        .fold<double>(0, (sum, v) => sum + v.amount);
-    final paidCount = views.where((v) => v.status == ChargeStatus.pago).length;
+    var open = 0.0;
+    var overdue = 0.0;
+    var paidCount = 0;
+    for (final view in views) {
+      if (view.status == ChargeStatus.atrasado) {
+        overdue += view.amount;
+        open += view.amount;
+      } else if (view.status == ChargeStatus.pendente) {
+        open += view.amount;
+      } else if (view.status == ChargeStatus.pago) {
+        paidCount += 1;
+      }
+    }
     return RangeSummary(
       received: received,
       open: open,
@@ -120,61 +122,68 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  Future<void> _exportCharges(Workspace scoped) async {
-    final buffer = StringBuffer(
-      'Cliente;Descricao;Servico;Vencimento;Valor;Status\n',
-    );
-    for (final view in chargeViews(scoped)) {
-      buffer.writeln(
-        '${view.clientName};${view.description};${view.serviceName ?? ''};'
-        '${formatDate(view.dueDate)};${view.amount.toStringAsFixed(2).replaceAll('.', ',')};'
-        '${view.status.label}',
-      );
+  Future<void> _runExport(Future<void> Function() action) async {
+    if (_exporting) return;
+    setState(() => _exporting = true);
+    try {
+      await action();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Não foi possível exportar: $error')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _exporting = false);
     }
-    await _share('cobrancas.csv', buffer.toString());
   }
 
-  Future<void> _exportPayments(Workspace scoped) async {
-    final buffer = StringBuffer('Data;Cobranca;Cliente;Valor;Forma\n');
-    for (final payment in scoped.payments) {
-      final charge = scoped.chargeById(payment.chargeId);
-      buffer.writeln(
-        '${formatDate(payment.paidAt)};${charge?.description ?? ''};'
-        '${charge == null ? '' : scoped.clientName(charge.clientId)};'
-        '${payment.amount.toStringAsFixed(2).replaceAll('.', ',')};${payment.method.label}',
+  Future<void> _exportExcel(
+    Workspace workspace,
+    Workspace scoped,
+    RangeSummary summary,
+  ) {
+    return _runExport(() async {
+      final bytes = buildReportExcel(
+        scoped: scoped,
+        summary: summary,
+        rangeText: rangeLabel(_range),
+        company: workspace.profile?.company ?? workspace.profile?.name,
+        clientName: _clientId == null ? null : workspace.clientName(_clientId),
+        serviceName: _serviceId == null
+            ? null
+            : workspace.serviceName(_serviceId),
       );
-    }
-    await _share('pagamentos.csv', buffer.toString());
-  }
-
-  Future<void> _share(String name, String content) async {
-    final file = XFile.fromData(
-      utf8.encode(content),
-      name: name,
-      mimeType: 'text/csv',
-    );
-    await SharePlus.instance.share(
-      ShareParams(files: [file], subject: 'Relatório Controla Simples'),
-    );
+      final file = XFile.fromData(
+        bytes,
+        name: 'relatorio.xlsx',
+        mimeType:
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+      await SharePlus.instance.share(
+        ShareParams(files: [file], subject: 'Relatório Controla Simples'),
+      );
+    });
   }
 
   Future<void> _exportPdf(
     Workspace workspace,
     Workspace scoped,
     RangeSummary summary,
-  ) async {
-    final bytes = await buildReportPdf(
-      scoped: scoped,
-      range: _range,
-      rangeText: rangeLabel(_range),
-      summary: summary,
-      company: workspace.profile?.company ?? workspace.profile?.name,
-      clientName: _clientId == null ? null : workspace.clientName(_clientId),
-      serviceName: _serviceId == null
-          ? null
-          : workspace.serviceName(_serviceId),
-    );
-    await Printing.layoutPdf(onLayout: (_) async => bytes, name: 'relatorio');
+  ) {
+    return _runExport(() async {
+      final bytes = await buildReportPdf(
+        scoped: scoped,
+        rangeText: rangeLabel(_range),
+        summary: summary,
+        company: workspace.profile?.company ?? workspace.profile?.name,
+        clientName: _clientId == null ? null : workspace.clientName(_clientId),
+        serviceName: _serviceId == null
+            ? null
+            : workspace.serviceName(_serviceId),
+      );
+      await Printing.layoutPdf(onLayout: (_) async => bytes, name: 'relatorio');
+    });
   }
 
   void _openStat(BuildContext context, Workspace scoped, String kind) {
@@ -299,203 +308,258 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Relatórios')),
-      body: workspaceAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => AsyncErrorView(
-          error: error,
-          onRetry: () => ref.invalidate(workspaceProvider),
+      body: SafeArea(
+        child: workspaceAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) => AsyncErrorView(
+            error: error,
+            onRetry: () => ref.invalidate(workspaceProvider),
+          ),
+          data: (workspace) {
+            final earliest = _earliest(workspace);
+            if (!_initializedRange) {
+              _range = presetRange(PeriodPreset.ninetyDays, earliest);
+              _initializedRange = true;
+            }
+            final latest = _latest(workspace);
+            final from = _range?.from ?? earliest;
+            final to = _range?.to ?? latest;
+            final scoped = _scope(workspace, from, to);
+            final summary = _summary(scoped, _range);
+            final series = monthPointsInRange(scoped, from, to);
+            final byMethod = receivedByMethod(scoped.payments);
+            final byClient = receivedByClient(scoped, scoped.payments);
+            final byService = receivedByService(scoped, scoped.payments);
+
+            final clientOptions = [
+              const FilterOption<String?>(
+                value: null,
+                label: 'Todos os clientes',
+              ),
+              for (final client in workspace.clients.where((c) => c.active))
+                FilterOption<String?>(value: client.id, label: client.name),
+            ];
+            final serviceOptions = [
+              const FilterOption<String?>(
+                value: null,
+                label: 'Todos os serviços',
+              ),
+              for (final service in workspace.services.where(
+                (s) => _clientId == null || s.clientId == _clientId,
+              ))
+                FilterOption<String?>(value: service.id, label: service.name),
+            ];
+
+            return RefreshIndicator(
+              onRefresh: () async => ref.invalidate(workspaceProvider),
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                children: [
+                  const ScreenHeader(
+                    title: 'Resumo financeiro',
+                    description: 'Filtre por período, cliente ou serviço.',
+                    leading: BrandBadge(),
+                  ),
+                  const SizedBox(height: 12),
+                  _FiltersCard(
+                    child: Column(
+                      children: [
+                        PeriodBar(
+                          range: _range,
+                          earliest: earliest,
+                          nullLabel: 'Desde o início',
+                          onChanged: (value) => setState(() => _range = value),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: FilterCombobox<String?>(
+                                options: clientOptions,
+                                value: _clientId,
+                                hint: 'Todos os clientes',
+                                allLabel: 'Todos os clientes',
+                                icon: Icons.person_outline,
+                                onChanged: (value) => setState(() {
+                                  _clientId = value;
+                                  _serviceId = null;
+                                }),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: FilterCombobox<String?>(
+                                options: serviceOptions,
+                                value: _serviceId,
+                                hint: 'Todos os serviços',
+                                allLabel: 'Todos os serviços',
+                                icon: Icons.work_outline,
+                                onChanged: (value) =>
+                                    setState(() => _serviceId = value),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 1.35,
+                    children: [
+                      _tap(
+                        () => _openStat(context, scoped, 'received'),
+                        StatCard(
+                          label: 'Recebido',
+                          value: brl(summary.received),
+                          hint: '${scoped.payments.length} pagamentos',
+                          icon: Icons.payments_outlined,
+                          tone: AppColors.success,
+                        ),
+                      ),
+                      _tap(
+                        () => _openStat(context, scoped, 'open'),
+                        StatCard(
+                          label: 'Em aberto',
+                          value: brl(summary.open),
+                          icon: Icons.hourglass_bottom,
+                          tone: AppColors.info,
+                        ),
+                      ),
+                      _tap(
+                        () => _openStat(context, scoped, 'overdue'),
+                        StatCard(
+                          label: 'Atrasado',
+                          value: brl(summary.overdue),
+                          icon: Icons.warning_amber_rounded,
+                          tone: AppColors.danger,
+                        ),
+                      ),
+                      StatCard(
+                        label: 'Ticket médio',
+                        value: brl(summary.avgTicket),
+                        icon: Icons.receipt_long_outlined,
+                        tone: AppColors.primary,
+                      ),
+                      StatCard(
+                        label: 'Cobranças',
+                        value: '${summary.totalCharges}',
+                        hint: '${summary.paidCount} pagas',
+                        icon: Icons.list_alt,
+                        tone: AppColors.mutedForeground,
+                      ),
+                      StatCard(
+                        label: 'Recebimento',
+                        value: '${summary.receiveRate.toStringAsFixed(0)}%',
+                        hint: '${summary.paidCount} de ${summary.totalCharges}',
+                        icon: Icons.percent,
+                        tone: AppColors.warning,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  SectionCard(
+                    title: 'Evolução no período',
+                    child: Column(
+                      children: [
+                        RevenueChart(
+                          series: series,
+                          onMonthTap: (key) => _openMonth(context, scoped, key),
+                        ),
+                        const SizedBox(height: 8),
+                        const ChartLegend(),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SectionCard(
+                    title: 'Recebido por forma de pagamento',
+                    child: byMethod.isEmpty
+                        ? const _EmptyHint('Sem pagamentos no período.')
+                        : BreakdownPie(items: byMethod),
+                  ),
+                  const SizedBox(height: 16),
+                  SectionCard(
+                    title: 'Recebido por cliente',
+                    child: byClient.isEmpty
+                        ? const _EmptyHint('Sem recebimentos no período.')
+                        : BreakdownBars(items: byClient),
+                  ),
+                  const SizedBox(height: 16),
+                  SectionCard(
+                    title: 'Recebido por serviço',
+                    child: byService.isEmpty
+                        ? const _EmptyHint('Sem recebimentos no período.')
+                        : BreakdownBars(items: byService, tone: AppColors.info),
+                  ),
+                  const SizedBox(height: 16),
+                  SectionCard(
+                    title: 'Exportar relatório',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: FilledButton.icon(
+                                onPressed: _exporting
+                                    ? null
+                                    : () => _exportPdf(
+                                        workspace,
+                                        scoped,
+                                        summary,
+                                      ),
+                                icon: const Icon(
+                                  Icons.picture_as_pdf_outlined,
+                                  size: 18,
+                                ),
+                                label: const Text('PDF'),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _exporting
+                                    ? null
+                                    : () => _exportExcel(
+                                        workspace,
+                                        scoped,
+                                        summary,
+                                      ),
+                                icon: const Icon(
+                                  Icons.grid_on_outlined,
+                                  size: 18,
+                                ),
+                                label: const Text('Excel'),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'O PDF traz o resumo, as cobranças e os pagamentos. '
+                          'O Excel inclui as abas Resumo, Cobranças e Pagamentos.',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: AppColors.mutedForeground),
+                        ),
+                        if (_exporting) ...[
+                          const SizedBox(height: 12),
+                          const LinearProgressIndicator(minHeight: 3),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         ),
-        data: (workspace) {
-          final earliest = _earliest(workspace);
-          if (!_initializedRange) {
-            _range = presetRange(PeriodPreset.ninetyDays, earliest);
-            _initializedRange = true;
-          }
-          final latest = _latest(workspace);
-          final from = _range?.from ?? earliest;
-          final to = _range?.to ?? latest;
-          final scoped = _scope(workspace, from, to);
-          final summary = _summary(scoped, _range);
-          final series = monthPointsInRange(scoped, from, to);
-          final byMethod = receivedByMethod(scoped.payments);
-          final byClient = receivedByClient(scoped, scoped.payments);
-          final byService = receivedByService(scoped, scoped.payments);
-
-          final clientOptions = [
-            const FilterOption<String?>(
-              value: null,
-              label: 'Todos os clientes',
-            ),
-            for (final client in workspace.clients.where((c) => c.active))
-              FilterOption<String?>(value: client.id, label: client.name),
-          ];
-          final serviceOptions = [
-            const FilterOption<String?>(
-              value: null,
-              label: 'Todos os serviços',
-            ),
-            for (final service in workspace.services.where(
-              (s) => _clientId == null || s.clientId == _clientId,
-            ))
-              FilterOption<String?>(value: service.id, label: service.name),
-          ];
-
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-            children: [
-              const ScreenHeader(
-                title: 'Resumo financeiro',
-                description: 'Filtre por período, cliente ou serviço.',
-                leading: BrandBadge(),
-              ),
-              const SizedBox(height: 12),
-              PeriodBar(
-                range: _range,
-                earliest: earliest,
-                nullLabel: 'Desde o início',
-                onChanged: (value) => setState(() => _range = value),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: FilterCombobox<String?>(
-                      options: clientOptions,
-                      value: _clientId,
-                      hint: 'Todos os clientes',
-                      allLabel: 'Todos os clientes',
-                      icon: Icons.person_outline,
-                      onChanged: (value) => setState(() {
-                        _clientId = value;
-                        _serviceId = null;
-                      }),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: FilterCombobox<String?>(
-                      options: serviceOptions,
-                      value: _serviceId,
-                      hint: 'Todos os serviços',
-                      allLabel: 'Todos os serviços',
-                      icon: Icons.work_outline,
-                      onChanged: (value) => setState(() => _serviceId = value),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1.45,
-                children: [
-                  _tap(
-                    () => _openStat(context, scoped, 'received'),
-                    StatCard(
-                      label: 'Recebido',
-                      value: brl(summary.received),
-                      hint: '${scoped.payments.length} pagamentos',
-                      tone: AppColors.success,
-                    ),
-                  ),
-                  _tap(
-                    () => _openStat(context, scoped, 'open'),
-                    StatCard(
-                      label: 'Em aberto',
-                      value: brl(summary.open),
-                      tone: AppColors.info,
-                    ),
-                  ),
-                  _tap(
-                    () => _openStat(context, scoped, 'overdue'),
-                    StatCard(
-                      label: 'Atrasado',
-                      value: brl(summary.overdue),
-                      tone: AppColors.danger,
-                    ),
-                  ),
-                  StatCard(
-                    label: 'Ticket médio',
-                    value: brl(summary.avgTicket),
-                    tone: AppColors.primary,
-                  ),
-                  StatCard(
-                    label: 'Taxa de recebimento',
-                    value: '${summary.receiveRate.toStringAsFixed(0)}%',
-                    hint:
-                        '${summary.paidCount} pagas de ${summary.totalCharges}',
-                    tone: AppColors.warning,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              SectionCard(
-                title: 'Evolução no período',
-                child: Column(
-                  children: [
-                    RevenueChart(
-                      series: series,
-                      onMonthTap: (key) => _openMonth(context, scoped, key),
-                    ),
-                    const SizedBox(height: 8),
-                    const ChartLegend(),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              SectionCard(
-                title: 'Recebido por forma de pagamento',
-                child: byMethod.isEmpty
-                    ? const _EmptyHint('Sem pagamentos no período.')
-                    : BreakdownPie(items: byMethod),
-              ),
-              const SizedBox(height: 16),
-              SectionCard(
-                title: 'Recebido por cliente',
-                child: byClient.isEmpty
-                    ? const _EmptyHint('Sem recebimentos no período.')
-                    : BreakdownBars(items: byClient),
-              ),
-              const SizedBox(height: 16),
-              SectionCard(
-                title: 'Recebido por serviço',
-                child: byService.isEmpty
-                    ? const _EmptyHint('Sem recebimentos no período.')
-                    : BreakdownBars(items: byService, tone: AppColors.info),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _exportCharges(scoped),
-                      icon: const Icon(Icons.table_view_outlined, size: 18),
-                      label: const Text('Cobranças CSV'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _exportPayments(scoped),
-                      icon: const Icon(Icons.table_view_outlined, size: 18),
-                      label: const Text('Pagamentos CSV'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              OutlinedButton.icon(
-                onPressed: () => _exportPdf(workspace, scoped, summary),
-                icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
-                label: const Text('Exportar relatório em PDF'),
-              ),
-            ],
-          );
-        },
       ),
     );
   }
@@ -504,6 +568,24 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
+      child: child,
+    );
+  }
+}
+
+class _FiltersCard extends StatelessWidget {
+  const _FiltersCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.muted,
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: child,
     );
   }

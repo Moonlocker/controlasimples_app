@@ -14,16 +14,19 @@ class OccasionTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Tab(
-      height: 44,
+      height: 42,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            enabled ? Icons.check_circle : Icons.radio_button_unchecked,
-            size: 16,
-            color: enabled ? AppColors.success : AppColors.mutedForeground,
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: enabled ? AppColors.success : AppColors.border,
+              shape: BoxShape.circle,
+            ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 7),
           Text(label),
         ],
       ),
@@ -42,19 +45,58 @@ class WhatsappBubble extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: const BoxDecoration(
-        color: Color(0xFFDCF8C6),
-        borderRadius: BorderRadius.only(
+      decoration: BoxDecoration(
+        color: const Color(0xFFDCF8C6),
+        borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(4),
           topRight: Radius.circular(14),
           bottomLeft: Radius.circular(14),
           bottomRight: Radius.circular(14),
         ),
+        border: Border.all(color: const Color(0xFFB7E0A0)),
       ),
       child: Text(
         text,
         style: Theme.of(context).textTheme.bodyMedium
             ?.copyWith(color: const Color(0xFF111B21)),
+      ),
+    );
+  }
+}
+
+/// Aviso exibido quando não há modelo da Meta vinculado à ocasião.
+class MissingTemplateHint extends StatelessWidget {
+  const MissingTemplateHint({super.key, this.compact = false});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: compact ? 8 : 12),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.info_outline, size: 16, color: AppColors.warning),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Nenhum modelo da Meta vinculado a esta ocasião. '
+              'Peça ao administrador para configurá-lo em Admin › WhatsApp › Modelos.',
+              style: textTheme.bodySmall?.copyWith(
+                color: AppColors.warning,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -76,14 +118,36 @@ class TemplatePreviewBody extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final value = template;
     if (value == null) return Text(emptyText, style: _muted(textTheme));
-    if (value.usingPlatformDefault) {
-      return Text(
-        'Usa o modelo padrão aprovado na Meta.',
-        style: _muted(textTheme),
-      );
-    }
-    return WhatsappBubble(
-      text: value.preview.isEmpty ? value.body : value.preview,
+    if (value.usingPlatformDefault) return const MissingTemplateHint();
+    final body = value.preview.isEmpty ? value.body : value.preview;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if ((value.templateName ?? '').isNotEmpty) ...[
+          Row(
+            children: [
+              const Icon(
+                Icons.verified_outlined,
+                size: 13,
+                color: AppColors.success,
+              ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  value.templateName!,
+                  style: textTheme.labelSmall?.copyWith(
+                    color: AppColors.success,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+        ],
+        WhatsappBubble(text: body),
+      ],
     );
   }
 
@@ -137,14 +201,32 @@ class OccasionPanel extends StatelessWidget {
     final maxDays = this.maxDays;
     final editable = canEdit && enabled;
     return ListView(
-      padding: EdgeInsets.zero,
+      padding: const EdgeInsets.only(top: 2, bottom: 4),
       children: [
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          value: enabled,
-          onChanged: canEdit ? onToggle : null,
-          title: Text(title),
-          subtitle: Text(description),
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    description,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.mutedForeground,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Switch(value: enabled, onChanged: canEdit ? onToggle : null),
+          ],
         ),
         if (scheduleDate != null)
           _ScheduleRow(date: scheduleDate!, hint: scheduleHint),
@@ -166,10 +248,13 @@ class OccasionPanel extends StatelessWidget {
               Text('$days dia(s)', style: textTheme.labelSmall),
             ],
           ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Text(
           'Prévia da mensagem',
-          style: textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
+          style: textTheme.labelMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: AppColors.mutedForeground,
+          ),
         ),
         const SizedBox(height: 6),
         TemplatePreviewBody(
@@ -178,7 +263,7 @@ class OccasionPanel extends StatelessWidget {
         ),
         if (template?.buttonUrlEnabled == true)
           Padding(
-            padding: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.only(top: 6),
             child: Text(
               'Inclui botão com o link de pagamento.',
               style: textTheme.labelSmall?.copyWith(
@@ -197,7 +282,7 @@ class OccasionPanel extends StatelessWidget {
             ),
           ),
         if (onSendNow != null) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
             child: FilledButton.tonalIcon(
@@ -216,7 +301,8 @@ class OccasionPanel extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 6),
               child: Text(
-                'O envio agora fica disponível dentro do intervalo previsto para esta ocasião.',
+                'Ative esta ocasião para enviar o aviso.',
+                textAlign: TextAlign.center,
                 style: textTheme.labelSmall?.copyWith(
                   color: AppColors.mutedForeground,
                 ),
@@ -240,7 +326,7 @@ class _ScheduleRow extends StatelessWidget {
     return Tooltip(
       message: hint ?? '',
       child: Container(
-        margin: const EdgeInsets.only(top: 4, bottom: 4),
+        margin: const EdgeInsets.only(top: 8, bottom: 2),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: AppColors.info.withValues(alpha: 0.08),

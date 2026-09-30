@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_colors.dart';
-import '../../core/utils/dates.dart';
 import '../../core/utils/error_messages.dart';
 import '../../core/utils/formatters.dart';
 import '../../models/charge_notification.dart';
@@ -16,9 +15,9 @@ import 'notification_widgets.dart';
 /// Painel de notificações (automáticas e manual) de uma cobrança.
 ///
 /// Usa o mesmo layout com abas do modal de configuração de avisos do cliente
-/// (Antes / No dia / Após), com a diferença de que cada ocasião mostra a data
-/// prevista de envio calculada a partir do vencimento da cobrança e permite
-/// disparar o aviso na hora, quando dentro do intervalo permitido.
+/// (Antes / No dia / Após). Cada ocasião mostra a data prevista de envio
+/// calculada a partir do vencimento da cobrança, a prévia do modelo da Meta
+/// configurado para a ocasião e o botão "Enviar agora".
 Future<void> showChargeNotificationsSheet(
   BuildContext context, {
   required String chargeId,
@@ -140,6 +139,25 @@ class _ChargeNotificationsSheetState
     }
   }
 
+  Future<void> _clearChargeOverride() async {
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _busy = true);
+    try {
+      await ref
+          .read(notificationsRepositoryProvider)
+          .saveChargeNotifications(
+            chargeId: widget.chargeId,
+            clearChargeOverride: true,
+          );
+      _invalidate();
+      if (mounted) setState(() => _chargeEnabled = true);
+    } catch (error) {
+      messenger.showSnackBar(SnackBar(content: Text(friendlyError(error))));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(chargeNotificationsProvider(widget.chargeId));
@@ -177,12 +195,12 @@ class _ChargeNotificationsSheetState
 
     final form = _form!;
     final limits = data.limits;
-    final dueDate = charge?.dueDate;
     final canSend =
         charge != null &&
         charge.status != 'pago' &&
         charge.status != 'cancelado' &&
         data.integrationEnabled;
+    final autoDisabled = (_chargeEnabled == false) || (_clientEnabled == false);
 
     return AppFormSheet(
       title: 'Notificações da cobrança',
@@ -192,17 +210,10 @@ class _ChargeNotificationsSheetState
       saveLabel: 'Salvar avisos',
       onSave: _save,
       children: [
-        if (!data.integrationEnabled)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Text(
-              'O envio pelo WhatsApp oficial está temporariamente indisponível.',
-              style: textTheme.bodySmall?.copyWith(color: AppColors.warning),
-            ),
-          ),
+        // Resumo da cobrança.
         if (charge != null)
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(14),
@@ -222,18 +233,12 @@ class _ChargeNotificationsSheetState
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Vence ${formatDate(charge.dueDate)}',
+                        'Vence ${formatDate(charge.dueDate)}'
+                        '${client?.phone != null && client!.phone!.isNotEmpty ? ' · ${client.phone}' : ''}',
                         style: textTheme.bodySmall?.copyWith(
                           color: AppColors.mutedForeground,
                         ),
                       ),
-                      if (client?.phone != null && client!.phone!.isNotEmpty)
-                        Text(
-                          'WhatsApp: ${client.phone}',
-                          style: textTheme.bodySmall?.copyWith(
-                            color: AppColors.mutedForeground,
-                          ),
-                        ),
                     ],
                   ),
                 ),
@@ -246,15 +251,88 @@ class _ChargeNotificationsSheetState
               ],
             ),
           ),
-        const SizedBox(height: 8),
-        Text(
-          'Escolha as ocasiões em que o cliente deve ser avisado. As datas são '
-          'calculadas a partir do vencimento desta cobrança.',
-          style: textTheme.bodySmall?.copyWith(
-            color: AppColors.mutedForeground,
+
+        if (!data.integrationEnabled)
+          Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: Text(
+              'O envio pelo WhatsApp oficial está temporariamente indisponível.',
+              style: textTheme.bodySmall?.copyWith(color: AppColors.warning),
+            ),
+          ),
+
+        const SizedBox(height: 12),
+
+        // Avisos automáticos: discrição no topo.
+        Container(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          decoration: BoxDecoration(
+            color: AppColors.muted,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Text(
+                'Avisos automáticos',
+                style: textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.mutedForeground,
+                ),
+              ),
+              const Spacer(),
+              _AutoToggle(
+                label: 'Cobrança',
+                value: _chargeEnabled ?? true,
+                onChanged: _busy
+                    ? null
+                    : (value) => setState(() => _chargeEnabled = value),
+              ),
+              const SizedBox(width: 6),
+              if (client != null)
+                _AutoToggle(
+                  label: 'Cliente',
+                  value: _clientEnabled ?? true,
+                  onChanged: _busy
+                      ? null
+                      : (value) => setState(() => _clientEnabled = value),
+                ),
+            ],
           ),
         ),
-        const SizedBox(height: 12),
+        if (charge?.notificationsEnabled != null)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              onPressed: _busy ? null : _clearChargeOverride,
+              child: const Text('Usar padrão do cliente'),
+            ),
+          ),
+        if (autoDisabled)
+          Padding(
+            padding: const EdgeInsets.only(top: 4, bottom: 4),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.notifications_off_outlined,
+                  size: 15,
+                  color: AppColors.warning,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Os avisos automáticos estão desativados. O envio manual abaixo continua funcionando.',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.warning,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+        const SizedBox(height: 14),
+
+        // Ocasiões em abas.
         ref
             .watch(notificationTemplatesProvider)
             .when(
@@ -285,9 +363,9 @@ class _ChargeNotificationsSheetState
                       OccasionTab(label: 'Após', enabled: form.overdueEnabled),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   SizedBox(
-                    height: 420,
+                    height: 380,
                     child: TabBarView(
                       controller: _tabController,
                       children: [
@@ -315,11 +393,7 @@ class _ChargeNotificationsSheetState
                           onSendNow: canSend
                               ? () => _sendNow('cobranca_vencendo')
                               : null,
-                          canSendNow:
-                              canSend &&
-                              form.reminderBeforeEnabled &&
-                              dueDate != null &&
-                              _withinWindow('cobranca_vencendo', dueDate, form),
+                          canSendNow: canSend && form.reminderBeforeEnabled,
                           sendBusy: _sendingOccasion == 'cobranca_vencendo',
                         ),
                         OccasionPanel(
@@ -334,11 +408,7 @@ class _ChargeNotificationsSheetState
                           onSendNow: canSend
                               ? () => _sendNow('cobranca')
                               : null,
-                          canSendNow:
-                              canSend &&
-                              form.onDueEnabled &&
-                              dueDate != null &&
-                              _withinWindow('cobranca', dueDate, form),
+                          canSendNow: canSend && form.onDueEnabled,
                           sendBusy: _sendingOccasion == 'cobranca',
                         ),
                         OccasionPanel(
@@ -358,11 +428,7 @@ class _ChargeNotificationsSheetState
                           onSendNow: canSend
                               ? () => _sendNow('cobranca_atraso')
                               : null,
-                          canSendNow:
-                              canSend &&
-                              form.overdueEnabled &&
-                              dueDate != null &&
-                              _withinWindow('cobranca_atraso', dueDate, form),
+                          canSendNow: canSend && form.overdueEnabled,
                           sendBusy: _sendingOccasion == 'cobranca_atraso',
                         ),
                       ],
@@ -371,97 +437,68 @@ class _ChargeNotificationsSheetState
                 ],
               ),
             ),
-        const Divider(height: 28),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          value: _chargeEnabled ?? true,
-          onChanged: _busy
-              ? null
-              : (value) => setState(() => _chargeEnabled = value),
-          title: const Text('Avisos desta cobrança'),
-          subtitle: Text(
-            charge?.notificationsEnabled == null
-                ? 'Usando o padrão do cliente.'
-                : (_chargeEnabled == true
-                      ? 'Ativados para esta cobrança.'
-                      : 'Desativados para esta cobrança.'),
-          ),
-        ),
-        if (charge?.notificationsEnabled != null)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton(
-              onPressed: _busy
-                  ? null
-                  : () async {
-                      final messenger = ScaffoldMessenger.of(context);
-                      final repository = ref.read(
-                        notificationsRepositoryProvider,
-                      );
-                      setState(() => _busy = true);
-                      try {
-                        await repository.saveChargeNotifications(
-                          chargeId: widget.chargeId,
-                          clearChargeOverride: true,
-                        );
-                        _invalidate();
-                        if (mounted) setState(() => _chargeEnabled = true);
-                      } catch (error) {
-                        messenger.showSnackBar(
-                          SnackBar(content: Text(friendlyError(error))),
-                        );
-                      } finally {
-                        if (mounted) setState(() => _busy = false);
-                      }
-                    },
-              child: const Text('Voltar a usar o padrão do cliente'),
-            ),
-          ),
-        if (client != null)
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            value: _clientEnabled ?? client.notificationsEnabled,
-            onChanged: _busy
-                ? null
-                : (value) => setState(() => _clientEnabled = value),
-            title: Text('Avisos do cliente (${client.name})'),
-            subtitle: Text(
-              (_clientEnabled ?? client.notificationsEnabled)
-                  ? 'O cliente recebe avisos automáticos.'
-                  : 'O cliente não recebe avisos automáticos.',
-            ),
-          ),
+
+        // Histórico recolhível.
         if (data.history.isNotEmpty) ...[
-          const Divider(height: 24),
-          Text(
-            'Histórico desta cobrança',
-            style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 6),
-          for (final message in data.history.take(10))
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '${_kindLabel(message.kind)} · '
-                      '${message.source == 'auto' ? 'automático' : 'manual'}',
-                      style: textTheme.bodySmall,
-                    ),
-                  ),
-                  Text(
-                    _statusLabel(message.status),
-                    style: textTheme.labelSmall?.copyWith(
-                      color: message.status == 'enviado'
-                          ? AppColors.success
-                          : AppColors.danger,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
+          const SizedBox(height: 8),
+          Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              childrenPadding: const EdgeInsets.only(bottom: 4),
+              leading: const Icon(
+                Icons.history,
+                size: 18,
+                color: AppColors.mutedForeground,
               ),
+              title: Text(
+                'Histórico desta cobrança',
+                style: textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              subtitle: Text('${data.history.length} registro(s)'),
+              children: [
+                for (final message in data.history.take(10))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${_kindLabel(message.kind)} · '
+                                '${message.source == 'auto' ? 'automático' : 'manual'}',
+                                style: textTheme.bodySmall,
+                              ),
+                              Text(
+                                message.createdAt == null
+                                    ? '—'
+                                    : formatDateTime(message.createdAt!),
+                                style: textTheme.labelSmall?.copyWith(
+                                  color: AppColors.mutedForeground,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          _statusLabel(message.status),
+                          style: textTheme.labelSmall?.copyWith(
+                            color: message.status == 'enviado'
+                                ? AppColors.success
+                                : AppColors.danger,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
             ),
+          ),
         ],
       ],
     );
@@ -472,27 +509,6 @@ class _ChargeNotificationsSheetState
       if (item.occasion == occasion) return item.date;
     }
     return null;
-  }
-
-  bool _withinWindow(
-    String occasion,
-    DateTime dueDate,
-    NotificationPreferences prefs,
-  ) {
-    final due = dateOnly(dueDate);
-    final now = today();
-    switch (occasion) {
-      case 'cobranca_vencendo':
-        final start = due.subtract(Duration(days: prefs.reminderBeforeDays));
-        return !now.isBefore(start) && !now.isAfter(due);
-      case 'cobranca':
-        return now == due;
-      case 'cobranca_atraso':
-        final start = due.add(Duration(days: prefs.overdueDays));
-        return !now.isBefore(start);
-      default:
-        return false;
-    }
   }
 
   NotificationTemplatePreview? _templateFor(
@@ -527,5 +543,60 @@ class _ChargeNotificationsSheetState
       default:
         return status.isEmpty ? '—' : status;
     }
+  }
+}
+
+class _AutoToggle extends StatelessWidget {
+  const _AutoToggle({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final active = value;
+    return InkWell(
+      onTap: onChanged == null ? null : () => onChanged!(!active),
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: active
+              ? AppColors.success.withValues(alpha: 0.12)
+              : AppColors.surface,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: active
+                ? AppColors.success.withValues(alpha: 0.4)
+                : AppColors.border,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              active
+                  ? Icons.notifications_active_outlined
+                  : Icons.notifications_off_outlined,
+              size: 14,
+              color: active ? AppColors.success : AppColors.mutedForeground,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: active ? AppColors.success : AppColors.mutedForeground,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
