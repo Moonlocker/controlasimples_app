@@ -57,8 +57,10 @@ class AdminRepository {
         .select('user_id, amount, status');
     final paymentsFuture = _client.from('payments').select('user_id, amount');
     final messagesFuture = _client
-        .from('whatsapp_messages')
-        .select('user_id, status')
+        .from('wa_messages')
+        .select('sender_user_id, status, kind')
+        .eq('direction', 'out')
+        .not('kind', 'is', null)
         .gte('created_at', monthStart);
 
     final profiles = await profilesFuture;
@@ -102,10 +104,11 @@ class AdminRepository {
     final sentByUser = <String, int>{};
     var sentTotal = 0;
     var failedTotal = 0;
+    const okStatuses = {'sent', 'delivered', 'read'};
     for (final row in _rows(messages)) {
-      final id = row['user_id'] as String?;
+      final id = row['sender_user_id'] as String?;
       final status = row['status'] as String?;
-      if (status == 'enviado') {
+      if (okStatuses.contains(status)) {
         sentTotal += 1;
         if (id != null) {
           sentByUser.update(id, (value) => value + 1, ifAbsent: () => 1);
@@ -276,14 +279,16 @@ class AdminRepository {
   }) async {
     final data = userId == null
         ? await _client
-              .from('whatsapp_messages')
+              .from('wa_messages')
               .select()
+              .not('kind', 'is', null)
               .order('created_at', ascending: false)
               .limit(limit)
         : await _client
-              .from('whatsapp_messages')
+              .from('wa_messages')
               .select()
-              .eq('user_id', userId)
+              .eq('sender_user_id', userId)
+              .not('kind', 'is', null)
               .order('created_at', ascending: false)
               .limit(limit);
     return _rows(data).map(WhatsappMessage.fromMap).toList();

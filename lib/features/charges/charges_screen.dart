@@ -607,11 +607,23 @@ class _ChargesScreenState extends ConsumerState<ChargesScreen> {
                 const SizedBox(height: 4),
                 Expanded(
                   child: views.isEmpty && pending.isEmpty
-                      ? const EmptyState(
-                          icon: Icons.receipt_long_outlined,
-                          title: 'Nenhuma cobrança encontrada',
-                          description: 'Ajuste os filtros ou cadastre uma nova cobrança.',
-                        )
+                      ? (chargeViews(workspace).isEmpty && !_hasFilters
+                            ? _ChargesEmptyGuide(
+                                onCreate: chargesLocked
+                                    ? () => showPlanLockedDialog(
+                                        context,
+                                        feature: 'Nova cobrança',
+                                        description:
+                                            'Seu plano permite até ${workspace.plan?.maxChargesMonth} '
+                                            'cobranças por mês. Faça upgrade para criar mais.',
+                                      )
+                                    : () => showChargeForm(context),
+                              )
+                            : const EmptyState(
+                                icon: Icons.receipt_long_outlined,
+                                title: 'Nenhuma cobrança encontrada',
+                                description: 'Ajuste os filtros ou cadastre uma nova cobrança.',
+                              ))
                       : RefreshIndicator(
                           onRefresh: () async {
                             ref.invalidate(workspaceProvider);
@@ -856,6 +868,125 @@ class _PendingCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _GuideStep {
+  const _GuideStep(this.icon, this.title, this.text);
+  final IconData icon;
+  final String title;
+  final String text;
+}
+
+/// Estado vazio da lista de cobranças com um guia de primeiros passos, para
+/// que o usuário novo entenda o fluxo sem precisar explorar a tela inteira.
+class _ChargesEmptyGuide extends StatelessWidget {
+  const _ChargesEmptyGuide({required this.onCreate});
+
+  final VoidCallback onCreate;
+
+  static const List<_GuideStep> _steps = [
+    _GuideStep(
+      Icons.add_circle_outline,
+      '1. Crie a cobrança',
+      'Escolha o cliente, descreva o serviço e informe valor e vencimento.',
+    ),
+    _GuideStep(
+      Icons.send_outlined,
+      '2. Avise no WhatsApp',
+      'Envie o aviso agora ou deixe os lembretes automáticos agirem.',
+    ),
+    _GuideStep(
+      Icons.fact_check_outlined,
+      '3. Acompanhe o pagamento',
+      'Filtre por pendentes, pagas e atrasadas para saber o que fazer.',
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 96),
+      children: [
+        Center(
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: scheme.primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.receipt_long_outlined,
+              size: 28,
+              color: scheme.primary,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Como funcionam as cobranças',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Três passos simples para cobrar e receber sem esquecer ninguém.',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: AppColors.mutedForeground,
+          ),
+        ),
+        const SizedBox(height: 20),
+        for (final step in _steps) ...[
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(step.icon, size: 20, color: scheme.primary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        step.title,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        step.text,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.mutedForeground,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
+        const SizedBox(height: 8),
+        FilledButton.icon(
+          onPressed: onCreate,
+          icon: const Icon(Icons.add),
+          label: const Text('Nova cobrança'),
+        ),
+      ],
     );
   }
 }

@@ -283,17 +283,41 @@ class WhatsappMessage {
   final int costCents;
 
   factory WhatsappMessage.fromMap(Map<String, dynamic> map) {
+    final content =
+        (map['content'] as Map?)?.cast<String, dynamic>() ?? const {};
+    final textNode = content['text'];
+    final body =
+        (content['_preview_text'] ??
+                content['body'] ??
+                (textNode is Map ? textNode['body'] : null) ??
+                '')
+            .toString();
+    final rawDirection = map['direction']?.toString();
+    final direction = switch (rawDirection) {
+      'in' => 'entrada',
+      'out' => 'saida',
+      _ => rawDirection ?? 'saida',
+    };
+    final rawStatus = map['status']?.toString();
+    final status = switch (rawStatus) {
+      'sent' || 'delivered' || 'read' => 'enviado',
+      'failed' => 'erro',
+      'received' => 'recebido',
+      _ => rawStatus ?? '',
+    };
     return WhatsappMessage(
       id: map['id'] as String,
-      direction: (map['direction'] as String?) ?? 'saida',
-      body: (map['body'] as String?) ?? '',
-      status: (map['status'] as String?) ?? '',
+      direction: direction,
+      body: body,
+      status: status,
       createdAt:
           DateTime.tryParse(map['created_at']?.toString() ?? '') ??
           DateTime.now(),
       toPhone: map['to_phone'] as String?,
       fromPhone: map['from_phone'] as String?,
-      userId: map['user_id'] as String?,
+      userId:
+          (map['sender_user_id'] ?? map['organizacao_id'] ?? map['user_id'])
+              as String?,
       clientId: map['client_id'] as String?,
       chargeId: map['charge_id'] as String?,
       kind: map['kind'] as String?,
