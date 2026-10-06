@@ -551,13 +551,16 @@ class _HistoryTab extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 16),
-        Row(
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 12,
+          runSpacing: 4,
           children: [
-            Expanded(
-              child: Text(
-                'Mensagens recentes',
-                style: Theme.of(context).textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w700),
+            Text(
+              'Mensagens recentes',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
               ),
             ),
             TextButton.icon(
@@ -858,13 +861,16 @@ class _TemplatesTab extends ConsumerWidget {
         children: [
           const _MetaTemplatesSection(),
           const SizedBox(height: 24),
-          Row(
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 8,
             children: [
-              Expanded(
-                child: Text(
-                  'Templates vinculados',
-                  style: Theme.of(context).textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w700),
+              Text(
+                'Templates vinculados',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
                 ),
               ),
               FilledButton.icon(
@@ -930,6 +936,8 @@ class _TemplateCard extends ConsumerWidget {
               Expanded(
                 child: Text(
                   template.label.isEmpty ? template.name : template.label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -1596,13 +1604,16 @@ class _MetaTemplatesSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 12,
+          runSpacing: 4,
           children: [
-            Expanded(
-              child: Text(
-                'Modelos da Meta',
-                style: Theme.of(context).textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w700),
+            Text(
+              'Modelos da Meta',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
               ),
             ),
             IconButton(
